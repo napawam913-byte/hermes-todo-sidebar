@@ -1,0 +1,61 @@
+/**
+ * 模块用途：单条待办布局、标题、备注、操作按钮区域和完成态样式。
+ * 模块边界：不写同步状态 pill 和后续菜单扩展样式。
+ */
+.todo-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 4px 1fr;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+}
+
+.todo-item-status {
+  width: 4px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.todo-item-main {
+  min-width: 0;
+}
+
+.todo-item-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.todo-item h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.todo-item p {
+  margin: var(--space-1) 0 0;
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.todo-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.todo-item-actions {
+  grid-column: 2;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}

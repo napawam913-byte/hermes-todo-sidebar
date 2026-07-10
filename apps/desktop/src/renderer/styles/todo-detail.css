@@ -1,0 +1,173 @@
+/**
+ * 模块用途：今日待办卡片详情入口、选中态和右侧详情内容样式。
+ * 模块边界：不处理顶部筛选、快速新增和周期任务日期列表。
+ */
+.today-todo-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  transition:
+    background-color var(--button-hover) ease-out,
+    border-color var(--button-hover) ease-out;
+}
+
+.today-todo-card.is-selected {
+  border-color: var(--accent);
+  background: oklch(0.96 0.035 205);
+}
+
+.today-todo-card.is-completed {
+  opacity: 0.72;
+}
+
+.today-todo-open {
+  display: grid;
+  grid-template-columns: 4px 1fr;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.today-todo-open:hover {
+  background: var(--surface-page);
+}
+
+.today-todo-main {
+  min-width: 0;
+}
+
+.today-todo-title-row,
+.today-todo-title-trailing {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.today-todo-title-trailing {
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.today-todo-chevron {
+  color: var(--ink-soft);
+}
+
+.today-todo-card h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.today-todo-card p {
+  margin: var(--space-1) 0 0;
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.today-todo-card > .todo-item-actions {
+  grid-column: auto;
+  padding: 0 var(--space-3) var(--space-3) 28px;
+}
+
+.todo-detail-summary {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-4) var(--space-5);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+
+.todo-detail-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.todo-detail-summary p {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.todo-detail-status {
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.todo-detail-status.is-completed {
+  color: var(--success);
+}
+
+.todo-detail-content {
+  display: grid;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  border-top: 1px solid var(--border);
+  background: var(--surface-page);
+}
+
+.todo-detail-metadata {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.todo-detail-metadata-row {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.todo-detail-metadata-row dt,
+.todo-detail-metadata-row dd {
+  margin: 0;
+  font-size: 12px;
+}
+
+.todo-detail-metadata-row dt {
+  color: var(--ink-soft);
+}
+
+.todo-detail-metadata-row dd {
+  color: var(--ink);
+}
+
+.todo-detail-section {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.todo-detail-section h3,
+.todo-detail-empty strong {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.todo-detail-empty {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+}
+
+.todo-detail-empty span {
+  color: var(--ink-muted);
+  font-size: 12px;
+}

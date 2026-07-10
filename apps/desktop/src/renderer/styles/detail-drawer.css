@@ -1,0 +1,98 @@
+/**
+ * 模块用途：今日待办与周期任务共用的固定右侧详情壳层样式。
+ * 模块边界：只处理抽屉几何、标题、分隔、滚动和进入动效。
+ */
+.sidebar-shell:has(.detail-drawer) {
+  width: 760px;
+  transition-property: height, border-radius, box-shadow;
+}
+
+.detail-drawer-divider {
+  position: fixed;
+  top: 0;
+  left: 360px;
+  z-index: 12;
+  width: 1px;
+  height: 100vh;
+  background: var(--border);
+  pointer-events: none;
+}
+
+.detail-drawer {
+  position: fixed;
+  top: 0;
+  left: 360px;
+  z-index: 11;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 400px;
+  height: 100vh;
+  padding: 0;
+  background: var(--surface-panel);
+  box-shadow: var(--shadow-panel);
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  animation: detail-drawer-slide-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.detail-drawer-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-panel);
+}
+
+.detail-drawer-header p {
+  margin: 0 0 var(--space-1);
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.detail-drawer-header h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.detail-drawer .content-block {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.detail-drawer .fitness-exercise {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.detail-drawer .fitness-exercise:last-child {
+  border-bottom: 0;
+}
+
+@keyframes detail-drawer-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detail-drawer {
+    animation: none;
+  }
+}

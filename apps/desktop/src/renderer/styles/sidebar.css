@@ -1,0 +1,220 @@
+/**
+ * 模块用途：侧边栏壳层和桌宠式闲置入口样式。
+ * 模块边界：不写待办列表内部样式。
+ */
+.sidebar-shell {
+  position: fixed;
+  inset: 0;
+  display: block;
+  width: 360px;
+  height: 100vh;
+  background: var(--surface-page);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-panel);
+}
+
+.sidebar-shell.is-idle {
+  width: 88px;
+  height: 96px;
+  overflow: visible;
+  border: 0;
+  border-radius: 26px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.sidebar-content {
+  width: 360px;
+  min-width: 0;
+  max-width: 360px;
+  height: 100%;
+  overflow: visible;
+}
+
+.is-idle .sidebar-content {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.desktop-pet-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 96px;
+  border: 0;
+  border-radius: 26px;
+  background: transparent;
+  color: var(--accent-strong);
+  cursor: pointer;
+}
+
+.desktop-pet-button:hover .desktop-pet-body {
+  border-color: oklch(0.73 0.09 185);
+  background: oklch(0.98 0.02 185);
+  transform: translateY(-2px);
+}
+
+.desktop-pet-button:active .desktop-pet-body {
+  transform: translateY(1px) scale(0.98);
+}
+
+.desktop-pet-aura {
+  position: absolute;
+  inset: 14px 9px 4px;
+  border-radius: 999px;
+  background: oklch(0.78 0.04 190 / 0.22);
+  filter: blur(12px);
+}
+
+.desktop-pet-body {
+  position: relative;
+  display: grid;
+  grid-template-rows: 18px 1fr 24px;
+  justify-items: center;
+  width: 70px;
+  height: 78px;
+  border: 1px solid var(--border);
+  border-radius: 28px 28px 24px 24px;
+  background: linear-gradient(180deg, var(--surface-panel), oklch(0.94 0.02 220));
+  box-shadow: 0 10px 24px oklch(0.2 0.02 240 / 0.18);
+  transition:
+    background-color var(--button-hover) ease-out,
+    border-color var(--button-hover) ease-out,
+    transform var(--button-hover) ease-out;
+}
+
+.desktop-pet-ears {
+  position: absolute;
+  top: -6px;
+  display: flex;
+  gap: 25px;
+}
+
+.desktop-pet-ears span {
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px 10px 4px 4px;
+  background: var(--surface-panel);
+}
+
+.desktop-pet-face {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  height: 32px;
+  margin-top: 14px;
+}
+
+.desktop-pet-eye {
+  width: 7px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--ink);
+}
+
+.desktop-pet-belly {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.desktop-pet-count {
+  position: absolute;
+  right: 8px;
+  bottom: 9px;
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  padding: 0 5px;
+  background: var(--ink);
+  color: white;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.desktop-pet-alert-dot {
+  position: absolute;
+  top: 14px;
+  right: 15px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid white;
+  border-radius: 999px;
+  background: var(--danger);
+}
+
+.idle-icon-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--border);
+  border-right: 0;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  background: var(--surface-panel);
+  color: var(--accent-strong);
+  box-shadow: 0 4px 12px oklch(0.2 0.02 240 / 0.12);
+}
+
+.edge-handle {
+  display: grid;
+  grid-template-rows: 1fr auto auto 1fr;
+  align-items: center;
+  justify-items: center;
+  gap: var(--space-3);
+  width: 48px;
+  height: 100vh;
+  padding: var(--space-4) 0;
+  border: 0;
+  border-right: 1px solid var(--border);
+  background: var(--surface-panel);
+  color: var(--ink-muted);
+}
+
+.edge-handle:hover {
+  color: var(--accent-strong);
+}
+
+.edge-handle-mark {
+  position: relative;
+  grid-row: 2;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.edge-alert-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--danger);
+}
+
+.edge-count {
+  grid-row: 3;
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+}

@@ -1,0 +1,147 @@
+/**
+ * 模块用途：待办面板、筛选标签、快速新增和空状态样式。
+ * 模块边界：不写单条待办内部操作和状态标签样式。
+ */
+.todo-panel {
+  display: flex;
+  flex-direction: column;
+  width: 360px;
+  min-width: 360px;
+  height: 100vh;
+  padding: var(--space-5);
+  gap: var(--space-4);
+  overflow: hidden;
+}
+
+.todo-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.panel-kicker {
+  margin: 0 0 var(--space-1);
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.todo-panel h1 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.top-mode-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+
+.top-mode-tab {
+  min-height: 34px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.top-mode-tab.is-active {
+  background: var(--surface-raised);
+  color: var(--ink);
+  box-shadow: 0 1px 2px oklch(0.2 0.02 240 / 0.08);
+}
+
+.todo-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.todo-summary div {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-panel);
+}
+
+.todo-summary span {
+  color: var(--ink-muted);
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.todo-summary strong {
+  color: var(--ink);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.filter-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+
+.filter-tab {
+  min-height: 30px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.filter-tab.is-active {
+  background: var(--surface-raised);
+  color: var(--ink);
+  box-shadow: 0 1px 2px oklch(0.2 0.02 240 / 0.08);
+}
+
+.quick-add {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-2);
+}
+
+.quick-add input {
+  min-width: 0;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-3);
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+
+.quick-add input::placeholder {
+  color: var(--ink-muted);
+}
+
+.todo-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+  overflow: auto;
+  padding-right: var(--space-1);
+}

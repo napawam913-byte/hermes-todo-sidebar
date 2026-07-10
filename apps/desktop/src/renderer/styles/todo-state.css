@@ -1,0 +1,57 @@
+/**
+ * 模块用途：待办来源标签和列表空状态样式。
+ * 模块边界：不负责待办卡片布局、筛选和新增控件。
+ */
+.source-pill {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 3px var(--space-2);
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.source-manual {
+  background: var(--surface-muted);
+  color: var(--ink-muted);
+}
+
+.source-cycle {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.source-ai {
+  background: oklch(0.93 0.055 290);
+  color: oklch(0.42 0.11 292);
+}
+
+.source-hermes {
+  background: oklch(0.93 0.055 210);
+  color: oklch(0.38 0.1 215);
+}
+
+.source-feishu {
+  background: oklch(0.94 0.045 155);
+  color: oklch(0.39 0.09 160);
+}
+
+.empty-state {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-5);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  color: var(--ink-muted);
+  background: var(--surface-panel);
+}
+
+.empty-state strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.empty-state span {
+  font-size: 13px;
+  line-height: 1.45;
+}

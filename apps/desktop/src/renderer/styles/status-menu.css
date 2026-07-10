@@ -1,0 +1,88 @@
+/**
+ * 模块用途：提醒标签、同步标签、稍后次数和稍后菜单样式。
+ * 模块边界：不写待办面板结构和按钮基础样式。
+ */
+.reminder-badge,
+.sync-pill,
+.snooze-count {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 22px;
+  border-radius: 999px;
+  padding: 0 var(--space-2);
+  font-size: 11px;
+  font-weight: 650;
+}
+.reminder-none {
+  color: var(--ink-soft);
+  background: var(--surface-muted);
+}
+
+.reminder-overdue {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.reminder-today {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+.reminder-upcoming {
+  color: var(--ink-muted);
+  background: var(--surface-muted);
+}
+
+.sync-pill {
+  border: 1px solid transparent;
+}
+
+.sync-local,
+.sync-queued {
+  color: var(--ink-muted);
+  background: var(--surface-muted);
+}
+
+.sync-synced {
+  color: var(--success);
+  background: oklch(0.94 0.052 150);
+}
+
+.sync-failed {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: white;
+}
+
+.snooze-count {
+  color: var(--warning);
+  background: oklch(0.95 0.055 80);
+}
+
+.snooze-menu {
+  position: fixed;
+  right: 18px;
+  z-index: 30;
+  display: grid;
+  gap: var(--space-1);
+  min-width: 120px;
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  box-shadow: 0 8px 18px oklch(0.2 0.02 240 / 0.14);
+}
+
+.snooze-menu button {
+  height: 30px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+}
+
+.snooze-menu button:hover {
+  background: var(--surface-muted);
+}

@@ -1,0 +1,212 @@
+/**
+ * 模块用途：周期计划列表、日期条目详情和统一内容块预览样式。
+ * 模块边界：不覆盖今日待办卡片和桌宠壳层样式。
+ */
+.cycle-plan-view,
+.cycle-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+  overflow: auto;
+  padding-right: var(--space-1);
+}
+
+.cycle-plan-toolbar,
+.cycle-detail-header {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.cycle-plan-toolbar p,
+.cycle-detail-header p,
+.cycle-content-title span {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.cycle-plan-toolbar h2,
+.cycle-detail-header h2,
+.cycle-content-title h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.cycle-plan-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.cycle-plan-list,
+.cycle-entry-list,
+.cycle-content-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.cycle-plan-card,
+.cycle-entry-card {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  color: inherit;
+  text-align: left;
+}
+
+.cycle-plan-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.cycle-plan-card.is-selected {
+  border-color: var(--accent);
+  background: oklch(0.96 0.035 205);
+}
+
+.cycle-plan-card-main,
+.cycle-entry-card div {
+  min-width: 0;
+}
+
+.cycle-plan-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.cycle-plan-card h2,
+.cycle-entry-card h3,
+.content-block h4 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.cycle-plan-card p,
+.cycle-entry-card p,
+.fitness-exercise p {
+  margin: var(--space-1) 0 0;
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.cycle-plan-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  color: var(--ink-muted);
+  font-size: 11px;
+}
+
+.cycle-plan-meta strong {
+  color: var(--accent-strong);
+}
+
+.cycle-entry-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.cycle-entry-card.is-active {
+  border-color: var(--accent);
+  box-shadow: inset 4px 0 0 var(--accent);
+}
+
+.cycle-entry-date {
+  display: block;
+  color: var(--ink-soft);
+  font-size: 11px;
+  margin-bottom: var(--space-1);
+}
+
+.cycle-entry-status {
+  align-self: start;
+  border-radius: 999px;
+  padding: 4px var(--space-2);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.status-pending {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.status-completed {
+  background: oklch(0.91 0.075 150);
+  color: var(--success);
+}
+
+.status-skipped {
+  background: var(--surface-muted);
+  color: var(--ink-muted);
+}
+
+.content-block {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+}
+
+.content-block-header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.content-block-header span {
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+
+.content-block pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--ink-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.fitness-exercise-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.fitness-exercise {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+}
+
+.fitness-exercise strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.fitness-exercise span {
+  color: var(--ink-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}

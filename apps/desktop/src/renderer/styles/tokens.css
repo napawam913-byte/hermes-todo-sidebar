@@ -1,0 +1,33 @@
+/**
+ * 模块用途：全局视觉 token，集中管理颜色、间距、圆角和阴影。
+ * 模块边界：只定义设计变量，不写组件结构样式。
+ */
+:root {
+  color-scheme: light;
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --surface-page: oklch(0.972 0.009 230);
+  --surface-panel: oklch(0.995 0.004 230);
+  --surface-raised: oklch(1 0 0);
+  --surface-muted: oklch(0.94 0.012 225);
+  --ink: oklch(0.22 0.026 240);
+  --ink-muted: oklch(0.48 0.03 240);
+  --ink-soft: oklch(0.61 0.025 240);
+  --border: oklch(0.88 0.018 230);
+  --accent: oklch(0.55 0.13 185);
+  --accent-strong: oklch(0.43 0.12 188);
+  --accent-soft: oklch(0.91 0.053 185);
+  --danger: oklch(0.58 0.18 25);
+  --danger-soft: oklch(0.94 0.045 25);
+  --warning: oklch(0.68 0.15 70);
+  --success: oklch(0.52 0.13 150);
+  --shadow-panel: 0 10px 30px oklch(0.2 0.02 240 / 0.12);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+}

@@ -1,0 +1,103 @@
+/**
+ * 模块用途：全局动效样式，覆盖展开、下拉、完成、提醒和按钮反馈。
+ * 模块边界：只写 CSS 动效，不存业务状态。
+ */
+:root {
+  --ease-sidebar: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --sidebar-expand: 220ms;
+  --sidebar-collapse: 180ms;
+  --dropdown-enter: 140ms;
+  --button-hover: 120ms;
+  --button-press: 80ms;
+  --todo-complete: 180ms;
+  --todo-reflow: 160ms;
+}
+
+.sidebar-shell {
+  transition:
+    width var(--sidebar-expand) var(--ease-sidebar),
+    height var(--sidebar-expand) var(--ease-sidebar),
+    border-radius var(--sidebar-expand) var(--ease-sidebar),
+    box-shadow 160ms ease-out;
+}
+
+.sidebar-shell.is-collapsed {
+  transition-duration: var(--sidebar-collapse);
+}
+
+.sidebar-shell.is-idle {
+  transition-duration: var(--sidebar-collapse);
+}
+
+.snooze-menu {
+  animation: dropdown-in var(--dropdown-enter) ease-out;
+}
+
+.ui-button {
+  transition:
+    background-color var(--button-hover) ease-out,
+    color var(--button-hover) ease-out,
+    border-color var(--button-hover) ease-out,
+    transform var(--button-press) ease-out;
+}
+
+.ui-button:active {
+  transform: scale(0.98);
+}
+
+.todo-item {
+  transition:
+    opacity var(--todo-complete) ease-out,
+    transform var(--todo-complete) ease-out,
+    margin var(--todo-reflow) ease-out;
+}
+
+.todo-item.is-completed {
+  opacity: 0.62;
+}
+
+.reminder-overdue + .todo-item-status,
+.todo-item:has(.reminder-overdue) .todo-item-status {
+  animation: reminder-flash 480ms ease-out 1;
+}
+
+.sync-pill {
+  transition:
+    color 120ms ease-out,
+    border-color 120ms ease-out,
+    background-color 120ms ease-out;
+}
+
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes reminder-flash {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  45% {
+    opacity: 0.34;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-property: background-color, border-color, color, opacity !important;
+    transition-duration: 1ms !important;
+    transform: none !important;
+  }
+}

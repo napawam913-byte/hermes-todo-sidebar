@@ -1,0 +1,52 @@
+/**
+ * 模块用途：共享按钮组件样式，覆盖图标按钮、主按钮和低强调按钮。
+ * 模块边界：只处理按钮外观，不写业务布局。
+ */
+.ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 32px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  padding: 0 var(--space-3);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.ui-button svg {
+  flex: 0 0 auto;
+}
+
+.ui-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.ui-button-icon {
+  width: 32px;
+  padding: 0;
+  color: var(--ink-muted);
+  background: transparent;
+}
+
+.ui-button-icon:hover,
+.ui-button-quiet:hover {
+  background: var(--surface-muted);
+  color: var(--ink);
+}
+
+.ui-button-primary {
+  background: var(--accent);
+  color: white;
+}
+
+.ui-button-primary:hover {
+  background: var(--accent-strong);
+}
+
+.ui-button-quiet {
+  background: transparent;
+  color: var(--ink-muted);
+}
