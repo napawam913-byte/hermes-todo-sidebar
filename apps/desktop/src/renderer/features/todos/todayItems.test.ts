@@ -9,8 +9,19 @@ import type { Todo } from "./types";
 
 const manualTodos: Todo[] = [
   {
+    id: "todo_manual_overdue",
+    title: "昨天未完成的手动待办",
+    date: "2026-07-09",
+    status: "pending",
+    syncStatus: "local",
+    createdAt: "2026-07-09T08:00:00.000Z",
+    updatedAt: "2026-07-09T08:00:00.000Z",
+    snoozeCount: 0
+  },
+  {
     id: "todo_manual_pending",
     title: "手动补充一条待办",
+    date: "2026-07-10",
     status: "pending",
     syncStatus: "local",
     createdAt: "2026-07-10T08:00:00.000Z",
@@ -20,11 +31,22 @@ const manualTodos: Todo[] = [
   {
     id: "todo_manual_completed",
     title: "已经完成的手动待办",
+    date: "2026-07-10",
     status: "completed",
     syncStatus: "synced",
     createdAt: "2026-07-09T08:00:00.000Z",
     updatedAt: "2026-07-10T09:00:00.000Z",
     completedAt: "2026-07-10T09:00:00.000Z",
+    snoozeCount: 0
+  },
+  {
+    id: "todo_manual_future",
+    title: "明天的手动待办",
+    date: "2026-07-11",
+    status: "pending",
+    syncStatus: "local",
+    createdAt: "2026-07-10T08:00:00.000Z",
+    updatedAt: "2026-07-10T08:00:00.000Z",
     snoozeCount: 0
   }
 ];
@@ -38,12 +60,14 @@ describe("todayItems", () => {
     });
 
     expect(items.map((item) => item.title)).toEqual([
+      "昨天未完成的手动待办",
       "上肢力量训练",
       "教程第 3 章学习",
       "手动补充一条待办",
       "已经完成的手动待办"
     ]);
-    expect(items.map((item) => item.sourceLabel)).toEqual(["周期任务", "周期任务", "手动", "手动"]);
+    expect(items[0]).toMatchObject({ date: "2026-07-09", isOverdue: true });
+    expect(items.some((item) => item.title === "明天的手动待办")).toBe(false);
   });
 
   it("filters today items by pending, completed, and all", () => {
@@ -53,9 +77,9 @@ describe("todayItems", () => {
       dateKey: "2026-07-10"
     });
 
-    expect(filterTodayItems(items, "pending")).toHaveLength(3);
+    expect(filterTodayItems(items, "pending")).toHaveLength(4);
     expect(filterTodayItems(items, "completed")).toHaveLength(1);
-    expect(filterTodayItems(items, "all")).toHaveLength(4);
+    expect(filterTodayItems(items, "all")).toHaveLength(5);
   });
 
   it("builds summary cards from the merged today view", () => {
@@ -66,9 +90,9 @@ describe("todayItems", () => {
     });
 
     expect(getTodaySummary(items)).toEqual({
-      pending: 3,
+      pending: 4,
       completed: 1,
-      all: 4
+      all: 5
     });
   });
 });

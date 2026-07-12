@@ -10,6 +10,7 @@ function makeTodo(overrides: Partial<Todo> = {}): Todo {
   return {
     id: "todo_1",
     title: "整理今日待办",
+    date: "2026-07-09",
     notes: "不应传给 Agent 的详细备注",
     status: "pending",
     syncStatus: "failed",

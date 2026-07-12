@@ -4,6 +4,7 @@
  */
 import type { Todo, SyncStatus, TodoStatus } from "./types";
 import type { TodoRepository } from "./todoRepository";
+import { toLocalDateKey } from "./useLocalDateKey";
 
 export const TODO_STORAGE_KEY = "hermes.todoSidebar.todos.v1";
 
@@ -28,6 +29,12 @@ function optionalString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
+function normalizeDateKey(value: unknown, createdAt: string): string | undefined {
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const createdDate = new Date(createdAt);
+  return Number.isNaN(createdDate.getTime()) ? undefined : toLocalDateKey(createdDate);
+}
+
 function normalizeTodo(value: unknown): Todo | undefined {
   if (!isRecord(value)) return undefined;
   if (typeof value.id !== "string") return undefined;
@@ -36,10 +43,13 @@ function normalizeTodo(value: unknown): Todo | undefined {
   if (!isSyncStatus(value.syncStatus)) return undefined;
   if (typeof value.createdAt !== "string") return undefined;
   if (typeof value.updatedAt !== "string") return undefined;
+  const date = normalizeDateKey(value.date, value.createdAt);
+  if (!date) return undefined;
 
   return {
     id: value.id,
     title: value.title,
+    date,
     notes: optionalString(value.notes),
     status: value.status,
     syncStatus: value.syncStatus,
@@ -49,6 +59,11 @@ function normalizeTodo(value: unknown): Todo | undefined {
     completedAt: optionalString(value.completedAt),
     snoozeCount: typeof value.snoozeCount === "number" ? value.snoozeCount : 0
   };
+}
+
+export function normalizeTodos(value: unknown): Todo[] {
+  if (!Array.isArray(value)) return [];
+  return value.map(normalizeTodo).filter((todo): todo is Todo => Boolean(todo));
 }
 
 export function createLocalTodoRepository(storage: StorageLike | null | undefined): TodoRepository {
@@ -61,9 +76,7 @@ export function createLocalTodoRepository(storage: StorageLike | null | undefine
         if (!rawValue) return [];
 
         const parsed = JSON.parse(rawValue);
-        if (!Array.isArray(parsed)) return [];
-
-        return parsed.map(normalizeTodo).filter((todo): todo is Todo => Boolean(todo));
+        return normalizeTodos(parsed);
       } catch {
         return [];
       }

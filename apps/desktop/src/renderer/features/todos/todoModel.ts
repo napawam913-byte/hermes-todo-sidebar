@@ -3,6 +3,7 @@
  * 模块边界：不读写 UI 状态，不访问本地存储或网络。
  */
 import type { ReminderKind, Todo, TodoEvent, TodoEventType, TodoMutationResult } from "./types";
+import { toLocalDateKey } from "./useLocalDateKey";
 
 interface CreateTodoDraftInput {
   title: string;
@@ -47,6 +48,7 @@ export function createTodoDraft(input: CreateTodoDraftInput): TodoMutationResult
   const todo: Todo = {
     id: createId("todo"),
     title,
+    date: toLocalDateKey(input.now),
     status: "pending",
     syncStatus: "queued",
     remindAt: input.remindAt?.toISOString(),

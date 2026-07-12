@@ -13,10 +13,13 @@ const manualItem: TodayItem = {
   title: "测试待办",
   summary: "测试详情入口",
   status: "pending",
+  date: "2026-07-10",
+  isOverdue: false,
   sourceLabel: "手动",
   todo: {
     id: "todo-test",
     title: "测试待办",
+    date: "2026-07-10",
     notes: "测试详情入口",
     status: "pending",
     syncStatus: "local",

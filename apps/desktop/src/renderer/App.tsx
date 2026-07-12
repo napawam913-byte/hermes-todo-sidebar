@@ -5,7 +5,6 @@
 import { useMemo, useState } from "react";
 import { createLocalCyclePlanRepository } from "./features/cyclePlans/localCyclePlanRepository";
 import { mockCyclePlans } from "./features/cyclePlans/mockCyclePlans";
-import { getLocalDateKey } from "./features/cyclePlans/cyclePlanModel";
 import { useCyclePlanStore } from "./features/cyclePlans/cyclePlanStore";
 import { SidebarShell } from "./features/sidebar/SidebarShell";
 import { TodoPanel } from "./features/todos/TodoPanel";
@@ -14,6 +13,7 @@ import { mockTodos } from "./features/todos/mockTodos";
 import { buildTodayItems } from "./features/todos/todayItems";
 import { useTodoStore } from "./features/todos/todoStore";
 import type { Todo } from "./features/todos/types";
+import { useLocalDateKey } from "./features/todos/useLocalDateKey";
 
 const SOURCE_DEVICE_ID = "desktop-prototype";
 
@@ -34,7 +34,7 @@ export function App() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailResetVersion, setDetailResetVersion] = useState(0);
   const [expanded, setExpanded] = useState(true);
-  const todayKey = useMemo(() => getLocalDateKey(new Date()), []);
+  const todayKey = useLocalDateKey();
   const {
     addTodo,
     completeTodo,

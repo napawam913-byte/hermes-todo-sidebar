@@ -8,6 +8,7 @@ export const mockTodos: Todo[] = [
   {
     id: "todo_ui_review",
     title: "整理待办桌宠第一版界面",
+    date: "2026-07-10",
     notes: "只保留新增、完成和同步状态占位。",
     status: "pending",
     syncStatus: "synced",
@@ -18,6 +19,7 @@ export const mockTodos: Todo[] = [
   {
     id: "todo_motion_doc",
     title: "确认待办列表视觉密度",
+    date: "2026-07-10",
     status: "pending",
     syncStatus: "queued",
     createdAt: "2026-07-08T09:20:00.000Z",
@@ -27,6 +29,7 @@ export const mockTodos: Todo[] = [
   {
     id: "todo_sync_placeholder",
     title: "标注 Hermes/飞书同步占位",
+    date: "2026-07-10",
     notes: "先显示状态，不实际联网。",
     status: "pending",
     syncStatus: "failed",

@@ -23,6 +23,7 @@ function makeTodo(overrides: Partial<Todo> = {}): Todo {
   return {
     id: "todo_1",
     title: "确认桌宠待办持久化",
+    date: "2026-07-08",
     status: "pending",
     syncStatus: "queued",
     createdAt: "2026-07-08T09:00:00.000Z",
@@ -59,6 +60,16 @@ describe("createLocalTodoRepository", () => {
     }));
 
     expect(repository.loadTodos()).toEqual([makeTodo({ id: "todo_ok" })]);
+  });
+
+  it("migrates legacy todos without a date from their local creation date", () => {
+    const legacyTodo = { ...makeTodo() } as Record<string, unknown>;
+    delete legacyTodo.date;
+    const repository = createLocalTodoRepository(createMemoryStorage({
+      "hermes.todoSidebar.todos.v1": JSON.stringify([legacyTodo])
+    }));
+
+    expect(repository.loadTodos()[0].date).toBe("2026-07-08");
   });
 
   it("drops legacy plan entry snapshots so cycle entries remain the single source of truth", () => {

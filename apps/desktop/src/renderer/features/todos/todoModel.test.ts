@@ -22,6 +22,7 @@ describe("todoModel", () => {
     });
 
     expect(result.todo.title).toBe("写 Hermes 侧边栏方案");
+    expect(result.todo.date).toBe("2026-07-08");
     expect(result.todo.status).toBe("pending");
     expect(result.todo.remindAt).toBe(remindAt.toISOString());
     expect(result.event.type).toBe("todo.created");
@@ -77,6 +78,7 @@ describe("todoModel", () => {
     const makeTodo = (id: string, remindAt?: Date): Todo => ({
       id,
       title: id,
+      date: "2026-07-08",
       status: "pending",
       syncStatus: "local",
       remindAt: remindAt?.toISOString(),
@@ -102,6 +104,7 @@ describe("todoModel", () => {
     const makeTodo = (id: string, createdAt: string, remindAt?: Date): Todo => ({
       id,
       title: id,
+      date: "2026-07-08",
       status: "pending",
       syncStatus: "local",
       remindAt: remindAt?.toISOString(),

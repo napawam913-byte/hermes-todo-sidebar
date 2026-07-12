@@ -20,6 +20,7 @@ export function TodayTodoCard({ item, onComplete, onOpen, selected }: TodayTodoC
   const classes = [
     "today-todo-card",
     completed ? "is-completed" : "",
+    item.isOverdue ? "is-overdue" : "",
     selected ? "is-selected" : ""
   ].filter(Boolean).join(" ");
 
@@ -43,6 +44,7 @@ export function TodayTodoCard({ item, onComplete, onOpen, selected }: TodayTodoC
           </div>
           {item.summary ? <p>{item.summary}</p> : null}
           <div className="todo-item-meta">
+            {item.isOverdue ? <span className="overdue-pill">逾期 · {item.date}</span> : null}
             {item.kind === "manual" ? <SyncStatusPill status={item.todo.syncStatus} /> : <span>{item.planTopic}</span>}
           </div>
         </div>

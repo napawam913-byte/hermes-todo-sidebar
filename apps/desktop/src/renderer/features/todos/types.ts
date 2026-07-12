@@ -18,6 +18,7 @@ export type ReminderKind = "none" | "overdue" | "today" | "upcoming";
 export interface Todo {
   id: string;
   title: string;
+  date: string;
   notes?: string;
   status: TodoStatus;
   syncStatus: SyncStatus;
