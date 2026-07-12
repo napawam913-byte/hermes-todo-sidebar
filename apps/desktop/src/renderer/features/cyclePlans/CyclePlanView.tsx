@@ -1,12 +1,13 @@
 /**
- * 模块用途：周期任务主视图，展示主题列表，并在右侧抽屉中展示选中主题详情。
- * 模块边界：当前只读展示 mock/本地计划，不创建真实 Hermes 或 AI 任务。
+ * 模块用途：周期任务主视图，协调主题列表、只读详情和手动编辑抽屉。
+ * 模块边界：只管理视图选择，不调用 Hermes 或生成 AI 草稿。
  */
 import { Plus, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PrimaryButton, QuietButton } from "../../components/buttons";
 import { CyclePlanCard } from "./CyclePlanCard";
 import { CyclePlanDrawer } from "./CyclePlanDrawer";
+import { CyclePlanEditorDrawer } from "./CyclePlanEditorDrawer";
 import type { CyclePlan } from "./cyclePlanTypes";
 
 interface CyclePlanViewProps {
@@ -14,34 +15,39 @@ interface CyclePlanViewProps {
   onDetailOpenChange: (open: boolean) => void;
   plans: CyclePlan[];
   todayKey: string;
+  onUpsertPlan: (plan: CyclePlan) => void;
 }
 
 export function CyclePlanView({
   detailResetVersion,
   onDetailOpenChange,
+  onUpsertPlan,
   plans,
   todayKey
 }: CyclePlanViewProps) {
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [editorPlanId, setEditorPlanId] = useState<"new" | string | null>(null);
   const selectedPlan = useMemo(
     () => plans.find((plan) => plan.id === selectedPlanId),
     [plans, selectedPlanId]
   );
-  const detailOpen = Boolean(selectedPlan);
+  const editorPlan = plans.find((plan) => plan.id === editorPlanId);
+  const drawerOpen = Boolean(selectedPlan) || editorPlanId !== null;
 
   useEffect(() => {
     setSelectedPlanId(null);
+    setEditorPlanId(null);
   }, [detailResetVersion]);
 
   useEffect(() => {
-    onDetailOpenChange(detailOpen);
+    onDetailOpenChange(drawerOpen);
     return () => {
-      if (detailOpen) onDetailOpenChange(false);
+      if (drawerOpen) onDetailOpenChange(false);
     };
-  }, [detailOpen, onDetailOpenChange]);
+  }, [drawerOpen, onDetailOpenChange]);
 
   return (
-    <section className={selectedPlan ? "cycle-plan-view has-drawer" : "cycle-plan-view"}>
+    <section className={drawerOpen ? "cycle-plan-view has-drawer" : "cycle-plan-view"}>
       <div className="cycle-plan-toolbar">
         <div>
           <p>周期任务</p>
@@ -51,7 +57,13 @@ export function CyclePlanView({
           <QuietButton disabled icon={<Sparkles size={16} strokeWidth={1.8} />}>
             AI 安排草稿
           </QuietButton>
-          <PrimaryButton disabled icon={<Plus size={16} strokeWidth={2} />}>
+          <PrimaryButton
+            icon={<Plus size={16} strokeWidth={2} />}
+            onClick={() => {
+              setSelectedPlanId(null);
+              setEditorPlanId("new");
+            }}
+          >
             手动添加
           </PrimaryButton>
         </div>
@@ -70,7 +82,10 @@ export function CyclePlanView({
               plan={plan}
               selected={plan.id === selectedPlanId}
               todayKey={todayKey}
-              onOpen={() => setSelectedPlanId(plan.id)}
+              onOpen={() => {
+                setEditorPlanId(null);
+                setSelectedPlanId(plan.id);
+              }}
             />
           ))
         )}
@@ -81,6 +96,22 @@ export function CyclePlanView({
           plan={selectedPlan}
           todayKey={todayKey}
           onClose={() => setSelectedPlanId(null)}
+          onEdit={() => {
+            setSelectedPlanId(null);
+            setEditorPlanId(selectedPlan.id);
+          }}
+        />
+      ) : null}
+      {editorPlanId !== null ? (
+        <CyclePlanEditorDrawer
+          dateKey={todayKey}
+          plan={editorPlan}
+          onClose={() => setEditorPlanId(null)}
+          onSave={(plan) => {
+            onUpsertPlan(plan);
+            setEditorPlanId(null);
+            setSelectedPlanId(plan.id);
+          }}
         />
       ) : null}
     </section>

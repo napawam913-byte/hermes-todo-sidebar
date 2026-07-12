@@ -1,0 +1,107 @@
+/**
+ * 模块用途：周期计划手动编辑抽屉的字段、日期条目和底部操作区样式。
+ * 模块边界：不改变固定双栏几何，也不覆盖只读计划详情。
+ */
+.cycle-plan-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-5);
+}
+
+.cycle-plan-fields,
+.cycle-editor-entry-list {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.cycle-plan-editor label {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cycle-plan-editor input,
+.cycle-plan-editor textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: 0;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 500;
+}
+
+.cycle-plan-editor input {
+  height: 40px;
+  padding: 0 var(--space-3);
+}
+
+.cycle-plan-editor textarea {
+  min-height: 76px;
+  padding: var(--space-3);
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.cycle-plan-editor input:focus,
+.cycle-plan-editor textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.cycle-editor-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.cycle-editor-section-title strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.cycle-entry-fields {
+  position: relative;
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.cycle-entry-fields legend {
+  padding: 0 var(--space-1);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.cycle-entry-remove {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+}
+
+.cycle-editor-footer {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  background: var(--surface-panel);
+}
+
+.cycle-drawer-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 var(--space-5) var(--space-3);
+}

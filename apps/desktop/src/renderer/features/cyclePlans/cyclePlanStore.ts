@@ -3,6 +3,7 @@
  * 模块边界：只管理前端周期计划状态，不做 Hermes 同步或 AI 生成。
  */
 import { useCallback, useState } from "react";
+import { upsertCyclePlan } from "./cyclePlanDraft";
 import { completeCyclePlanEntry } from "./cyclePlanModel";
 import type { CyclePlanRepository } from "./cyclePlanRepository";
 import type { CyclePlan, CyclePlanEntry } from "./cyclePlanTypes";
@@ -15,6 +16,7 @@ interface UseCyclePlanStoreOptions {
 interface CyclePlanStoreState {
   cyclePlans: CyclePlan[];
   completeEntry(entryId: string): CyclePlanEntry | undefined;
+  upsertPlan(plan: CyclePlan): void;
 }
 
 function loadInitialPlans(repository: CyclePlanRepository, fallbackPlans: CyclePlan[]) {
@@ -42,8 +44,20 @@ export function useCyclePlanStore(options: UseCyclePlanStoreOptions): CyclePlanS
     [repository]
   );
 
+  const savePlan = useCallback(
+    (plan: CyclePlan) => {
+      setCyclePlans((currentPlans) => {
+        const updatedPlans = upsertCyclePlan(currentPlans, plan);
+        repository.savePlans(updatedPlans);
+        return updatedPlans;
+      });
+    },
+    [repository]
+  );
+
   return {
     cyclePlans,
-    completeEntry
+    completeEntry,
+    upsertPlan: savePlan
   };
 }

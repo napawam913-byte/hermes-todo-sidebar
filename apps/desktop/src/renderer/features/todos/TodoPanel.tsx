@@ -20,6 +20,7 @@ interface TodoPanelProps {
   onComplete: (todo: Todo) => void;
   onCompleteCycleEntry: (entryId: string) => void;
   onDetailOpenChange: (open: boolean) => void;
+  onUpsertCyclePlan: (plan: CyclePlan) => void;
 }
 
 export function TodoPanel(props: TodoPanelProps) {
@@ -56,6 +57,7 @@ export function TodoPanel(props: TodoPanelProps) {
           plans={props.cyclePlans}
           todayKey={props.todayKey}
           onDetailOpenChange={props.onDetailOpenChange}
+          onUpsertPlan={props.onUpsertCyclePlan}
         />
       )}
     </div>

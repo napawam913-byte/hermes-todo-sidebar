@@ -2,8 +2,10 @@
  * 模块用途：周期任务主题详情抽屉，展示主题下的日期条目和选中内容块。
  * 模块边界：只读展示周期任务细节，不编辑条目，也不调用 Hermes。
  */
+import { Pencil } from "lucide-react";
 import { useMemo, useState } from "react";
 import { DetailDrawerShell } from "../../components/DetailDrawerShell";
+import { QuietButton } from "../../components/buttons";
 import { ContentBlockPreview } from "./ContentBlockPreview";
 import { CyclePlanEntryCard } from "./CyclePlanEntryCard";
 import type { CyclePlan } from "./cyclePlanTypes";
@@ -12,9 +14,10 @@ interface CyclePlanDrawerProps {
   plan: CyclePlan;
   todayKey: string;
   onClose: () => void;
+  onEdit: () => void;
 }
 
-export function CyclePlanDrawer({ onClose, plan, todayKey }: CyclePlanDrawerProps) {
+export function CyclePlanDrawer({ onClose, onEdit, plan, todayKey }: CyclePlanDrawerProps) {
   const sortedEntries = useMemo(
     () => [...plan.entries].sort((left, right) => left.date.localeCompare(right.date)),
     [plan.entries]
@@ -30,6 +33,12 @@ export function CyclePlanDrawer({ onClose, plan, todayKey }: CyclePlanDrawerProp
         <strong>按日期生成今日待办</strong>
         <em>今日 {sortedEntries.filter((entry) => entry.date === todayKey).length}</em>
       </section>
+
+      <div className="cycle-drawer-actions">
+        <QuietButton icon={<Pencil size={15} strokeWidth={1.8} />} onClick={onEdit}>
+          编辑计划
+        </QuietButton>
+      </div>
 
       <div className="cycle-entry-list">
         {sortedEntries.map((entry) => (

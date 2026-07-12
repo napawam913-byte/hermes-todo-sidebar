@@ -32,7 +32,7 @@ export function App({ appData }: AppProps) {
     repository: appData.todoRepository,
     sourceDeviceId: SOURCE_DEVICE_ID
   });
-  const { completeEntry, cyclePlans } = useCyclePlanStore({
+  const { completeEntry, cyclePlans, upsertPlan } = useCyclePlanStore({
     initialPlans: appData.initialCyclePlans,
     repository: appData.cyclePlanRepository
   });
@@ -75,6 +75,7 @@ export function App({ appData }: AppProps) {
         onCompleteCycleEntry={completeEntry}
         onComplete={handleComplete}
         onDetailOpenChange={setDetailOpen}
+        onUpsertCyclePlan={upsertPlan}
       />
     </SidebarShell>
   );
