@@ -8,7 +8,12 @@ contextBridge.exposeInMainWorld("hermesAppData", {
   loadState: () => ipcRenderer.invoke("data:load-state"),
   replaceTodos: (todos: unknown[]) => ipcRenderer.invoke("data:replace-todos", todos),
   replaceCyclePlans: (cyclePlans: unknown[]) =>
-    ipcRenderer.invoke("data:replace-cycle-plans", cyclePlans)
+    ipcRenderer.invoke("data:replace-cycle-plans", cyclePlans),
+  onReloadRequested: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on("data:reload-requested", listener);
+    return () => ipcRenderer.removeListener("data:reload-requested", listener);
+  }
 });
 
 contextBridge.exposeInMainWorld("hermesSidebar", {

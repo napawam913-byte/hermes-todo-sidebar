@@ -9,6 +9,7 @@ import { bootstrapAppData } from "./data/appDataBootstrap";
 import "./styles/global.css";
 
 async function startApplication() {
+  window.hermesAppData?.onReloadRequested(() => window.location.reload());
   const appData = await bootstrapAppData();
   ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <React.StrictMode>

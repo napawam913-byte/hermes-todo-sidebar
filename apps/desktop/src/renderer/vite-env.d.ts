@@ -13,6 +13,7 @@ interface Window {
     loadState: () => Promise<DesktopAppState>;
     replaceTodos: (todos: unknown[]) => Promise<DesktopAppState>;
     replaceCyclePlans: (cyclePlans: unknown[]) => Promise<DesktopAppState>;
+    onReloadRequested: (callback: () => void) => () => void;
   };
   hermesSidebar?: {
     setExpanded: (expanded: boolean) => Promise<void>;
