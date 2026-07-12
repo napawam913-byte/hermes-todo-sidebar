@@ -137,7 +137,11 @@ async function createTray(appStateService: AppStateService, dataDirectory: strin
 }
 
 async function bootstrap() {
-  configureLaunchAtLogin(app);
+  configureLaunchAtLogin(app, {
+    portable: Boolean(
+      process.env.PORTABLE_EXECUTABLE_FILE || process.env.PORTABLE_EXECUTABLE_DIR
+    )
+  });
   const dataDirectory = path.join(app.getPath("userData"), "data");
   await mkdir(dataDirectory, { recursive: true });
   const appStateService = new AppStateService(new AppStateFileStore({ dataDirectory }));

@@ -19,11 +19,14 @@ describe("appLifecycle", () => {
   it("enables login startup only for the packaged application", () => {
     const packaged = { isPackaged: true, setLoginItemSettings: vi.fn() };
     const development = { isPackaged: false, setLoginItemSettings: vi.fn() };
+    const portable = { isPackaged: true, setLoginItemSettings: vi.fn() };
 
     configureLaunchAtLogin(packaged);
     configureLaunchAtLogin(development);
+    configureLaunchAtLogin(portable, { portable: true });
 
     expect(packaged.setLoginItemSettings).toHaveBeenCalledWith({ openAtLogin: true });
     expect(development.setLoginItemSettings).not.toHaveBeenCalled();
+    expect(portable.setLoginItemSettings).not.toHaveBeenCalled();
   });
 });

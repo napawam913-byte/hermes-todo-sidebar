@@ -12,13 +12,20 @@ interface LoginStartupApp {
   setLoginItemSettings(settings: { openAtLogin: boolean }): void;
 }
 
+interface LaunchAtLoginOptions {
+  portable?: boolean;
+}
+
 export function ensureSingleInstance(app: SingleInstanceApp): boolean {
   const acquired = app.requestSingleInstanceLock();
   if (!acquired) app.quit();
   return acquired;
 }
 
-export function configureLaunchAtLogin(app: LoginStartupApp): void {
-  if (!app.isPackaged) return;
+export function configureLaunchAtLogin(
+  app: LoginStartupApp,
+  options: LaunchAtLoginOptions = {}
+): void {
+  if (!app.isPackaged || options.portable) return;
   app.setLoginItemSettings({ openAtLogin: true });
 }

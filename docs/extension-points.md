@@ -1,95 +1,71 @@
 # 后续功能扩展点
 
-这份文档专门说明当前项目为后续能力预留的位置，避免把真实联网、系统通知或桌宠能力塞进 UI 组件。
+本项目按能力拆分模块，后续联网、提醒或 Agent 接入时不应把实现塞进 React 页面组件。
 
-## 数据持久化
+## 本地数据层
 
-当前已完成：
+已完成：
 
-- `apps/desktop/src/renderer/features/todos/todoRepository.ts`
-- `apps/desktop/src/renderer/features/todos/localTodoRepository.ts`
-- `apps/desktop/src/renderer/features/todos/todoStore.ts`
+- `src/main/storage/appStateTypes.ts`：版本化应用状态合同。
+- `src/main/storage/appStateFileStore.ts`：原子写入、7 份备份、损坏恢复和导入校验。
+- `src/main/storage/appStateService.ts`：串行更新，避免待办和计划互相覆盖。
+- `src/main/storage/storageIpc.ts`：renderer 可调用的最小 IPC 白名单。
+- `src/renderer/data/electronRepositories.ts`：把异步 IPC 适配为现有 repository 接口。
+- `src/renderer/data/appDataBootstrap.ts`：选择正式 Electron 数据或浏览器 Demo 数据。
 
-现在第一版新增、完成的待办会写入 `localStorage`。后续如果要改成 Electron 文件存储，可以新增 `fileTodoRepository.ts`，继续实现同一个 `TodoRepository` 接口。
+后续 schema 升级必须新增明确版本迁移，不直接修改旧文件含义。
 
-## 真实提醒
+## 周期计划
 
-当前已预留：
+正式合同位于 `features/cyclePlans/cyclePlanTypes.ts`，使用 `schemaVersion: 2`。
 
-- `apps/desktop/src/main/reminders/reminderTypes.ts`
-- `apps/desktop/src/main/reminders/reminderScheduler.ts`
-- `apps/desktop/src/main/reminders/notificationService.ts`
+- 手动内容：`kind: generic.note`、`format: markdown`。
+- 专业内容：通过 `contentBlocks.kind` 区分，例如 `fitness.exercise_list`。
+- 未知 `kind`：使用通用 JSON/Markdown 预览，不能阻塞新领域。
+- 今日待办：只读取 `date` 命中的条目，不复制周期条目快照。
 
-第一版界面不展示提醒时间、稍后或到点状态。当前只保留“哪些待办已经到点”的纯函数筛选，还没有启动定时器，也没有调用 Electron `Notification`。后续真实提醒应在主进程中接入，不要让 React 组件直接弹系统通知。
+Hermes 未来直接提交完整计划草稿；桌面端不运行领域专用计划生成器。
 
-## Hermes 连接
+## Hermes 与飞书
 
-当前已预留：
+预留模块：
 
-- `apps/desktop/src/renderer/features/sync/syncTypes.ts`
-- `apps/desktop/src/renderer/features/sync/syncClient.ts`
-- `apps/desktop/src/renderer/features/sync/syncQueue.ts`
+- `features/sync/syncClient.ts`
+- `features/sync/syncQueue.ts`
+- `features/sync/syncTypes.ts`
 
-现在 `syncClient.ts` 只提供禁用态实现，不发起网络请求。后续接 Hermes 时，优先补真实 `HermesSyncClient`，再让 `syncQueue.ts` 负责失败重试和状态回写。
+当前 client 为禁用态，不联网。飞书消息与多维表格应由 Hermes 代理，桌面端不保存模型或飞书密钥。
 
-## 飞书连接
+## Agent
 
-当前策略：
+预留模块：
 
-- UI 不直接调用飞书。
-- 飞书机器人和多维表格写入由 Hermes 负责。
-- 前端只表达用户意图和同步状态。
+- `features/agent/agentTypes.ts`
+- `features/agent/agentContext.ts`
+- `features/agent/agentClient.ts`
+- `features/agent/agentActionRegistry.ts`
+- `src/main/agent/agentBridge.ts`
+- `src/main/agent/agentPermissionPolicy.ts`
 
-这样可以避免桌面端保存飞书密钥，也便于统一日志、重试和权限控制。
+未来流程固定为：用户意图 → 最小待办上下文 → Hermes 建议 → 用户确认 → 白名单动作 → 本地保存与同步队列。所有写操作默认需要确认。
 
-## Agent 能力
+## 系统提醒
 
-当前已预留：
+预留模块位于 `src/main/reminders/`。当前第一版不展示具体时间，也不启动调度器或 Electron `Notification`。未来提醒必须在主进程实现，React 只展示状态。
 
-- `apps/desktop/src/renderer/features/agent/agentTypes.ts`
-- `apps/desktop/src/renderer/features/agent/agentContext.ts`
-- `apps/desktop/src/renderer/features/agent/agentClient.ts`
-- `apps/desktop/src/renderer/features/agent/agentActionRegistry.ts`
-- `apps/desktop/src/main/agent/agentBridge.ts`
-- `apps/desktop/src/main/agent/agentPermissionPolicy.ts`
+## Windows 生命周期
 
-现在 Agent 只保留接口和禁用态实现，不调用模型、不联网、不改待办。未来应由 Hermes 承接 Agent 推理、飞书和长期任务，桌面端只展示建议并等待用户确认。详细说明见 `docs/agent-extension-points.md`。
+已完成模块：
 
-## 当前周期计划界面
+- `src/main/lifecycle/appLifecycle.ts`
+- `src/main/lifecycle/trayController.ts`
+- `src/main/lifecycle/dataTransferController.ts`
 
-当前已新增：
+拖拽、贴边吸附和位置记忆继续放在 `src/main/pet/`，不要混入待办数据仓储。
 
-- `apps/desktop/src/renderer/features/cyclePlans/cyclePlanTypes.ts`
-- `apps/desktop/src/renderer/features/cyclePlans/cyclePlanModel.ts`
-- `apps/desktop/src/renderer/features/cyclePlans/mockCyclePlans.ts`
-- `apps/desktop/src/renderer/features/cyclePlans/cyclePlanRepository.ts`
-- `apps/desktop/src/renderer/features/cyclePlans/localCyclePlanRepository.ts`
-- `apps/desktop/src/renderer/features/cyclePlans/cyclePlanStore.ts`
-- `apps/desktop/src/renderer/features/cyclePlans/CyclePlanView.tsx`
-- `apps/desktop/src/renderer/features/cyclePlans/CyclePlanDetail.tsx`
-- `apps/desktop/src/renderer/features/cyclePlans/ContentBlockPreview.tsx`
-- `apps/desktop/src/renderer/features/cyclePlans/FitnessExerciseBlock.tsx`
+## 文件约束
 
-第一版界面已经展示 `周期计划`。规则是：外层只按 `date` 匹配今天，不展示具体时间；细节进入 `contentBlocks`，健身动作列表有专用展示，未知 JSON/Markdown 块使用通用预览。当前数据仍是本地 demo 和 `localStorage`，不会联网生成真实计划。
-
-## 统一周期计划合同
-
-项目已经删除旧 `PlanEntry` 和滚动模板 Demo，只保留 `features/cyclePlans`。正式数据使用 `schemaVersion: 2`，具体说明见 `docs/cycle-plan-data-contract.md`。
-
-后续 Hermes 不在桌面端执行滚动模板。Hermes 直接提交完整周期计划草稿；用户确认后再把计划从 `draft` 激活为 `active`，把条目从 `candidate` 转为 `pending`。
-
-## 桌宠完整能力
-
-当前已预留：
-
-- `apps/desktop/src/main/pet/petWindowBounds.ts`
-- `apps/desktop/src/main/pet/petPositionStore.ts`
-
-现在只提供位置计算、边界夹取和内存位置存储。后续拖拽、贴边吸附、位置记忆、开机自启动、托盘菜单，都应该在 `src/main/pet/` 或 Electron 主进程附近继续扩展。
-
-## 文件拆分约束
-
-- 不把 Hermes、飞书、提醒、桌宠位置逻辑写进 `App.tsx`。
-- 不把 Agent 推理、权限和联网逻辑写进 `TodoPanel.tsx` 或桌宠按钮组件。
-- 不把业务逻辑写进 `TodoItem.tsx` 或 `TodoPanel.tsx`。
-- 新增真实能力时，优先新增小模块和测试，再接入 UI。
+- `App.tsx` 只做顶层组合。
+- 业务纯函数、store、视图、样式和主进程能力分文件维护。
+- 新增能力先写失败测试，再实现和接线。
+- TS、TSX、CSS 文件不超过 220 行。
