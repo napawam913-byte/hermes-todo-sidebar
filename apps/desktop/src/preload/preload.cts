@@ -1,6 +1,6 @@
 /**
  * 模块用途：暴露渲染进程可用的安全桌面 API。
- * 模块边界：只桥接 Electron IPC，不访问 React 状态。
+ * 模块边界：只桥接 Electron IPC，不访问 React 状态；使用 .cts 输出 sandbox 可执行的 CommonJS。
  */
 import { contextBridge, ipcRenderer } from "electron";
 

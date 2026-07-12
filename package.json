@@ -1,6 +1,6 @@
 {
   "name": "hermes-todo-sidebar",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "author": "napawam913-byte",
   "description": "单机 Windows 待办桌宠，支持今日待办、周期计划与本地文件持久化。",
@@ -10,7 +10,8 @@
     "start": "electron .",
     "dev": "vite --config apps/desktop/vite.config.ts --host 127.0.0.1 --port 5178",
     "typecheck": "tsc --noEmit -p apps/desktop/tsconfig.json && tsc --noEmit -p apps/desktop/tsconfig.electron.json",
-    "build:main": "tsc -p apps/desktop/tsconfig.electron.json",
+    "clean:main": "node -e \"require('node:fs').rmSync('dist-electron',{recursive:true,force:true})\"",
+    "build:main": "npm run clean:main && tsc -p apps/desktop/tsconfig.electron.json",
     "build:renderer": "vite build --config apps/desktop/vite.config.ts",
     "build": "npm run typecheck && npm run build:main && npm run build:renderer",
     "dist:win": "npm run build && electron-builder --win nsis portable",
@@ -35,6 +36,7 @@
     "appId": "com.napawam.hermesTodoSidebar",
     "productName": "Hermes 待办桌宠",
     "asar": true,
+    "electronDist": "node_modules/electron/dist",
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -54,11 +56,15 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "build/icon.png"
