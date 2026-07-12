@@ -4,6 +4,13 @@
  */
 import { contextBridge, ipcRenderer } from "electron";
 
+contextBridge.exposeInMainWorld("hermesAppData", {
+  loadState: () => ipcRenderer.invoke("data:load-state"),
+  replaceTodos: (todos: unknown[]) => ipcRenderer.invoke("data:replace-todos", todos),
+  replaceCyclePlans: (cyclePlans: unknown[]) =>
+    ipcRenderer.invoke("data:replace-cycle-plans", cyclePlans)
+});
+
 contextBridge.exposeInMainWorld("hermesSidebar", {
   setExpanded: (expanded: boolean) => ipcRenderer.invoke("sidebar:set-expanded", expanded),
   setDetailOpen: (detailOpen: boolean) => ipcRenderer.invoke("sidebar:set-detail-open", detailOpen),

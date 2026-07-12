@@ -1,11 +1,14 @@
 /**
- * 模块用途：Electron 主进程，负责创建 Windows 桌宠入口、侧边栏窗口和托盘入口。
- * 模块边界：只处理桌面窗口生命周期，不承载待办业务状态。
+ * 模块用途：Electron 主进程入口，装配桌宠窗口、托盘和本地应用状态服务。
+ * 模块边界：只负责桌面能力装配，不解释待办与周期计划的领域字段。
  */
 import { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, screen } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { calculateSidebarBounds, DESKTOP_PET_HEIGHT, DESKTOP_PET_WIDTH } from "./sidebarBounds.js";
+import { AppStateFileStore } from "./storage/appStateFileStore.js";
+import { AppStateService } from "./storage/appStateService.js";
+import { registerStorageIpc } from "./storage/storageIpc.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -91,7 +94,13 @@ function createTray() {
   );
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  const appStateService = new AppStateService(
+    new AppStateFileStore({ dataDirectory: path.join(app.getPath("userData"), "data") })
+  );
+  await appStateService.initialize();
+  registerStorageIpc(ipcMain, appStateService);
+
   createMainWindow();
   createTray();
 
