@@ -6,7 +6,8 @@ import { describe, expect, it } from "vitest";
 import {
   CYCLE_PLAN_STORAGE_KEY,
   LEGACY_CYCLE_PLAN_STORAGE_KEY,
-  createLocalCyclePlanRepository
+  createLocalCyclePlanRepository,
+  normalizeCyclePlans
 } from "./localCyclePlanRepository";
 import { mockCyclePlans } from "./mockCyclePlans";
 
@@ -24,6 +25,12 @@ function createMemoryStorage(initial: Record<string, string> = {}) {
 }
 
 describe("createLocalCyclePlanRepository", () => {
+  it("filters malformed plans from an unknown application state", () => {
+    expect(normalizeCyclePlans([mockCyclePlans[0], { broken: true }])).toEqual([
+      mockCyclePlans[0]
+    ]);
+  });
+
   it("saves the canonical schema under the v2 storage key", () => {
     const storage = createMemoryStorage();
     const repository = createLocalCyclePlanRepository(storage);

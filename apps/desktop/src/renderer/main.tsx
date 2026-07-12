@@ -5,10 +5,16 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./App";
+import { bootstrapAppData } from "./data/appDataBootstrap";
 import "./styles/global.css";
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+async function startApplication() {
+  const appData = await bootstrapAppData();
+  ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+    <React.StrictMode>
+      <App appData={appData} />
+    </React.StrictMode>
+  );
+}
+
+void startApplication();

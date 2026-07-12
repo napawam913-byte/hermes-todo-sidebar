@@ -32,8 +32,7 @@ export function createLocalCyclePlanRepository(storage: StorageLike | null | und
           ?? storage.getItem(LEGACY_CYCLE_PLAN_STORAGE_KEY);
         if (!rawValue) return [];
         const parsed = JSON.parse(rawValue);
-        if (!Array.isArray(parsed)) return [];
-        return parsed.map(normalizePlan).filter((plan): plan is CyclePlan => Boolean(plan));
+        return normalizeCyclePlans(parsed);
       } catch {
         return [];
       }
@@ -48,6 +47,11 @@ export function createLocalCyclePlanRepository(storage: StorageLike | null | und
       }
     }
   };
+}
+
+export function normalizeCyclePlans(value: unknown): CyclePlan[] {
+  if (!Array.isArray(value)) return [];
+  return value.map(normalizePlan).filter((plan): plan is CyclePlan => Boolean(plan));
 }
 
 function normalizePlan(value: unknown): CyclePlan | undefined {
