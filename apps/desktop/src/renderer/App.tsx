@@ -19,7 +19,6 @@ interface AppProps {
 }
 
 export function App({ appData }: AppProps) {
-  const [detailOpen, setDetailOpen] = useState(false);
   const [detailResetVersion, setDetailResetVersion] = useState(0);
   const [expanded, setExpanded] = useState(appData.startExpanded);
   const todayKey = useLocalDateKey();
@@ -54,7 +53,6 @@ export function App({ appData }: AppProps) {
   function handleExpandedChange(nextExpanded: boolean) {
     setExpanded(nextExpanded);
     if (!nextExpanded) {
-      setDetailOpen(false);
       setDetailResetVersion((version) => version + 1);
     }
   }
@@ -62,7 +60,6 @@ export function App({ appData }: AppProps) {
   return (
     <SidebarShell
       activeCount={activeCount}
-      detailOpen={detailOpen}
       expanded={expanded}
       onExpandedChange={handleExpandedChange}
     >
@@ -74,7 +71,6 @@ export function App({ appData }: AppProps) {
         onAdd={handleAdd}
         onCompleteCycleEntry={completeEntry}
         onComplete={handleComplete}
-        onDetailOpenChange={setDetailOpen}
         onUpsertCyclePlan={upsertPlan}
       />
     </SidebarShell>

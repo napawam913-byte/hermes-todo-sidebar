@@ -1,6 +1,6 @@
 {
   "name": "hermes-todo-sidebar",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "author": "napawam913-byte",
   "description": "单机 Windows 待办桌宠，支持今日待办、周期计划与本地文件持久化。",

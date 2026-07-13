@@ -1,54 +1,80 @@
 /**
- * 模块用途：桌面侧边栏壳层，管理展开面板和桌宠式闲置入口。
- * 模块边界：不理解待办内容，只接收数量与子内容。
+ * 模块用途：根据主进程布局快照组合可拖动桌宠与锚定待办面板。
+ * 模块边界：不理解待办数据，也不直接计算显示器坐标。
  */
-import { useEffect } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { DesktopPetButton } from "./DesktopPetButton";
 
 interface SidebarShellProps {
   activeCount: number;
-  detailOpen: boolean;
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
   children: React.ReactNode;
 }
 
-export function SidebarShell({
-  activeCount,
-  children,
-  detailOpen,
-  expanded,
-  onExpandedChange
-}: SidebarShellProps) {
-  useEffect(() => {
-    void window.hermesSidebar?.setExpanded(expanded);
-  }, [expanded]);
+const idleLayout: PetLayoutSnapshot = {
+  expanded: false,
+  direction: "down",
+  panelHeight: 0,
+  petOffsetX: 0,
+  petOffsetY: 0,
+  dragging: false
+};
+
+export function SidebarShell(props: SidebarShellProps) {
+  const [layout, setLayout] = useState<PetLayoutSnapshot>(idleLayout);
 
   useEffect(() => {
-    void window.hermesSidebar?.setDetailOpen(detailOpen);
-  }, [detailOpen]);
+    if (!window.hermesPet) {
+      setLayout(createBrowserLayout(props.expanded));
+      return;
+    }
+    void window.hermesPet.setExpanded(props.expanded).then(setLayout);
+  }, [props.expanded]);
 
   useEffect(() => {
-    const disposeCollapse = window.hermesSidebar?.onCollapseRequested(() => onExpandedChange(false));
-    const disposeExpand = window.hermesSidebar?.onExpandRequested(() => onExpandedChange(true));
-
+    void window.hermesPet?.getLayout().then(setLayout);
+    const disposeLayout = window.hermesPet?.onLayoutChanged(setLayout);
+    const disposeCollapse = window.hermesSidebar?.onCollapseRequested(() =>
+      props.onExpandedChange(false));
+    const disposeExpand = window.hermesSidebar?.onExpandRequested(() =>
+      props.onExpandedChange(true));
     return () => {
+      disposeLayout?.();
       disposeCollapse?.();
       disposeExpand?.();
     };
-  }, [onExpandedChange]);
+  }, [props.onExpandedChange]);
+
+  const style = {
+    "--panel-height": `${layout.panelHeight}px`,
+    "--pet-offset-x": `${layout.petOffsetX}px`,
+    "--pet-offset-y": `${layout.petOffsetY}px`
+  } as CSSProperties;
+  const className = [
+    "sidebar-shell",
+    props.expanded ? "is-expanded" : "is-idle",
+    `opens-${layout.direction}`
+  ].join(" ");
 
   return (
-    <aside className={expanded ? "sidebar-shell is-expanded" : "sidebar-shell is-idle"}>
-      {!expanded ? (
+    <aside className={className} style={style}>
+      <div className="desktop-pet-anchor">
         <DesktopPetButton
-          activeCount={activeCount}
-          onOpen={() => onExpandedChange(true)}
+          activeCount={props.activeCount}
+          expanded={props.expanded}
+          onActivate={() => props.onExpandedChange(!props.expanded)}
         />
-      ) : null}
-      <section className="sidebar-content" aria-hidden={!expanded}>
-        {children}
+      </div>
+      <section className="sidebar-content" aria-hidden={!props.expanded}>
+        {props.children}
       </section>
     </aside>
   );
+}
+
+function createBrowserLayout(expanded: boolean): PetLayoutSnapshot {
+  return expanded
+    ? { expanded, direction: "down", panelHeight: 560, petOffsetX: 272, petOffsetY: 0, dragging: false }
+    : idleLayout;
 }

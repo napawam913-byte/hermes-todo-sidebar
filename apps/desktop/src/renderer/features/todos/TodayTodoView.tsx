@@ -18,7 +18,6 @@ interface TodayTodoViewProps {
   onAdd: (title: string) => void;
   onCompleteTodo: (todo: Todo) => void;
   onCompleteCycleEntry: (entryId: string) => void;
-  onDetailOpenChange: (open: boolean) => void;
 }
 
 const filterLabels: Record<TodayFilterKey, string> = {
@@ -40,18 +39,13 @@ export function TodayTodoView(props: TodayTodoViewProps) {
     () => items.find((item) => `${item.kind}-${item.id}` === selectedItemKey),
     [items, selectedItemKey]
   );
-  const detailOpen = Boolean(selectedItem);
-
   useEffect(() => {
     setSelectedItemKey(null);
   }, [props.detailResetVersion]);
 
-  useEffect(() => {
-    props.onDetailOpenChange(detailOpen);
-    return () => {
-      if (detailOpen) props.onDetailOpenChange(false);
-    };
-  }, [detailOpen, props.onDetailOpenChange]);
+  if (selectedItem) {
+    return <TodayTodoDetailDrawer item={selectedItem} onClose={() => setSelectedItemKey(null)} />;
+  }
 
   return (
     <>
@@ -98,9 +92,6 @@ export function TodayTodoView(props: TodayTodoViewProps) {
           ))
         )}
       </div>
-      {selectedItem ? (
-        <TodayTodoDetailDrawer item={selectedItem} onClose={() => setSelectedItemKey(null)} />
-      ) : null}
     </>
   );
 }

@@ -12,7 +12,6 @@ import type { CyclePlan } from "./cyclePlanTypes";
 
 interface CyclePlanViewProps {
   detailResetVersion: number;
-  onDetailOpenChange: (open: boolean) => void;
   plans: CyclePlan[];
   todayKey: string;
   onUpsertPlan: (plan: CyclePlan) => void;
@@ -20,7 +19,6 @@ interface CyclePlanViewProps {
 
 export function CyclePlanView({
   detailResetVersion,
-  onDetailOpenChange,
   onUpsertPlan,
   plans,
   todayKey
@@ -32,22 +30,44 @@ export function CyclePlanView({
     [plans, selectedPlanId]
   );
   const editorPlan = plans.find((plan) => plan.id === editorPlanId);
-  const drawerOpen = Boolean(selectedPlan) || editorPlanId !== null;
 
   useEffect(() => {
     setSelectedPlanId(null);
     setEditorPlanId(null);
   }, [detailResetVersion]);
 
-  useEffect(() => {
-    onDetailOpenChange(drawerOpen);
-    return () => {
-      if (drawerOpen) onDetailOpenChange(false);
-    };
-  }, [drawerOpen, onDetailOpenChange]);
+  if (selectedPlan) {
+    return (
+      <CyclePlanDrawer
+        key={selectedPlan.id}
+        plan={selectedPlan}
+        todayKey={todayKey}
+        onClose={() => setSelectedPlanId(null)}
+        onEdit={() => {
+          setSelectedPlanId(null);
+          setEditorPlanId(selectedPlan.id);
+        }}
+      />
+    );
+  }
+
+  if (editorPlanId !== null) {
+    return (
+      <CyclePlanEditorDrawer
+        dateKey={todayKey}
+        plan={editorPlan}
+        onClose={() => setEditorPlanId(null)}
+        onSave={(plan) => {
+          onUpsertPlan(plan);
+          setEditorPlanId(null);
+          setSelectedPlanId(plan.id);
+        }}
+      />
+    );
+  }
 
   return (
-    <section className={drawerOpen ? "cycle-plan-view has-drawer" : "cycle-plan-view"}>
+    <section className="cycle-plan-view">
       <div className="cycle-plan-toolbar">
         <div>
           <p>周期任务</p>
@@ -90,30 +110,6 @@ export function CyclePlanView({
           ))
         )}
       </div>
-      {selectedPlan ? (
-        <CyclePlanDrawer
-          key={selectedPlan.id}
-          plan={selectedPlan}
-          todayKey={todayKey}
-          onClose={() => setSelectedPlanId(null)}
-          onEdit={() => {
-            setSelectedPlanId(null);
-            setEditorPlanId(selectedPlan.id);
-          }}
-        />
-      ) : null}
-      {editorPlanId !== null ? (
-        <CyclePlanEditorDrawer
-          dateKey={todayKey}
-          plan={editorPlan}
-          onClose={() => setEditorPlanId(null)}
-          onSave={(plan) => {
-            onUpsertPlan(plan);
-            setEditorPlanId(null);
-            setSelectedPlanId(plan.id);
-          }}
-        />
-      ) : null}
     </section>
   );
 }

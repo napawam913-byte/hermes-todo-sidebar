@@ -1,10 +1,10 @@
 /**
- * 模块用途：在固定右栏中创建或编辑周期计划及其多个日期条目。
+ * 模块用途：在同一面板详情页中创建或编辑周期计划及其日期条目。
  * 模块边界：只管理表单草稿并返回统一 CyclePlan，不直接访问仓储。
  */
 import { Plus, Save, X } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { DetailDrawerShell } from "../../components/DetailDrawerShell";
+import { DetailPageShell } from "../../components/DetailPageShell";
 import { PrimaryButton, QuietButton } from "../../components/buttons";
 import { createCyclePlanDraft, createCyclePlanEntryDraft, saveCyclePlanDraft, type CyclePlanDraft } from "./cyclePlanDraft";
 import { CyclePlanEntryFields } from "./CyclePlanEntryFields";
@@ -50,7 +50,7 @@ export function CyclePlanEditorDrawer(props: CyclePlanEditorDrawerProps) {
   }
 
   return (
-    <DetailDrawerShell label="周期任务编辑" title={props.plan ? `编辑 ${props.plan.title}` : "新建周期任务"} onClose={props.onClose}>
+    <DetailPageShell label="周期计划编辑" title={props.plan ? `编辑 ${props.plan.title}` : "新建周期任务"} onBack={props.onClose}>
       <form className="cycle-plan-editor" onSubmit={handleSubmit}>
         <div className="cycle-plan-fields">
           <label><span>计划标题</span><input required name="plan-title" value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></label>
@@ -81,6 +81,6 @@ export function CyclePlanEditorDrawer(props: CyclePlanEditorDrawerProps) {
           <PrimaryButton icon={<Save size={16} />} type="submit">保存计划</PrimaryButton>
         </footer>
       </form>
-    </DetailDrawerShell>
+    </DetailPageShell>
   );
 }

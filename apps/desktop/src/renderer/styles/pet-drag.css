@@ -1,0 +1,30 @@
+/**
+ * 模块用途：桌宠拖动手势与拖动中的视觉反馈。
+ * 模块边界：不计算位置，不定义锚定面板几何。
+ */
+.desktop-pet-button {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.desktop-pet-button.is-dragging {
+  cursor: grabbing;
+}
+
+.desktop-pet-button.is-dragging .desktop-pet-body {
+  border-color: var(--accent);
+  background: var(--surface-panel);
+  box-shadow: 0 14px 30px oklch(0.2 0.02 240 / 0.22);
+  transform: translateY(-2px);
+}
+
+.sidebar-shell.is-expanded .desktop-pet-button {
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desktop-pet-button.is-dragging .desktop-pet-body {
+    transform: none;
+  }
+}

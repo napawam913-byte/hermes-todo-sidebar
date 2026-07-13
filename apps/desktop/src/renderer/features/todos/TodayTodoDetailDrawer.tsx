@@ -2,7 +2,7 @@
  * 模块用途：展示今日待办的完整只读详情，兼容手动待办和周期任务条目。
  * 模块边界：不修改待办状态，不生成计划，也不调用 Hermes。
  */
-import { DetailDrawerShell } from "../../components/DetailDrawerShell";
+import { DetailPageShell } from "../../components/DetailPageShell";
 import { ContentBlockPreview } from "../cyclePlans/ContentBlockPreview";
 import { SyncStatusPill } from "../sync/SyncStatusPill";
 import { SourcePill } from "./SourcePill";
@@ -23,7 +23,7 @@ export function TodayTodoDetailDrawer({ item, onClose }: TodayTodoDetailDrawerPr
     : item.todo.notes;
 
   return (
-    <DetailDrawerShell label="今日待办详情" title={item.title} onClose={onClose}>
+    <DetailPageShell label="今日待办详情" title={item.title} onBack={onClose}>
       <section className="todo-detail-summary">
         <div className="todo-detail-summary-row">
           <SourcePill label={item.sourceLabel} />
@@ -65,7 +65,7 @@ export function TodayTodoDetailDrawer({ item, onClose }: TodayTodoDetailDrawerPr
           </section>
         )}
       </div>
-    </DetailDrawerShell>
+    </DetailPageShell>
   );
 }
 

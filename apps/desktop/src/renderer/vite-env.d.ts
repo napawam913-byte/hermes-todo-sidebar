@@ -16,9 +16,25 @@ interface Window {
     onReloadRequested: (callback: () => void) => () => void;
   };
   hermesSidebar?: {
-    setExpanded: (expanded: boolean) => Promise<void>;
-    setDetailOpen: (detailOpen: boolean) => Promise<void>;
     onCollapseRequested: (callback: () => void) => () => void;
     onExpandRequested: (callback: () => void) => () => void;
   };
+  hermesPet?: {
+    getLayout: () => Promise<PetLayoutSnapshot>;
+    setExpanded: (expanded: boolean) => Promise<PetLayoutSnapshot>;
+    startDrag: () => Promise<boolean>;
+    updateDrag: () => Promise<{ dragging: boolean }>;
+    endDrag: () => Promise<{ dragged: boolean }>;
+    cancelDrag: () => Promise<void>;
+    onLayoutChanged: (callback: (snapshot: PetLayoutSnapshot) => void) => () => void;
+  };
+}
+
+interface PetLayoutSnapshot {
+  expanded: boolean;
+  direction: "up" | "down";
+  panelHeight: number;
+  petOffsetX: number;
+  petOffsetY: number;
+  dragging: boolean;
 }

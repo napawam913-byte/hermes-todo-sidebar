@@ -19,8 +19,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { configureLaunchAtLogin, ensureSingleInstance } from "./lifecycle/appLifecycle.js";
 import { createDataTransferActions } from "./lifecycle/dataTransferController.js";
+import { getRuntimeChannel, getTestUserDataPath } from "./lifecycle/runtimeChannel.js";
 import { createTrayMenuTemplate } from "./lifecycle/trayController.js";
-import { calculateSidebarBounds, DESKTOP_PET_HEIGHT, DESKTOP_PET_WIDTH } from "./sidebarBounds.js";
+import { createPetScreenPort, createPetWindowPort } from "./pet/petElectronPorts.js";
+import { registerPetIpc } from "./pet/petIpc.js";
+import { PetPositionFileStore } from "./pet/petPositionFileStore.js";
+import { PetWindowController } from "./pet/petWindowController.js";
+import { DESKTOP_PET_HEIGHT, DESKTOP_PET_WIDTH } from "./sidebarBounds.js";
 import { AppStateFileStore } from "./storage/appStateFileStore.js";
 import { AppStateService } from "./storage/appStateService.js";
 import { registerStorageIpc } from "./storage/storageIpc.js";
@@ -28,21 +33,17 @@ import { registerStorageIpc } from "./storage/storageIpc.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = !app.isPackaged;
 const rendererDevUrl = process.env.HERMES_RENDERER_URL ?? "http://127.0.0.1:5178";
+const runtimeChannel = getRuntimeChannel(process.env);
+if (runtimeChannel === "test") {
+  app.setPath("userData", getTestUserDataPath(app.getPath("appData")));
+}
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
-let sidebarExpanded = false;
-let sidebarDetailOpen = false;
+let petController: PetWindowController | null = null;
 let isQuitting = false;
 
-function positionSidebar(window: BrowserWindow) {
-  window.setBounds(calculateSidebarBounds({
-    expanded: sidebarExpanded,
-    detailOpen: sidebarDetailOpen,
-    workArea: screen.getPrimaryDisplay().workArea
-  }));
-}
-
 function showSidebar() {
+  petController?.setExpanded(true);
   mainWindow?.show();
   mainWindow?.focus();
   mainWindow?.webContents.send("sidebar:expand-requested");
@@ -70,9 +71,12 @@ function createMainWindow() {
     }
   });
 
-  positionSidebar(mainWindow);
   mainWindow.once("ready-to-show", () => mainWindow?.show());
-  mainWindow.on("blur", () => mainWindow?.webContents.send("sidebar:collapse-requested"));
+  mainWindow.on("blur", () => {
+    petController?.cancelDrag();
+    petController?.setExpanded(false);
+    mainWindow?.webContents.send("sidebar:collapse-requested");
+  });
   mainWindow.on("close", (event) => {
     if (isQuitting) return;
     event.preventDefault();
@@ -148,19 +152,19 @@ async function bootstrap() {
   await appStateService.initialize();
   registerStorageIpc(ipcMain, appStateService);
   createMainWindow();
+  if (!mainWindow) throw new Error("桌宠窗口创建失败");
+  petController = new PetWindowController({
+    window: createPetWindowPort(mainWindow),
+    screen: createPetScreenPort(),
+    positionStore: new PetPositionFileStore({ userDataDirectory: app.getPath("userData") })
+  });
+  registerPetIpc(ipcMain, petController);
+  await petController.initialize();
   await createTray(appStateService, dataDirectory);
-
-  ipcMain.handle("sidebar:set-expanded", (_event, expanded: boolean) => {
-    if (!mainWindow) return;
-    sidebarExpanded = expanded;
-    if (!expanded) sidebarDetailOpen = false;
-    positionSidebar(mainWindow);
-  });
-  ipcMain.handle("sidebar:set-detail-open", (_event, detailOpen: boolean) => {
-    if (!mainWindow || !sidebarExpanded) return;
-    sidebarDetailOpen = detailOpen;
-    positionSidebar(mainWindow);
-  });
+  const recoverDisplayLayout = () => void petController?.recoverDisplayLayout();
+  screen.on("display-added", recoverDisplayLayout);
+  screen.on("display-removed", recoverDisplayLayout);
+  screen.on("display-metrics-changed", recoverDisplayLayout);
 }
 
 if (ensureSingleInstance(app)) {

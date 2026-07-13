@@ -17,8 +17,6 @@ contextBridge.exposeInMainWorld("hermesAppData", {
 });
 
 contextBridge.exposeInMainWorld("hermesSidebar", {
-  setExpanded: (expanded: boolean) => ipcRenderer.invoke("sidebar:set-expanded", expanded),
-  setDetailOpen: (detailOpen: boolean) => ipcRenderer.invoke("sidebar:set-detail-open", detailOpen),
   onCollapseRequested: (callback: () => void) => {
     const listener = () => callback();
     ipcRenderer.on("sidebar:collapse-requested", listener);
@@ -28,5 +26,19 @@ contextBridge.exposeInMainWorld("hermesSidebar", {
     const listener = () => callback();
     ipcRenderer.on("sidebar:expand-requested", listener);
     return () => ipcRenderer.removeListener("sidebar:expand-requested", listener);
+  }
+});
+
+contextBridge.exposeInMainWorld("hermesPet", {
+  getLayout: () => ipcRenderer.invoke("pet:get-layout"),
+  setExpanded: (expanded: boolean) => ipcRenderer.invoke("pet:set-expanded", expanded),
+  startDrag: () => ipcRenderer.invoke("pet:drag-start"),
+  updateDrag: () => ipcRenderer.invoke("pet:drag-update"),
+  endDrag: () => ipcRenderer.invoke("pet:drag-end"),
+  cancelDrag: () => ipcRenderer.invoke("pet:drag-cancel"),
+  onLayoutChanged: (callback: (snapshot: unknown) => void) => {
+    const listener = (_event: unknown, snapshot: unknown) => callback(snapshot);
+    ipcRenderer.on("pet:layout-changed", listener);
+    return () => ipcRenderer.removeListener("pet:layout-changed", listener);
   }
 });

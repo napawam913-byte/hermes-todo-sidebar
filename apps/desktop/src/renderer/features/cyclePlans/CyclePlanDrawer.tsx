@@ -4,7 +4,7 @@
  */
 import { Pencil } from "lucide-react";
 import { useMemo, useState } from "react";
-import { DetailDrawerShell } from "../../components/DetailDrawerShell";
+import { DetailPageShell } from "../../components/DetailPageShell";
 import { QuietButton } from "../../components/buttons";
 import { ContentBlockPreview } from "./ContentBlockPreview";
 import { CyclePlanEntryCard } from "./CyclePlanEntryCard";
@@ -27,7 +27,7 @@ export function CyclePlanDrawer({ onClose, onEdit, plan, todayKey }: CyclePlanDr
   const selectedEntry = sortedEntries.find((entry) => entry.id === selectedEntryId) ?? sortedEntries[0];
 
   return (
-    <DetailDrawerShell label="周期任务详情" title={plan.title} onClose={onClose}>
+    <DetailPageShell label="周期计划详情" title={plan.title} onBack={onClose}>
       <section className="cycle-drawer-summary">
         <span>7 天计划</span>
         <strong>按日期生成今日待办</strong>
@@ -62,6 +62,6 @@ export function CyclePlanDrawer({ onClose, onEdit, plan, todayKey }: CyclePlanDr
           ))}
         </div>
       ) : null}
-    </DetailDrawerShell>
+    </DetailPageShell>
   );
 }

@@ -1,0 +1,102 @@
+/**
+ * 模块用途：桌宠与 360px 待办面板在组合窗口中的锚定布局。
+ * 模块边界：不定义桌宠造型，不定义待办或详情内部样式。
+ */
+.sidebar-shell {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.desktop-pet-anchor {
+  position: absolute;
+  z-index: 20;
+  left: var(--pet-offset-x);
+  top: var(--pet-offset-y);
+  width: 88px;
+  height: 96px;
+  pointer-events: auto;
+}
+
+.sidebar-content {
+  position: absolute;
+  z-index: 10;
+  left: 0;
+  display: block;
+  width: 360px;
+  min-width: 360px;
+  max-width: 360px;
+  height: var(--panel-height);
+  overflow: clip;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-page);
+  box-shadow: var(--shadow-panel);
+  pointer-events: auto;
+  animation: anchored-panel-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.opens-down .sidebar-content {
+  top: 104px;
+  transform-origin: top right;
+}
+
+.opens-up .sidebar-content {
+  top: 0;
+  transform-origin: bottom right;
+}
+
+.sidebar-shell.is-idle .sidebar-content {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar-content > .todo-panel {
+  height: 100%;
+}
+
+@keyframes anchored-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.opens-up .sidebar-content {
+  animation-name: anchored-panel-in-up;
+}
+
+@keyframes anchored-panel-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-content {
+    animation-duration: 120ms;
+  }
+  @keyframes anchored-panel-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes anchored-panel-in-up {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}

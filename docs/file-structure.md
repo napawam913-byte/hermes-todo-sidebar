@@ -20,15 +20,22 @@ figma/                      Figma 节点记录和验收记录
 
 ## 当前关键模块
 
-- `src/main/sidebarBounds.ts`：计算展开面板和桌宠闲置窗口的 bounds。
-- `src/main/pet/petWindowBounds.ts`：为桌宠入口和展开面板提供更明确的几何计算入口。
-- `src/main/pet/petPositionStore.ts`：为后续拖拽记忆准备位置存储接口。
+- `src/main/pet/petDragSession.ts`：区分点击与超过 `5px` 的拖动会话。
+- `src/main/pet/petWindowBounds.ts`：计算向上/向下锚定面板和组合窗口 bounds。
+- `src/main/pet/petPositionStore.ts`：校正桌宠位置并处理显示器变化。
+- `src/main/pet/petPositionFileStore.ts`：独立读写 `pet-position.v1.json`。
+- `src/main/pet/petWindowController.ts`：编排拖动、展开、收起、跨屏和一次性保存。
+- `src/main/pet/petElectronPorts.ts`：把 Electron `screen/BrowserWindow` 适配为控制器端口。
+- `src/main/pet/petIpc.ts`：注册 renderer 可调用的桌宠白名单 IPC。
 - `src/main/reminders/reminderScheduler.ts`：筛选已经到点、可触发提醒的待办。
 - `src/main/reminders/notificationService.ts`：预留 Windows 通知服务接口。
 - `src/main/agent/agentBridge.ts`：预留 renderer 到 Hermes Agent 的主进程桥接。
 - `src/main/agent/agentPermissionPolicy.ts`：定义 Agent 动作的确认和拒绝策略。
 - `src/renderer/features/sidebar/DesktopPetButton.tsx`：桌宠式闲置入口。
-- `src/renderer/features/sidebar/SidebarShell.tsx`：切换闲置态和展开态。
+- `src/renderer/features/sidebar/petDragInteraction.ts`：协调指针会话与安全 bridge。
+- `src/renderer/features/sidebar/usePetDrag.ts`：把 React 指针事件连接到拖动协调器。
+- `src/renderer/features/sidebar/SidebarShell.tsx`：消费布局快照并组合桌宠与锚定面板。
+- `src/renderer/components/DetailPageShell.tsx`：今日待办和周期计划复用的同面板详情页。
 - `src/renderer/features/todos/todoModel.ts`：待办创建、完成、简单排序，以及后续稍后和提醒扩展纯函数。
 - `src/renderer/features/todos/todoRepository.ts`：待办仓储接口。
 - `src/renderer/features/todos/localTodoRepository.ts`：`localStorage` 本地持久化实现。
@@ -57,7 +64,7 @@ figma/                      Figma 节点记录和验收记录
 ## 模块规则
 
 - Electron 主进程只处理窗口、托盘、IPC、通知和桌面生命周期。
-- React feature 模块不直接依赖 Electron 对象，只通过 `window.hermesSidebar` 桥接。
+- React feature 模块不直接依赖 Electron 对象，只通过 `window.hermesPet` 白名单桥接。
 - 待办领域纯函数放在 `features/todos/todoModel.ts`。
 - 本地持久化通过 `TodoRepository` 接口接入，不写进 UI 组件。
 - 第一版 UI 只展示日期级周期计划，不展示具体时间安排。
@@ -68,6 +75,8 @@ figma/                      Figma 节点记录和验收记录
 - Agent 推理和联网逻辑不能写进 UI 组件；UI 只展示建议并等待确认。
 - 新模块必须有中文模块用途注释。
 - `App.tsx` 只做状态组合和 feature 编排，不承载完整 UI。
+- 桌宠坐标只存在于 `src/main/pet/`；待办和周期计划模块不得读取屏幕坐标。
+- `pet-position.v1.json` 与 `data/state.v1.json` 分开保存，互不改变 schema。
 
 ## 文件大小规则
 

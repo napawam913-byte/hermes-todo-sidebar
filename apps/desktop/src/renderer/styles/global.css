@@ -7,7 +7,9 @@
 @import "./base.css";
 @import "./buttons.css";
 @import "./sidebar.css";
-@import "./detail-drawer.css";
+@import "./anchored-popover.css";
+@import "./pet-drag.css";
+@import "./detail-page.css";
 @import "./todo-panel.css";
 @import "./todo-detail.css";
 @import "./todo-state.css";

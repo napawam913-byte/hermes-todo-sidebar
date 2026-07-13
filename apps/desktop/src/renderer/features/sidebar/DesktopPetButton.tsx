@@ -3,15 +3,27 @@
  * 模块边界：只负责桌面悬浮入口展示，不读取或修改待办数据。
  */
 import { ListTodo } from "lucide-react";
+import { useCallback } from "react";
+import { usePetDrag } from "./usePetDrag";
 
 interface DesktopPetButtonProps {
   activeCount: number;
-  onOpen: () => void;
+  expanded: boolean;
+  onActivate: () => void;
 }
 
-export function DesktopPetButton({ activeCount, onOpen }: DesktopPetButtonProps) {
+export function DesktopPetButton({ activeCount, expanded, onActivate }: DesktopPetButtonProps) {
+  const activate = useCallback(onActivate, [onActivate]);
+  const { dragging, pointerHandlers } = usePetDrag({ enabled: !expanded, onActivate: activate });
+
   return (
-    <button className="desktop-pet-button" type="button" onClick={onOpen} aria-label="打开待办桌宠">
+    <button
+      {...pointerHandlers}
+      className={dragging ? "desktop-pet-button is-dragging" : "desktop-pet-button"}
+      type="button"
+      aria-label={expanded ? "收起待办面板" : "打开待办面板"}
+      aria-pressed={expanded}
+    >
       <span className="desktop-pet-aura" />
       <span className="desktop-pet-body" aria-hidden="true">
         <span className="desktop-pet-ears">
