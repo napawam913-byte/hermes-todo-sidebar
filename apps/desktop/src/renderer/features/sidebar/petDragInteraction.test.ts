@@ -37,10 +37,9 @@ function createBridge() {
 }
 
 describe("PetDragInteraction", () => {
-  it("两个方向都小于 4px 时按点击结束", () => {
+  it("普通点击留给原生 click 处理且不设置抑制", () => {
     const bridge = createBridge();
-    const activate = vi.fn();
-    const interaction = new PetDragInteraction({ bridge, onActivate: activate });
+    const interaction = new PetDragInteraction({ bridge });
     const endSample = pointerSample(103, 103);
 
     interaction.start(startSample);
@@ -50,16 +49,14 @@ describe("PetDragInteraction", () => {
     expect(bridge.startDrag).toHaveBeenCalledWith(startSample);
     expect(bridge.updateDrag).not.toHaveBeenCalled();
     expect(bridge.endDrag).toHaveBeenCalledWith(endSample);
-    expect(activate).toHaveBeenCalledOnce();
+    expect(interaction.consumeClickSuppression()).toBe(false);
   });
 
-  it("任一方向达到 4px 时立即进入拖动", () => {
+  it("拖动后的原生 click 只被抑制一次", () => {
     const bridge = createBridge();
-    const activate = vi.fn();
     const setDragging = vi.fn();
     const interaction = new PetDragInteraction({
       bridge,
-      onActivate: activate,
       onDraggingChange: setDragging
     });
     const moveSample = pointerSample(104, 100);
@@ -69,32 +66,28 @@ describe("PetDragInteraction", () => {
     interaction.end(moveSample);
 
     expect(bridge.updateDrag).toHaveBeenCalledWith(moveSample);
-    expect(activate).not.toHaveBeenCalled();
     expect(setDragging).toHaveBeenCalledWith(true);
     expect(setDragging).toHaveBeenLastCalledWith(false);
+    expect(interaction.consumeClickSuppression()).toBe(true);
+    expect(interaction.consumeClickSuppression()).toBe(false);
   });
 
-  it("更新点击回调时保留按下中的 Pointer 会话", () => {
+  it("新 Pointer 会话清除未消费的旧 click 抑制", () => {
     const bridge = createBridge();
-    const originalActivate = vi.fn();
-    const latestActivate = vi.fn();
-    const interaction = new PetDragInteraction({
-      bridge,
-      onActivate: originalActivate
-    });
+    const interaction = new PetDragInteraction({ bridge });
 
     interaction.start(startSample);
-    interaction.setOnActivate(latestActivate);
-    interaction.end(pointerSample(100, 100));
+    interaction.move(pointerSample(104, 100));
+    interaction.end(pointerSample(104, 100));
+    interaction.start({ ...startSample, pointerId: 12, timeMs: 30 });
+    interaction.end(pointerSample(100, 100, 12, 40));
 
-    expect(originalActivate).not.toHaveBeenCalled();
-    expect(latestActivate).toHaveBeenCalledOnce();
+    expect(interaction.consumeClickSuppression()).toBe(false);
   });
 
   it("忽略不属于当前会话的 pointerId", () => {
     const bridge = createBridge();
-    const activate = vi.fn();
-    const interaction = new PetDragInteraction({ bridge, onActivate: activate });
+    const interaction = new PetDragInteraction({ bridge });
 
     interaction.start(startSample);
     interaction.move(pointerSample(150, 150, 99));
@@ -102,6 +95,6 @@ describe("PetDragInteraction", () => {
 
     expect(bridge.updateDrag).not.toHaveBeenCalled();
     expect(bridge.endDrag).not.toHaveBeenCalled();
-    expect(activate).not.toHaveBeenCalled();
+    expect(interaction.consumeClickSuppression()).toBe(false);
   });
 });

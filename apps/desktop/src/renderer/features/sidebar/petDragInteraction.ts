@@ -16,7 +16,6 @@ export interface PetDragBridge {
 
 interface PetDragInteractionOptions {
   bridge: PetDragBridge;
-  onActivate: () => void;
   onDraggingChange?: (dragging: boolean) => void;
 }
 
@@ -24,18 +23,13 @@ export class PetDragInteraction {
   private startSample: PetDragStartSample | undefined;
   private lastTimeMs = 0;
   private dragging = false;
-  private onActivate: () => void;
+  private suppressNextClick = false;
 
-  constructor(private readonly options: PetDragInteractionOptions) {
-    this.onActivate = options.onActivate;
-  }
-
-  setOnActivate(callback: () => void): void {
-    this.onActivate = callback;
-  }
+  constructor(private readonly options: PetDragInteractionOptions) {}
 
   start(sample: PetDragStartSample): void {
     if (this.startSample) return;
+    this.suppressNextClick = false;
     this.startSample = { ...sample };
     this.lastTimeMs = sample.timeMs;
     this.dragging = false;
@@ -62,8 +56,8 @@ export class PetDragInteraction {
     const dragged = this.dragging;
     this.options.bridge.endDrag(sample);
     this.reset();
+    this.suppressNextClick = dragged;
     if (dragged) this.options.onDraggingChange?.(false);
-    else this.onActivate();
   }
 
   cancel(pointerId: number): void {
@@ -71,7 +65,14 @@ export class PetDragInteraction {
     const dragged = this.dragging;
     this.options.bridge.cancelDrag(pointerId);
     this.reset();
+    this.suppressNextClick = false;
     if (dragged) this.options.onDraggingChange?.(false);
+  }
+
+  consumeClickSuppression(): boolean {
+    const suppressed = this.suppressNextClick;
+    this.suppressNextClick = false;
+    return suppressed;
   }
 
   private accepts(sample: PetDragPointerSample): boolean {

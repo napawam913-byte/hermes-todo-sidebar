@@ -20,12 +20,10 @@ export function usePetDrag({ enabled, onActivate }: UsePetDragOptions) {
   if (!interactionRef.current && window.hermesPet) {
     interactionRef.current = new PetDragInteraction({
       bridge: window.hermesPet,
-      onActivate,
       onDraggingChange: setDragging
     });
   }
   const interaction = interactionRef.current;
-  interaction?.setOnActivate(onActivate);
 
   function onPointerDown(event: PointerEvent<HTMLButtonElement>) {
     if (!enabled || event.button !== 0 || !interaction) return;
@@ -53,7 +51,12 @@ export function usePetDrag({ enabled, onActivate }: UsePetDragOptions) {
   }
 
   function onClick(event: MouseEvent<HTMLButtonElement>) {
-    if (!enabled || event.detail === 0) onActivate();
+    const suppressed = interaction?.consumeClickSuppression() ?? false;
+    if (event.detail !== 0 && suppressed) {
+      event.preventDefault();
+      return;
+    }
+    onActivate();
   }
 
   return {
