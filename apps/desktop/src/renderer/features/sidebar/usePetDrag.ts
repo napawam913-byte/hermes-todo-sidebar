@@ -2,7 +2,7 @@
  * 模块用途：把桌宠指针事件连接到已测试的拖动交互协调器。
  * 模块边界：不计算屏幕坐标，不直接调用 Electron IPC 通道名。
  */
-import { useMemo, useState, type MouseEvent, type PointerEvent } from "react";
+import { useRef, useState, type MouseEvent, type PointerEvent } from "react";
 import { PetDragInteraction } from "./petDragInteraction";
 
 interface UsePetDragOptions {
@@ -12,13 +12,16 @@ interface UsePetDragOptions {
 
 export function usePetDrag({ enabled, onActivate }: UsePetDragOptions) {
   const [dragging, setDragging] = useState(false);
-  const interaction = useMemo(() => window.hermesPet
-    ? new PetDragInteraction({
-        bridge: window.hermesPet,
-        onActivate,
-        onDraggingChange: setDragging
-      })
-    : undefined, [onActivate]);
+  const interactionRef = useRef<PetDragInteraction | undefined>(undefined);
+  if (!interactionRef.current && window.hermesPet) {
+    interactionRef.current = new PetDragInteraction({
+      bridge: window.hermesPet,
+      onActivate,
+      onDraggingChange: setDragging
+    });
+  }
+  const interaction = interactionRef.current;
+  interaction?.setOnActivate(onActivate);
 
   function onPointerDown(event: PointerEvent<HTMLButtonElement>) {
     if (event.button !== 0) return;

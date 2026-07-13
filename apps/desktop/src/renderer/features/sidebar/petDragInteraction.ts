@@ -17,8 +17,15 @@ interface PetDragInteractionOptions {
 
 export class PetDragInteraction {
   private pressed = false;
+  private onActivate: () => void;
 
-  constructor(private readonly options: PetDragInteractionOptions) {}
+  constructor(private readonly options: PetDragInteractionOptions) {
+    this.onActivate = options.onActivate;
+  }
+
+  setOnActivate(callback: () => void): void {
+    this.onActivate = callback;
+  }
 
   async start(): Promise<void> {
     this.pressed = await this.options.bridge.startDrag();
@@ -35,7 +42,7 @@ export class PetDragInteraction {
     const result = await this.options.bridge.endDrag();
     this.pressed = false;
     this.options.onDraggingChange?.(false);
-    if (!result.dragged) this.options.onActivate();
+    if (!result.dragged) this.onActivate();
   }
 
   async cancel(): Promise<void> {

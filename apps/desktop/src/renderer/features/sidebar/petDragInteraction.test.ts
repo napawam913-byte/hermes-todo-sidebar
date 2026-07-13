@@ -45,4 +45,23 @@ describe("PetDragInteraction", () => {
     expect(setDragging).toHaveBeenCalledWith(true);
     expect(setDragging).toHaveBeenLastCalledWith(false);
   });
+
+  it("更新点击回调时保留按下中的拖动会话", async () => {
+    const bridge = createBridge(false);
+    const originalActivate = vi.fn();
+    const latestActivate = vi.fn();
+    const interaction = new PetDragInteraction({
+      bridge,
+      onActivate: originalActivate
+    });
+
+    await interaction.start();
+    interaction.setOnActivate(latestActivate);
+    await interaction.move();
+    await interaction.end();
+
+    expect(bridge.updateDrag).toHaveBeenCalledOnce();
+    expect(originalActivate).not.toHaveBeenCalled();
+    expect(latestActivate).toHaveBeenCalledOnce();
+  });
 });
