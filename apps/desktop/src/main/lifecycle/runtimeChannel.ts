@@ -6,10 +6,16 @@ export type RuntimeChannel = "stable" | "test";
 
 import path from "node:path";
 
-export function getRuntimeChannel(environment: NodeJS.ProcessEnv): RuntimeChannel {
+export function getRuntimeChannel(
+  environment: NodeJS.ProcessEnv,
+  executablePath = ""
+): RuntimeChannel {
   if (environment.HERMES_RUNTIME_CHANNEL?.toLowerCase() === "test") return "test";
   const portableFile = environment.PORTABLE_EXECUTABLE_FILE?.toLowerCase() ?? "";
-  return portableFile.includes("-test.") ? "test" : "stable";
+  const executableFile = executablePath.toLowerCase();
+  return [portableFile, executableFile].some((value) => value.includes("-test."))
+    ? "test"
+    : "stable";
 }
 
 export function getTestUserDataPath(appDataPath: string): string {

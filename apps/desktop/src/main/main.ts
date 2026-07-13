@@ -33,7 +33,7 @@ import { registerStorageIpc } from "./storage/storageIpc.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = !app.isPackaged;
 const rendererDevUrl = process.env.HERMES_RENDERER_URL ?? "http://127.0.0.1:5178";
-const runtimeChannel = getRuntimeChannel(process.env);
+const runtimeChannel = getRuntimeChannel(process.env, process.execPath);
 if (runtimeChannel === "test") {
   app.setPath("userData", getTestUserDataPath(app.getPath("appData")));
 }

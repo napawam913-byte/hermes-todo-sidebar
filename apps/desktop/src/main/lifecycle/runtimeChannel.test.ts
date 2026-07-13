@@ -18,6 +18,13 @@ describe("runtimeChannel", () => {
     })).toBe("stable");
   });
 
+  it("从免安装目录版可执行文件路径识别 test 通道", () => {
+    expect(getRuntimeChannel(
+      {},
+      "D:\\release\\Hermes 待办桌宠-0.1.2-test.4-免安装目录版\\启动.exe"
+    )).toBe("test");
+  });
+
   it("测试通道固定写入独立的 APPDATA 子目录", () => {
     expect(getTestUserDataPath("C:\\Users\\me\\AppData\\Roaming"))
       .toBe("C:\\Users\\me\\AppData\\Roaming\\hermes-todo-sidebar-test");
