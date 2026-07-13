@@ -3,8 +3,8 @@
   "fileKey": "YjDqATxuYpFqkb3TzL4cfj",
   "fileUrl": "https://www.figma.com/design/YjDqATxuYpFqkb3TzL4cfj",
   "latestVersion": {
-    "updatedAt": "2026-07-10",
-    "summary": "顶部导航为今日待办 / 周期任务；今日待办从周期任务读取当天条目；点击周期任务主题后从右侧弹出详情抽屉。"
+    "updatedAt": "2026-07-13",
+    "summary": "桌宠可自由拖动并永久记住位置；点击后根据锚点空间向上或向下展开 360px 待办面板；详情在同一面板内切页。"
   },
   "pages": {
     "00 Cover": {
@@ -14,22 +14,28 @@
     "01 UI States": {
       "pageId": "1:3",
       "latestFlow": {
-        "todayFromCycleTasks": "48:2",
-        "cycleTaskTopicList": "48:55",
-        "fitnessDrawerOpen": "48:90"
+        "desktopPetDragging": "66:2",
+        "todayPopoverDown": "67:26",
+        "cyclePopoverUp": "70:49",
+        "cycleDetailInPanel": "71:72"
       }
     },
     "02 Components": {
       "pageId": "1:4",
-      "latestComponentsFrameId": "48:157"
+      "latestComponentsFrameId": "62:2",
+      "componentSets": {
+        "DesktopPet": "62:31",
+        "AnchoredTodoPopover": "63:26",
+        "DetailPageHeader": "65:16"
+      }
     },
     "03 Motion Spec": {
       "pageId": "1:5",
-      "latestMotionFrameId": "48:205"
+      "latestMotionFrameId": "72:2"
     },
     "04 Handoff Notes": {
       "pageId": "1:6",
-      "latestHandoffFrameId": "48:212"
+      "latestHandoffFrameId": "73:2"
     }
   }
 }
