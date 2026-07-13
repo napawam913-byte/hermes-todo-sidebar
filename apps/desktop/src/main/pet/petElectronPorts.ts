@@ -31,7 +31,6 @@ export function createPetWindowPort(window: BrowserWindow): PetWindowPort {
 
 export function createPetScreenPort(): PetScreenPort {
   return {
-    getCursorPoint: () => screen.getCursorScreenPoint(),
     getDisplays: () => screen.getAllDisplays().map(toDisplayArea),
     getPrimaryDisplayId: () => screen.getPrimaryDisplay().id,
     getDisplayNearestPoint: (point) => toDisplayArea(screen.getDisplayNearestPoint(point))

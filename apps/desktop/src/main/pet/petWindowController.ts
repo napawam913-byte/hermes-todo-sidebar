@@ -4,6 +4,10 @@
  */
 import type { SidebarWindowBounds } from "../sidebarBounds.js";
 import { DESKTOP_PET_HEIGHT, DESKTOP_PET_WIDTH } from "../sidebarBounds.js";
+import type {
+  PetDragPointerSample,
+  PetDragStartSample
+} from "../../shared/petDragContract.js";
 import { PetDragSession } from "./petDragSession.js";
 import {
   clampPetPosition,
@@ -29,7 +33,6 @@ export interface PetWindowPort {
 }
 
 export interface PetScreenPort {
-  getCursorPoint(): PetPosition;
   getDisplays(): PetDisplayArea[];
   getPrimaryDisplayId(): number;
   getDisplayNearestPoint(point: PetPosition): PetDisplayArea;
@@ -47,11 +50,10 @@ interface PetWindowControllerOptions {
 }
 
 export class PetWindowController {
-  private readonly dragSession = new PetDragSession(5);
+  private readonly dragSession = new PetDragSession();
   private position: PetPosition = { x: 0, y: 0 };
   private displayId = 0;
   private expanded = false;
-  private dragActive = false;
   private snapshot: PetLayoutSnapshot = createIdleSnapshot(false);
 
   constructor(private readonly options: PetWindowControllerOptions) {}
@@ -68,19 +70,15 @@ export class PetWindowController {
     return this.applyIdleBounds(false);
   }
 
-  startDrag(): boolean {
-    if (this.expanded || this.dragActive) return false;
-    this.dragSession.start(this.options.screen.getCursorPoint(), this.position);
-    this.dragActive = true;
-    return true;
+  startDrag(sample: PetDragStartSample): boolean {
+    if (this.expanded) return false;
+    return this.dragSession.start(sample, this.position);
   }
 
-  updateDrag(): { dragging: boolean } {
-    if (!this.dragActive) return { dragging: false };
-    const cursor = this.options.screen.getCursorPoint();
-    const update = this.dragSession.update(cursor);
-    if (!update.dragging || !update.position) return { dragging: false };
-    const display = this.options.screen.getDisplayNearestPoint(cursor);
+  updateDrag(sample: PetDragPointerSample): { dragging: boolean } {
+    const update = this.dragSession.update(sample);
+    if (!update) return { dragging: false };
+    const display = this.options.screen.getDisplayNearestPoint(toScreenPoint(sample));
     this.position = clampPetPosition(update.position, display.workArea, petSize, 0);
     this.displayId = display.id;
     this.options.window.setBounds(calculatePetIdleBounds(display.workArea, this.position));
@@ -88,19 +86,16 @@ export class PetWindowController {
     return { dragging: true };
   }
 
-  async endDrag(): Promise<{ dragged: boolean }> {
-    if (!this.dragActive) return { dragged: false };
-    const result = this.dragSession.end();
-    this.dragActive = false;
+  async endDrag(sample: PetDragPointerSample): Promise<{ dragged: boolean }> {
+    const result = this.dragSession.end(sample);
+    if (!result) return { dragged: false };
     if (!result.dragged) {
       this.publish(createIdleSnapshot(false));
       return { dragged: false };
     }
 
-    const display = this.options.screen.getDisplayNearestPoint(
-      this.options.screen.getCursorPoint()
-    );
-    this.position = clampPetPosition(result.position, display.workArea, petSize);
+    const display = this.options.screen.getDisplayNearestPoint(toScreenPoint(sample));
+    this.position = clampPetPosition(result.position, display.workArea, petSize, 0);
     this.displayId = display.id;
     this.options.window.setBounds(calculatePetIdleBounds(display.workArea, this.position));
     await this.options.positionStore.save({ displayId: display.id, ...this.position });
@@ -108,13 +103,17 @@ export class PetWindowController {
     return { dragged: true };
   }
 
-  cancelDrag(): void {
-    if (!this.dragActive) return;
-    this.position = this.dragSession.cancel();
-    this.dragActive = false;
+  cancelDrag(pointerId: number): void {
+    const startPosition = this.dragSession.cancel(pointerId);
+    if (!startPosition) return;
+    this.position = startPosition;
     const display = this.options.screen.getDisplayNearestPoint(this.position);
     this.options.window.setBounds(calculatePetIdleBounds(display.workArea, this.position));
     this.publish(createIdleSnapshot(false));
+  }
+
+  isDragActive(): boolean {
+    return this.dragSession.isActive();
   }
 
   setExpanded(expanded: boolean): PetLayoutSnapshot {
@@ -174,4 +173,8 @@ function createIdleSnapshot(dragging: boolean): PetLayoutSnapshot {
     petOffsetY: 0,
     dragging
   };
+}
+
+function toScreenPoint(sample: PetDragPointerSample): PetPosition {
+  return { x: sample.screenX, y: sample.screenY };
 }

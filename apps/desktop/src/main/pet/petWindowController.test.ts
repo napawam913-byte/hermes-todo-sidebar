@@ -3,6 +3,10 @@
  * 模块边界：使用端口替身，不创建真实 BrowserWindow 或 Electron screen。
  */
 import { describe, expect, it, vi } from "vitest";
+import type {
+  PetDragPointerSample,
+  PetDragStartSample
+} from "../../shared/petDragContract.js";
 import { PetWindowController, type PetScreenPort, type PetWindowPort } from "./petWindowController.js";
 
 const displays = [
@@ -11,7 +15,6 @@ const displays = [
 ];
 
 function createHarness(saved?: { displayId: number; x: number; y: number }) {
-  let cursor = { x: 1600, y: 900 };
   let activeDisplays = displays;
   const bounds: Array<{ x: number; y: number; width: number; height: number }> = [];
   const snapshots: unknown[] = [];
@@ -21,7 +24,6 @@ function createHarness(saved?: { displayId: number; x: number; y: number }) {
     sendLayout: (snapshot) => snapshots.push(snapshot)
   };
   const screenPort: PetScreenPort = {
-    getCursorPoint: () => cursor,
     getDisplays: () => activeDisplays,
     getPrimaryDisplayId: () => 1,
     getDisplayNearestPoint: (point) => {
@@ -39,34 +41,84 @@ function createHarness(saved?: { displayId: number; x: number; y: number }) {
     controller,
     save,
     snapshots,
-    setDisplays: (next: typeof displays) => { activeDisplays = next; },
-    setCursor: (next: { x: number; y: number }) => { cursor = next; }
+    setDisplays: (next: typeof displays) => { activeDisplays = next; }
   };
 }
 
+const dragStart: PetDragStartSample = {
+  pointerId: 5,
+  screenX: 1600,
+  screenY: 900,
+  clientX: 5,
+  clientY: 1,
+  timeMs: 10
+};
+
+function dragPoint(
+  screenX: number,
+  screenY: number,
+  timeMs = 20,
+  pointerId = dragStart.pointerId
+): PetDragPointerSample {
+  return { pointerId, screenX, screenY, timeMs };
+}
+
 describe("PetWindowController", () => {
-  it("小幅移动按点击结束且不保存位置", async () => {
+  it("没有有效 move 时按点击结束且不保存位置", async () => {
     const harness = createHarness();
     await harness.controller.initialize();
-    harness.controller.startDrag();
-    harness.setCursor({ x: 1603, y: 904 });
 
-    expect(harness.controller.updateDrag()).toEqual({ dragging: false });
-    await expect(harness.controller.endDrag()).resolves.toEqual({ dragged: false });
+    expect(harness.controller.startDrag(dragStart)).toBe(true);
+    expect(harness.controller.isDragActive()).toBe(true);
+    await expect(harness.controller.endDrag(dragPoint(1603, 903))).resolves.toEqual({
+      dragged: false
+    });
+    expect(harness.controller.isDragActive()).toBe(false);
     expect(harness.save).not.toHaveBeenCalled();
   });
 
-  it("跨到副屏拖动后只在松手时保存一次", async () => {
+  it("跨到副屏拖动后应用最终坐标并只保存一次", async () => {
     const harness = createHarness();
     await harness.controller.initialize();
-    harness.controller.startDrag();
-    harness.setCursor({ x: 1800, y: 900 });
+    harness.controller.startDrag(dragStart);
 
-    expect(harness.controller.updateDrag()).toEqual({ dragging: true });
+    expect(harness.controller.updateDrag(dragPoint(1800, 900))).toEqual({
+      dragging: true
+    });
     expect(harness.save).not.toHaveBeenCalled();
-    await expect(harness.controller.endDrag()).resolves.toEqual({ dragged: true });
+    await expect(harness.controller.endDrag(dragPoint(1815, 910, 30))).resolves.toEqual({
+      dragged: true
+    });
     expect(harness.save).toHaveBeenCalledTimes(1);
-    expect(harness.save).toHaveBeenCalledWith({ displayId: 2, x: 1795, y: 899 });
+    expect(harness.save).toHaveBeenCalledWith({ displayId: 2, x: 1810, y: 909 });
+  });
+
+  it("松手时保持贴边位置而不额外吸附 8px", async () => {
+    const harness = createHarness();
+    await harness.controller.initialize();
+    harness.controller.startDrag(dragStart);
+    const edgePoint = dragPoint(1712, 900);
+
+    harness.controller.updateDrag(edgePoint);
+    await harness.controller.endDrag(edgePoint);
+
+    expect(harness.bounds.at(-1)).toEqual({ x: 1707, y: 899, width: 88, height: 96 });
+    expect(harness.save).toHaveBeenCalledWith({ displayId: 2, x: 1707, y: 899 });
+  });
+
+  it("忽略旧 pointer 并在取消时恢复原位置", async () => {
+    const harness = createHarness();
+    await harness.controller.initialize();
+    harness.controller.startDrag(dragStart);
+
+    expect(harness.controller.updateDrag(dragPoint(1800, 900, 20, 99))).toEqual({
+      dragging: false
+    });
+    harness.controller.updateDrag(dragPoint(1800, 900));
+    harness.controller.cancelDrag(dragStart.pointerId);
+
+    expect(harness.bounds.at(-1)).toEqual({ x: 1595, y: 899, width: 88, height: 96 });
+    expect(harness.save).not.toHaveBeenCalled();
   });
 
   it("展开时返回与桌宠位置一致的锚定布局快照", async () => {

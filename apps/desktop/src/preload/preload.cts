@@ -3,6 +3,10 @@
  * 模块边界：只桥接 Electron IPC，不访问 React 状态；使用 .cts 输出 sandbox 可执行的 CommonJS。
  */
 import { contextBridge, ipcRenderer } from "electron";
+import type {
+  PetDragPointerSample,
+  PetDragStartSample
+} from "../shared/petDragContract.js";
 
 contextBridge.exposeInMainWorld("hermesAppData", {
   loadState: () => ipcRenderer.invoke("data:load-state"),
@@ -32,10 +36,10 @@ contextBridge.exposeInMainWorld("hermesSidebar", {
 contextBridge.exposeInMainWorld("hermesPet", {
   getLayout: () => ipcRenderer.invoke("pet:get-layout"),
   setExpanded: (expanded: boolean) => ipcRenderer.invoke("pet:set-expanded", expanded),
-  startDrag: () => ipcRenderer.invoke("pet:drag-start"),
-  updateDrag: () => ipcRenderer.invoke("pet:drag-update"),
-  endDrag: () => ipcRenderer.invoke("pet:drag-end"),
-  cancelDrag: () => ipcRenderer.invoke("pet:drag-cancel"),
+  startDrag: (sample: PetDragStartSample) => ipcRenderer.send("pet:drag-start", sample),
+  updateDrag: (sample: PetDragPointerSample) => ipcRenderer.send("pet:drag-update", sample),
+  endDrag: (sample: PetDragPointerSample) => ipcRenderer.send("pet:drag-end", sample),
+  cancelDrag: (pointerId: number) => ipcRenderer.send("pet:drag-cancel", pointerId),
   onLayoutChanged: (callback: (snapshot: unknown) => void) => {
     const listener = (_event: unknown, snapshot: unknown) => callback(snapshot);
     ipcRenderer.on("pet:layout-changed", listener);

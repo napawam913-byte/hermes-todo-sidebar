@@ -1,12 +1,17 @@
 /**
- * 模块用途：协调 renderer 的桌宠指针会话与安全 IPC bridge。
- * 模块边界：不读取坐标、不判断 5px 阈值，也不操作 React 状态树。
+ * 模块用途：协调 renderer 的桌宠 Pointer 会话、4px 拖动阈值与安全 IPC bridge。
+ * 模块边界：不操作 Electron 窗口，也不保存桌宠屏幕位置。
  */
+import type {
+  PetDragPointerSample,
+  PetDragStartSample
+} from "../../../shared/petDragContract";
+
 export interface PetDragBridge {
-  startDrag(): Promise<boolean>;
-  updateDrag(): Promise<{ dragging: boolean }>;
-  endDrag(): Promise<{ dragged: boolean }>;
-  cancelDrag(): Promise<void>;
+  startDrag(sample: PetDragStartSample): void;
+  updateDrag(sample: PetDragPointerSample): void;
+  endDrag(sample: PetDragPointerSample): void;
+  cancelDrag(pointerId: number): void;
 }
 
 interface PetDragInteractionOptions {
@@ -16,7 +21,9 @@ interface PetDragInteractionOptions {
 }
 
 export class PetDragInteraction {
-  private pressed = false;
+  private startSample: PetDragStartSample | undefined;
+  private lastTimeMs = 0;
+  private dragging = false;
   private onActivate: () => void;
 
   constructor(private readonly options: PetDragInteractionOptions) {
@@ -27,28 +34,64 @@ export class PetDragInteraction {
     this.onActivate = callback;
   }
 
-  async start(): Promise<void> {
-    this.pressed = await this.options.bridge.startDrag();
+  start(sample: PetDragStartSample): void {
+    if (this.startSample) return;
+    this.startSample = { ...sample };
+    this.lastTimeMs = sample.timeMs;
+    this.dragging = false;
+    this.options.bridge.startDrag(sample);
   }
 
-  async move(): Promise<void> {
-    if (!this.pressed) return;
-    const result = await this.options.bridge.updateDrag();
-    this.options.onDraggingChange?.(result.dragging);
+  move(sample: PetDragPointerSample): void {
+    if (!this.accepts(sample)) return;
+    this.lastTimeMs = sample.timeMs;
+    if (!this.dragging && this.crossedThreshold(sample)) {
+      this.dragging = true;
+      this.options.onDraggingChange?.(true);
+    }
+    if (this.dragging) this.options.bridge.updateDrag(sample);
   }
 
-  async end(): Promise<void> {
-    if (!this.pressed) return;
-    const result = await this.options.bridge.endDrag();
-    this.pressed = false;
-    this.options.onDraggingChange?.(false);
-    if (!result.dragged) this.onActivate();
+  end(sample: PetDragPointerSample): void {
+    if (!this.acceptsPointer(sample.pointerId)) return;
+    if (sample.timeMs < this.lastTimeMs) {
+      this.cancel(sample.pointerId);
+      return;
+    }
+    this.move(sample);
+    const dragged = this.dragging;
+    this.options.bridge.endDrag(sample);
+    this.reset();
+    if (dragged) this.options.onDraggingChange?.(false);
+    else this.onActivate();
   }
 
-  async cancel(): Promise<void> {
-    if (!this.pressed) return;
-    this.pressed = false;
-    await this.options.bridge.cancelDrag();
-    this.options.onDraggingChange?.(false);
+  cancel(pointerId: number): void {
+    if (!this.acceptsPointer(pointerId)) return;
+    const dragged = this.dragging;
+    this.options.bridge.cancelDrag(pointerId);
+    this.reset();
+    if (dragged) this.options.onDraggingChange?.(false);
+  }
+
+  private accepts(sample: PetDragPointerSample): boolean {
+    return this.acceptsPointer(sample.pointerId) && sample.timeMs >= this.lastTimeMs;
+  }
+
+  private acceptsPointer(pointerId: number): boolean {
+    return this.startSample?.pointerId === pointerId;
+  }
+
+  private crossedThreshold(sample: PetDragPointerSample): boolean {
+    const start = this.startSample;
+    if (!start) return false;
+    return Math.abs(sample.screenX - start.screenX) >= 4
+      || Math.abs(sample.screenY - start.screenY) >= 4;
+  }
+
+  private reset(): void {
+    this.startSample = undefined;
+    this.lastTimeMs = 0;
+    this.dragging = false;
   }
 }

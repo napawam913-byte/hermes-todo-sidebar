@@ -1,65 +1,94 @@
 /**
- * 模块用途：区分桌宠点击与拖动，并记录一次指针会话的坐标。
+ * 模块用途：记录主进程桌宠 Pointer 会话，并按固定抓取偏移计算窗口位置。
  * 模块边界：不访问 Electron、不约束显示器边界，也不保存位置。
  */
+import type {
+  PetDragPointerSample,
+  PetDragStartSample
+} from "../../shared/petDragContract.js";
 import type { PetPosition } from "./petPositionStore.js";
 
 export class PetDragSession {
-  private startCursor: PetPosition | null = null;
-  private startPosition: PetPosition | null = null;
-  private currentPosition: PetPosition | null = null;
-  private dragging = false;
+  private state: DragState | undefined;
 
-  constructor(private readonly threshold: number) {}
-
-  start(cursor: PetPosition, petPosition: PetPosition): void {
-    this.startCursor = { ...cursor };
-    this.startPosition = { ...petPosition };
-    this.currentPosition = { ...petPosition };
-    this.dragging = false;
-  }
-
-  update(cursor: PetPosition): { dragging: boolean; position?: PetPosition } {
-    const startCursor = this.requirePosition(this.startCursor);
-    const startPosition = this.requirePosition(this.startPosition);
-    const deltaX = cursor.x - startCursor.x;
-    const deltaY = cursor.y - startCursor.y;
-    if (!this.dragging && Math.hypot(deltaX, deltaY) > this.threshold) {
-      this.dragging = true;
-    }
-    if (!this.dragging) return { dragging: false };
-
-    this.currentPosition = {
-      x: startPosition.x + deltaX,
-      y: startPosition.y + deltaY
+  start(sample: PetDragStartSample, petPosition: PetPosition): boolean {
+    if (this.state) return false;
+    this.state = {
+      pointerId: sample.pointerId,
+      grabOffset: { x: sample.clientX, y: sample.clientY },
+      startPosition: { ...petPosition },
+      currentPosition: { ...petPosition },
+      lastTimeMs: sample.timeMs,
+      dragged: false
     };
-    return { dragging: true, position: { ...this.currentPosition } };
+    return true;
   }
 
-  end(): { dragged: boolean; position: PetPosition } {
+  update(sample: PetDragPointerSample): { position: PetPosition } | undefined {
+    const state = this.acceptedState(sample);
+    if (!state) return undefined;
+    state.lastTimeMs = sample.timeMs;
+    state.dragged = true;
+    state.currentPosition = calculatePosition(sample, state.grabOffset);
+    return { position: { ...state.currentPosition } };
+  }
+
+  end(sample: PetDragPointerSample): { dragged: boolean; position: PetPosition } | undefined {
+    const state = this.acceptedState(sample);
+    if (!state) return undefined;
+    if (state.dragged) {
+      state.currentPosition = calculatePosition(sample, state.grabOffset);
+    }
     const result = {
-      dragged: this.dragging,
-      position: { ...this.requirePosition(this.currentPosition) }
+      dragged: state.dragged,
+      position: { ...state.currentPosition }
     };
     this.reset();
     return result;
   }
 
-  cancel(): PetPosition {
-    const position = { ...this.requirePosition(this.startPosition) };
+  cancel(pointerId: number): PetPosition | undefined {
+    if (this.state?.pointerId !== pointerId) return undefined;
+    const position = { ...this.state.startPosition };
     this.reset();
     return position;
   }
 
-  private requirePosition(position: PetPosition | null): PetPosition {
-    if (!position) throw new Error("桌宠拖动会话尚未开始");
-    return position;
+  isActive(): boolean {
+    return Boolean(this.state);
   }
 
-  private reset() {
-    this.startCursor = null;
-    this.startPosition = null;
-    this.currentPosition = null;
-    this.dragging = false;
+  private acceptedState(sample: PetDragPointerSample): DragState | undefined {
+    if (
+      !this.state
+      || this.state.pointerId !== sample.pointerId
+      || sample.timeMs < this.state.lastTimeMs
+    ) {
+      return undefined;
+    }
+    return this.state;
   }
+
+  private reset(): void {
+    this.state = undefined;
+  }
+}
+
+interface DragState {
+  pointerId: number;
+  grabOffset: PetPosition;
+  startPosition: PetPosition;
+  currentPosition: PetPosition;
+  lastTimeMs: number;
+  dragged: boolean;
+}
+
+function calculatePosition(
+  sample: PetDragPointerSample,
+  grabOffset: PetPosition
+): PetPosition {
+  return {
+    x: sample.screenX - grabOffset.x,
+    y: sample.screenY - grabOffset.y
+  };
 }

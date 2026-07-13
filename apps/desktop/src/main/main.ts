@@ -73,7 +73,7 @@ function createMainWindow() {
 
   mainWindow.once("ready-to-show", () => mainWindow?.show());
   mainWindow.on("blur", () => {
-    petController?.cancelDrag();
+    if (petController?.isDragActive()) return;
     petController?.setExpanded(false);
     mainWindow?.webContents.send("sidebar:collapse-requested");
   });

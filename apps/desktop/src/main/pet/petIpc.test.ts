@@ -4,15 +4,23 @@
  */
 import type { IpcMain } from "electron";
 import { describe, expect, it, vi } from "vitest";
+import type {
+  PetDragPointerSample,
+  PetDragStartSample
+} from "../../shared/petDragContract.js";
 import { PET_CHANNELS, registerPetIpc } from "./petIpc.js";
 import type { PetWindowController } from "./petWindowController.js";
 
 describe("registerPetIpc", () => {
-  it("注册拖动、布局和展开收起白名单", async () => {
-    const handlers = new Map<string, (...args: unknown[]) => unknown>();
+  it("注册拖动、布局和展开收起白名单并转发合法坐标", () => {
+    const invokeHandlers = new Map<string, (...args: unknown[]) => unknown>();
+    const eventHandlers = new Map<string, (...args: unknown[]) => unknown>();
     const ipc = {
       handle(channel: string, listener: (...args: unknown[]) => unknown) {
-        handlers.set(channel, listener);
+        invokeHandlers.set(channel, listener);
+      },
+      on(channel: string, listener: (...args: unknown[]) => unknown) {
+        eventHandlers.set(channel, listener);
       }
     } as unknown as IpcMain;
     const controller = {
@@ -26,13 +34,63 @@ describe("registerPetIpc", () => {
 
     registerPetIpc(ipc, controller);
 
-    expect([...handlers.keys()].sort()).toEqual(Object.values(PET_CHANNELS).sort());
-    expect(handlers.get(PET_CHANNELS.layout)?.({})).toEqual({ expanded: false });
-    expect(handlers.get(PET_CHANNELS.expanded)?.({}, true)).toEqual({ expanded: true });
-    expect(handlers.get(PET_CHANNELS.dragStart)?.({})).toBe(true);
-    expect(handlers.get(PET_CHANNELS.dragUpdate)?.({})).toEqual({ dragging: true });
-    await expect(handlers.get(PET_CHANNELS.dragEnd)?.({})).resolves.toEqual({ dragged: true });
-    handlers.get(PET_CHANNELS.dragCancel)?.({});
-    expect(controller.cancelDrag).toHaveBeenCalledOnce();
+    const start: PetDragStartSample = {
+      pointerId: 2,
+      screenX: 100,
+      screenY: 120,
+      clientX: 10,
+      clientY: 12,
+      timeMs: 5
+    };
+    const point: PetDragPointerSample = {
+      pointerId: 2,
+      screenX: 140,
+      screenY: 150,
+      timeMs: 10
+    };
+
+    expect(invokeHandlers.get(PET_CHANNELS.layout)?.({})).toEqual({ expanded: false });
+    expect(invokeHandlers.get(PET_CHANNELS.expanded)?.({}, true)).toEqual({ expanded: true });
+    eventHandlers.get(PET_CHANNELS.dragStart)?.({}, start);
+    eventHandlers.get(PET_CHANNELS.dragUpdate)?.({}, point);
+    eventHandlers.get(PET_CHANNELS.dragEnd)?.({}, point);
+    eventHandlers.get(PET_CHANNELS.dragCancel)?.({}, point.pointerId);
+
+    expect(controller.startDrag).toHaveBeenCalledWith(start);
+    expect(controller.updateDrag).toHaveBeenCalledWith(point);
+    expect(controller.endDrag).toHaveBeenCalledWith(point);
+    expect(controller.cancelDrag).toHaveBeenCalledWith(point.pointerId);
+  });
+
+  it("拒绝非法坐标和非法 pointerId", () => {
+    const eventHandlers = new Map<string, (...args: unknown[]) => unknown>();
+    const ipc = {
+      handle: vi.fn(),
+      on(channel: string, listener: (...args: unknown[]) => unknown) {
+        eventHandlers.set(channel, listener);
+      }
+    } as unknown as IpcMain;
+    const controller = {
+      startDrag: vi.fn(),
+      updateDrag: vi.fn(),
+      endDrag: vi.fn(),
+      cancelDrag: vi.fn()
+    } as unknown as PetWindowController;
+
+    registerPetIpc(ipc, controller);
+    eventHandlers.get(PET_CHANNELS.dragStart)?.({}, {
+      pointerId: 1,
+      screenX: Number.POSITIVE_INFINITY,
+      screenY: 2,
+      clientX: 3,
+      clientY: 4,
+      timeMs: 5
+    });
+    eventHandlers.get(PET_CHANNELS.dragUpdate)?.({}, { pointerId: 1, screenX: 2 });
+    eventHandlers.get(PET_CHANNELS.dragCancel)?.({}, "1");
+
+    expect(controller.startDrag).not.toHaveBeenCalled();
+    expect(controller.updateDrag).not.toHaveBeenCalled();
+    expect(controller.cancelDrag).not.toHaveBeenCalled();
   });
 });

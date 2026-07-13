@@ -22,10 +22,16 @@ interface Window {
   hermesPet?: {
     getLayout: () => Promise<PetLayoutSnapshot>;
     setExpanded: (expanded: boolean) => Promise<PetLayoutSnapshot>;
-    startDrag: () => Promise<boolean>;
-    updateDrag: () => Promise<{ dragging: boolean }>;
-    endDrag: () => Promise<{ dragged: boolean }>;
-    cancelDrag: () => Promise<void>;
+    startDrag: (
+      sample: import("../shared/petDragContract").PetDragStartSample
+    ) => void;
+    updateDrag: (
+      sample: import("../shared/petDragContract").PetDragPointerSample
+    ) => void;
+    endDrag: (
+      sample: import("../shared/petDragContract").PetDragPointerSample
+    ) => void;
+    cancelDrag: (pointerId: number) => void;
     onLayoutChanged: (callback: (snapshot: PetLayoutSnapshot) => void) => () => void;
   };
 }
