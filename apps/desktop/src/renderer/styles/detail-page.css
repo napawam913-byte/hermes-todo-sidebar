@@ -1,11 +1,13 @@
 /**
- * 模块用途：同一 360px 面板内的详情返回页和滚动区域。
+ * 模块用途：同一响应式面板内的详情返回页和滚动区域。
  * 模块边界：不定义领域内容块，只提供页面级结构。
  */
 .detail-page {
   display: flex;
   flex: 1;
   flex-direction: column;
+  width: 100%;
+  min-width: 0;
   min-height: 0;
   overflow: hidden;
   border-top: 1px solid var(--border);

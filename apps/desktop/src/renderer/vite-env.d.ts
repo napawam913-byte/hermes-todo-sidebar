@@ -40,6 +40,7 @@ interface PetLayoutSnapshot {
   expanded: boolean;
   direction: "up" | "down";
   panelHeight: number;
+  panelWidth: number;
   petOffsetX: number;
   petOffsetY: number;
   dragging: boolean;

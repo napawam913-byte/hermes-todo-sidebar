@@ -130,11 +130,12 @@ describe("PetWindowController", () => {
     expect(snapshot).toMatchObject({
       expanded: true,
       direction: "up",
-      panelHeight: 560,
-      petOffsetX: 272,
-      petOffsetY: 568
+      panelHeight: 581,
+      panelWidth: 854,
+      petOffsetX: 766,
+      petOffsetY: 589
     });
-    expect(harness.bounds.at(-1)).toEqual({ x: 1323, y: 331, width: 360, height: 664 });
+    expect(harness.bounds.at(-1)).toEqual({ x: 829, y: 310, width: 854, height: 685 });
   });
 
   it("显示器断开后把桌宠恢复到主屏并保存校正位置", async () => {

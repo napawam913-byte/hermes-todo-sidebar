@@ -16,6 +16,7 @@ const idleLayout: PetLayoutSnapshot = {
   expanded: false,
   direction: "down",
   panelHeight: 0,
+  panelWidth: 0,
   petOffsetX: 0,
   petOffsetY: 0,
   dragging: false
@@ -48,6 +49,7 @@ export function SidebarShell(props: SidebarShellProps) {
 
   const style = {
     "--panel-height": `${layout.panelHeight}px`,
+    "--panel-width": `${layout.panelWidth}px`,
     "--pet-offset-x": `${layout.petOffsetX}px`,
     "--pet-offset-y": `${layout.petOffsetY}px`
   } as CSSProperties;
@@ -74,7 +76,26 @@ export function SidebarShell(props: SidebarShellProps) {
 }
 
 function createBrowserLayout(expanded: boolean): PetLayoutSnapshot {
-  return expanded
-    ? { expanded, direction: "down", panelHeight: 560, petOffsetX: 272, petOffsetY: 0, dragging: false }
-    : idleLayout;
+  if (!expanded) return idleLayout;
+  const panelWidth = Math.min(
+    window.innerWidth,
+    clamp(Math.round(window.screen.availWidth * 0.5), 360, 960)
+  );
+  const panelHeight = Math.max(0, Math.min(
+    window.innerHeight - 104,
+    clamp(Math.round(window.screen.availHeight * 0.57), 420, 720)
+  ));
+  return {
+    expanded,
+    direction: "down",
+    panelHeight,
+    panelWidth,
+    petOffsetX: Math.max(0, panelWidth - 88),
+    petOffsetY: 0,
+    dragging: false
+  };
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
 }

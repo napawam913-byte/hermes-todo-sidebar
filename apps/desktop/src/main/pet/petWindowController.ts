@@ -22,6 +22,7 @@ export interface PetLayoutSnapshot {
   expanded: boolean;
   direction: "up" | "down";
   panelHeight: number;
+  panelWidth: number;
   petOffsetX: number;
   petOffsetY: number;
   dragging: boolean;
@@ -126,6 +127,7 @@ export class PetWindowController {
       expanded: true,
       direction: layout.direction,
       panelHeight: layout.panelHeight,
+      panelWidth: layout.panelWidth,
       petOffsetX: layout.petOffset.x,
       petOffsetY: layout.petOffset.y,
       dragging: false
@@ -169,6 +171,7 @@ function createIdleSnapshot(dragging: boolean): PetLayoutSnapshot {
     expanded: false,
     direction: "down",
     panelHeight: 0,
+    panelWidth: 0,
     petOffsetX: 0,
     petOffsetY: 0,
     dragging
