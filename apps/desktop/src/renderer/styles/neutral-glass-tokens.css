@@ -1,0 +1,49 @@
+/**
+ * 模块用途：定义与角色无关的 Neutral Glass 颜色、材质和语义状态 Token。
+ * 模块边界：只提供视觉变量与旧变量兼容别名，不承载组件布局。
+ */
+:root {
+  --ui-panel-rgb: 246 247 249;
+  --ui-surface: rgb(255 255 255 / 0.92);
+  --ui-surface-solid: #ffffff;
+  --ui-surface-critical: rgb(255 255 255 / 0.96);
+  --ui-control: rgb(118 118 128 / 0.12);
+  --ui-control-hover: rgb(118 118 128 / 0.18);
+  --ui-border: rgb(60 60 67 / 0.16);
+  --ui-border-strong: rgb(60 60 67 / 0.24);
+  --ui-text: #1d1d1f;
+  --ui-text-secondary: #6e6e73;
+  --ui-text-on-glass-secondary: #3a3a3c;
+  --ui-text-tertiary: #8e8e93;
+  --ui-accent: #007aff;
+  --ui-accent-hover: #0066d6;
+  --ui-accent-soft: rgb(0 122 255 / 0.12);
+  --ui-danger: #ff3b30;
+  --ui-danger-soft: rgb(255 59 48 / 0.12);
+  --ui-warning: #ff9f0a;
+  --ui-success: #248a3d;
+  --ui-focus-ring: rgb(0 122 255 / 0.28);
+  --ui-shadow-panel: 0 18px 48px rgb(0 0 0 / 0.18);
+  --ui-shadow-control: 0 1px 3px rgb(0 0 0 / 0.12);
+
+  /* 兼容旧组件名，后续组件迁移无需改变视觉来源。 */
+  --surface-page: rgb(var(--ui-panel-rgb) / 0.96);
+  --surface-panel: var(--ui-surface);
+  --surface-raised: var(--ui-surface);
+  --surface-muted: var(--ui-control);
+  --surface-critical: var(--ui-surface-critical);
+  --ink: var(--ui-text);
+  --ink-muted: var(--ui-text-secondary);
+  --ink-soft: var(--ui-text-tertiary);
+  --border: var(--ui-border);
+  --border-strong: var(--ui-border-strong);
+  --accent: var(--ui-accent);
+  --accent-strong: var(--ui-accent-hover);
+  --accent-soft: var(--ui-accent-soft);
+  --danger: var(--ui-danger);
+  --danger-soft: var(--ui-danger-soft);
+  --warning: var(--ui-warning);
+  --success: var(--ui-success);
+  --shadow-panel: var(--ui-shadow-panel);
+  --card-hover-opacity: 0.96;
+}

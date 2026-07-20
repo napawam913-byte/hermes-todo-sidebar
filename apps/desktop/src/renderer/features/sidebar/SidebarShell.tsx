@@ -3,11 +3,15 @@
  * 模块边界：不理解待办数据，也不直接计算显示器坐标。
  */
 import { useEffect, useState, type CSSProperties } from "react";
+import { normalizePanelOpacity } from "../appearance/appearanceSettings";
+import type { CharacterPack } from "./characterPack";
 import { DesktopPetButton } from "./DesktopPetButton";
 
 interface SidebarShellProps {
   activeCount: number;
+  characterPack: CharacterPack;
   expanded: boolean;
+  panelOpacity: number;
   onExpandedChange: (expanded: boolean) => void;
   children: React.ReactNode;
 }
@@ -51,7 +55,8 @@ export function SidebarShell(props: SidebarShellProps) {
     "--panel-height": `${layout.panelHeight}px`,
     "--panel-width": `${layout.panelWidth}px`,
     "--pet-offset-x": `${layout.petOffsetX}px`,
-    "--pet-offset-y": `${layout.petOffsetY}px`
+    "--pet-offset-y": `${layout.petOffsetY}px`,
+    "--panel-opacity": normalizePanelOpacity(props.panelOpacity) / 100
   } as CSSProperties;
   const className = [
     "sidebar-shell",
@@ -64,6 +69,7 @@ export function SidebarShell(props: SidebarShellProps) {
       <div className="desktop-pet-anchor">
         <DesktopPetButton
           activeCount={props.activeCount}
+          characterPack={props.characterPack}
           expanded={props.expanded}
           onActivate={() => props.onExpandedChange(!props.expanded)}
         />

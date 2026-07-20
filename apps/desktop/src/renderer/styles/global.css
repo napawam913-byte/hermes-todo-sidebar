@@ -3,13 +3,16 @@
  * 模块边界：只组织样式依赖，不直接承载组件细节。
  */
 @import "./tokens.css";
+@import "./neutral-glass-tokens.css";
 @import "./motion.css";
 @import "./base.css";
 @import "./buttons.css";
 @import "./sidebar.css";
 @import "./anchored-popover.css";
+@import "./pet-sprite.css";
 @import "./pet-drag.css";
 @import "./detail-page.css";
+@import "./appearance-settings.css";
 @import "./todo-panel.css";
 @import "./todo-detail.css";
 @import "./todo-state.css";
@@ -17,4 +20,11 @@
 @import "./cycle-plan.css";
 @import "./cycle-drawer.css";
 @import "./cycle-plan-editor.css";
+@import "./manual-mutation.css";
+@import "./ai-planner.css";
+@import "./ai-flow-nav.css";
+@import "./ai-conversation.css";
+@import "./ai-composer.css";
+@import "./ai-proposal.css";
+@import "./ai-execution.css";
 @import "./status-menu.css";
