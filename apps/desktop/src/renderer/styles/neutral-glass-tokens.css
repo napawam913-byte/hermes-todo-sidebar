@@ -17,6 +17,7 @@
   --ui-text-tertiary: #8e8e93;
   --ui-accent: #007aff;
   --ui-accent-hover: #0066d6;
+  --ui-accent-strong: var(--ui-accent-hover);
   --ui-accent-soft: rgb(0 122 255 / 0.12);
   --ui-danger: #ff3b30;
   --ui-danger-soft: rgb(255 59 48 / 0.12);

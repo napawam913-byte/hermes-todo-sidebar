@@ -2,7 +2,7 @@
  * 模块用途：锁定 Neutral Glass 颜色、材质和角色主题解耦合同。
  * 模块边界：只读取源码文本，不渲染组件或执行浏览器样式计算。
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
@@ -41,5 +41,18 @@ describe("Neutral Glass 静态合同", () => {
 
     expect(tokenIndex).toBeGreaterThan(-1);
     expect(tokenIndex).toBeLessThan(buttonIndex);
+  });
+
+  it("每个被引用的 ui Token 都有全局定义", () => {
+    const tokenSource = read("./neutral-glass-tokens.css");
+    const declared = new Set(
+      [...tokenSource.matchAll(/(--ui-[a-z0-9-]+)\s*:/gi)].map((match) => match[1])
+    );
+    const referenced = readdirSync(new URL(".", import.meta.url))
+      .filter((name) => name.endsWith(".css"))
+      .flatMap((name) => [...read(`./${name}`).matchAll(/var\((--ui-[a-z0-9-]+)/gi)])
+      .map((match) => match[1]);
+
+    expect([...new Set(referenced.filter((name) => !declared.has(name)))]).toEqual([]);
   });
 });
