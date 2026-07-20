@@ -3,8 +3,8 @@
   "fileKey": "YjDqATxuYpFqkb3TzL4cfj",
   "fileUrl": "https://www.figma.com/design/YjDqATxuYpFqkb3TzL4cfj",
   "latestVersion": {
-    "updatedAt": "2026-07-13",
-    "summary": "桌宠可自由拖动并永久记住位置；点击后根据锚点空间向上或向下展开 360px 待办面板；详情在同一面板内切页。"
+    "updatedAt": "2026-07-20",
+    "summary": "Neutral Glass 中性玻璃视觉定稿：横竖版共用固定冷白材质与 #007AFF 强调色，角色包不再控制界面颜色。"
   },
   "pages": {
     "00 Cover": {
@@ -13,20 +13,25 @@
     },
     "01 UI States": {
       "pageId": "1:3",
-      "latestFlow": {
-        "desktopPetDragging": "66:2",
-        "todayPopoverDown": "67:26",
-        "cyclePopoverUp": "70:49",
-        "cycleDetailInPanel": "71:72"
+      "latestFrames": {
+        "wideToday": "179:101",
+        "compactToday": "179:131",
+        "wideMasterDetail": "179:160",
+        "appearanceAndCharacters": "179:201"
       }
     },
     "02 Components": {
       "pageId": "1:4",
-      "latestComponentsFrameId": "62:2",
-      "componentSets": {
-        "DesktopPet": "62:31",
-        "AnchoredTodoPopover": "63:26",
-        "DetailPageHeader": "65:16"
+      "tokenBoardId": "176:2",
+      "componentGalleryId": "177:43",
+      "components": {
+        "SegmentedControl": "201:7",
+        "IconButton": "177:13",
+        "PrimaryButton": "177:18",
+        "TodoCard": "177:25",
+        "CyclePlanCard": "177:32",
+        "DetailPane": "177:33",
+        "CharacterPicker": "177:42"
       }
     },
     "03 Motion Spec": {
@@ -35,7 +40,45 @@
     },
     "04 Handoff Notes": {
       "pageId": "1:6",
-      "latestHandoffFrameId": "73:2"
+      "latestHandoffFrameId": "95:5"
+    },
+    "01 AI Flow": {
+      "pageId": "93:6",
+      "states": {
+        "pageHeader": "94:2",
+        "cycleDefault": "94:5",
+        "apiUnconfigured": "94:8",
+        "chatDefault": "158:168",
+        "chatLongScroll": "162:205",
+        "chatGenerating": "163:248",
+        "chatScrolledWithNewReply": "163:410",
+        "proposalPreview": "94:14",
+        "executionResult": "94:17",
+        "chatCompact360": "164:328"
+      }
+    },
+    "02 AI Components": {
+      "pageId": "93:7",
+      "latestComponentsFrameId": "156:2"
+    },
+    "03 Data Contract": {
+      "pageId": "93:8"
     }
-  }
+  },
+  "neutralGlassVariables": [
+    "Color/Text/Primary",
+    "Color/Text/Secondary",
+    "Color/Text/OnGlassSecondary",
+    "Color/Text/Tertiary",
+    "Color/Accent/Default",
+    "Color/Accent/Hover",
+    "Color/Accent/Soft",
+    "Material/Panel/86",
+    "Material/Card/92",
+    "Material/Control",
+    "Border/Hairline",
+    "Radius/Panel",
+    "Radius/Control",
+      "Opacity/Panel/Default"
+  ]
 }
