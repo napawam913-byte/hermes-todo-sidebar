@@ -33,20 +33,20 @@
 
 .ui-button-icon:hover,
 .ui-button-quiet:hover {
-  background: var(--surface-muted);
+  background: var(--ui-control);
   color: var(--ink);
 }
 
 .ui-button-primary {
-  background: var(--accent);
+  background: var(--ui-accent);
   color: white;
 }
 
 .ui-button-primary:hover {
-  background: var(--accent-strong);
+  background: var(--ui-accent-strong);
 }
 
 .ui-button-quiet {
-  background: transparent;
+  background: var(--ui-control);
   color: var(--ink-muted);
 }

@@ -55,9 +55,9 @@
 .cycle-entry-card {
   width: 100%;
   min-width: 0;
-  border: 1px solid var(--border);
+  border: 1px solid var(--ui-border);
   border-radius: var(--radius-md);
-  background: var(--surface-raised);
+  background: var(--ui-surface);
   color: inherit;
   text-align: left;
 }
@@ -71,8 +71,13 @@
 }
 
 .cycle-plan-card.is-selected {
-  border-color: var(--accent);
-  background: oklch(0.96 0.035 205);
+  border-color: var(--ui-accent);
+  background: var(--ui-accent-soft);
+}
+
+.cycle-plan-card:hover,
+.cycle-entry-card:hover {
+  background: var(--ui-control);
 }
 
 .cycle-plan-card-main,
@@ -115,7 +120,7 @@
 }
 
 .cycle-plan-meta strong {
-  color: var(--accent-strong);
+  color: var(--ui-accent-strong);
 }
 
 .cycle-entry-card {
@@ -126,8 +131,8 @@
 }
 
 .cycle-entry-card.is-active {
-  border-color: var(--accent);
-  box-shadow: inset 4px 0 0 var(--accent);
+  border-color: var(--ui-accent);
+  background: var(--ui-accent-soft);
 }
 
 .cycle-entry-date {
@@ -164,9 +169,9 @@
   display: grid;
   gap: var(--space-2);
   padding: var(--space-3);
-  border: 1px solid var(--border);
+  border: 1px solid var(--ui-border);
   border-radius: var(--radius-md);
-  background: var(--surface-raised);
+  background: var(--ui-surface);
 }
 
 .content-block-header {
@@ -199,7 +204,7 @@
   gap: var(--space-1);
   padding: var(--space-2);
   border-radius: var(--radius-sm);
-  background: var(--surface-muted);
+  background: var(--ui-control);
 }
 
 .fitness-exercise strong {

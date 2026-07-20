@@ -12,13 +12,13 @@
 }
 
 .source-manual {
-  background: var(--surface-muted);
+  background: var(--ui-control);
   color: var(--ink-muted);
 }
 
 .source-cycle {
-  background: var(--accent-soft);
-  color: var(--accent-strong);
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent-strong);
 }
 
 .source-ai {
@@ -40,10 +40,10 @@
   display: grid;
   gap: var(--space-1);
   padding: var(--space-5);
-  border: 1px dashed var(--border);
+  border: 1px dashed var(--ui-border);
   border-radius: var(--radius-md);
   color: var(--ink-muted);
-  background: var(--surface-panel);
+  background: var(--ui-surface);
 }
 
 .empty-state strong {

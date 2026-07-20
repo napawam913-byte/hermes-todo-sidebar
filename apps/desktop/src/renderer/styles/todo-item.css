@@ -5,18 +5,16 @@
 .todo-item {
   position: relative;
   display: grid;
-  grid-template-columns: 4px 1fr;
+  grid-template-columns: 1fr;
   gap: var(--space-3);
   padding: var(--space-3);
-  border: 1px solid var(--border);
+  border: 1px solid var(--ui-border);
   border-radius: var(--radius-md);
-  background: var(--surface-raised);
+  background: var(--ui-surface);
 }
 
 .todo-item-status {
-  width: 4px;
-  border-radius: 999px;
-  background: var(--accent);
+  display: none;
 }
 
 .todo-item-main {
@@ -53,9 +51,36 @@
 }
 
 .todo-item-actions {
-  grid-column: 2;
   position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-1);
+}
+
+/* 今日卡片复用统一表面，不保留角色色状态竖条。 */
+.today-todo-card {
+  border-color: var(--ui-border);
+  background: var(--ui-surface);
+}
+
+.today-todo-card.is-selected {
+  border-color: var(--ui-accent);
+  background: var(--ui-accent-soft);
+}
+
+.today-todo-card:hover,
+.today-todo-open:hover {
+  background: var(--ui-control);
+}
+
+.today-todo-open {
+  grid-template-columns: 1fr;
+}
+
+.today-todo-card.is-overdue .todo-item-status {
+  display: none;
+}
+
+.today-todo-card > .todo-item-actions {
+  padding-left: var(--space-3);
 }

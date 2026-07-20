@@ -8,9 +8,33 @@
   width: 100%;
   min-width: 0;
   height: 100vh;
-  padding: var(--space-5);
-  gap: var(--space-4);
+  padding: var(--space-4);
+  gap: var(--space-3);
   overflow: hidden;
+}
+
+.panel-surface:not([hidden]) {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.today-todo-view,
+.cycle-panel-surface {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.today-todo-view {
+  gap: var(--space-4);
 }
 
 .todo-panel-header {
@@ -34,50 +58,27 @@
 
 .todo-panel h1 {
   margin: 0;
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1.15;
 }
 
 .top-mode-tabs {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-1);
-  padding: var(--space-1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-muted);
-}
-
-.top-mode-tab {
-  min-height: 34px;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--ink-muted);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.top-mode-tab.is-active {
-  background: var(--surface-raised);
-  color: var(--ink);
-  box-shadow: 0 1px 2px oklch(0.2 0.02 240 / 0.08);
+  width: 100%;
 }
 
 .todo-summary {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  min-height: 44px;
+  border-bottom: 1px solid var(--border);
 }
 
 .todo-summary div {
-  display: grid;
-  gap: var(--space-1);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
   min-width: 0;
-  padding: var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-panel);
 }
 
 .todo-summary span {
@@ -88,33 +89,49 @@
 
 .todo-summary strong {
   color: var(--ink);
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1;
 }
 
 .filter-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-1);
-  padding: var(--space-1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-muted);
+  width: 100%;
 }
 
-.filter-tab {
-  min-height: 30px;
+.segmented-control {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 2px;
+  width: 100%;
+  padding: 3px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-md);
+  background: var(--ui-control);
+}
+
+.segmented-control-option {
+  min-width: 0;
   border: 0;
-  border-radius: var(--radius-sm);
+  border-radius: calc(var(--radius-md) - 2px);
   background: transparent;
   color: var(--ink-muted);
+  font-weight: 650;
+}
+
+.segmented-control-regular .segmented-control-option {
+  min-height: 38px;
   font-size: 13px;
 }
 
-.filter-tab.is-active {
-  background: var(--surface-raised);
+.segmented-control-compact .segmented-control-option {
+  min-height: 30px;
+  font-size: 12px;
+}
+
+.segmented-control-option.is-active {
+  background: var(--ui-surface);
   color: var(--ink);
-  box-shadow: 0 1px 2px oklch(0.2 0.02 240 / 0.08);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
 }
 
 .quick-add {
@@ -139,9 +156,15 @@
 
 .todo-list {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: var(--space-3);
   min-height: 0;
   overflow: auto;
   padding-right: var(--space-1);
+  scrollbar-gutter: stable;
+}
+
+.todo-list > * {
+  flex: 0 0 auto;
 }
