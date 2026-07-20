@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "penguin-todo",
+  "displayName": "企鹅待办助手",
+  "version": "1.0.0",
+  "atlas": {
+    "columns": 6,
+    "rows": 7,
+    "cellWidth": 192,
+    "cellHeight": 208,
+    "renderWidth": 88,
+    "renderHeight": 96
+  },
+  "clips": {
+    "idle": { "row": 0, "frames": 6, "durationMs": 1290, "loop": true },
+    "awaken": { "row": 1, "frames": 6, "durationMs": 910, "loop": false },
+    "dragging": {
+      "down": { "row": 2, "frames": 6, "durationMs": 600, "loop": true },
+      "up": { "row": 3, "frames": 6, "durationMs": 600, "loop": true },
+      "left": { "row": 4, "frames": 6, "durationMs": 600, "loop": true, "mirrorX": true },
+      "right": { "row": 4, "frames": 6, "durationMs": 600, "loop": true }
+    },
+    "working": { "row": 5, "frames": 6, "durationMs": 880, "loop": true },
+    "complete": { "row": 6, "frames": 6, "durationMs": 940, "loop": false }
+  }
+}
