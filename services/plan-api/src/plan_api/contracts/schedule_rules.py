@@ -93,9 +93,10 @@ class ScheduleRuleV1(ScheduleContractModel):
 def validate_schedule_rule_payload(payload: object) -> ScheduleRuleV1 | None:
     if payload is None:
         return None
-    if isinstance(payload, ScheduleRuleV1):
-        payload = schedule_rule_payload_snapshot(payload)
     try:
+        if isinstance(payload, ScheduleRuleV1):
+            _validate_schedule_rule_model_containers(payload)
+            payload = schedule_rule_payload_snapshot(payload)
         return ScheduleRuleV1.model_validate(payload)
     except ValueError:
         raise ValueError("invalid_schedule_rule") from None
@@ -129,6 +130,16 @@ def schedule_rule_payload_snapshot(rule: ScheduleRuleV1) -> dict[str, object]:
             for slot in rule.slots
         ],
     }
+
+
+def _validate_schedule_rule_model_containers(rule: ScheduleRuleV1) -> None:
+    if type(rule.slots) is not tuple:
+        raise ValueError("content_not_json")
+    for slot in rule.slots:
+        if isinstance(slot.cadence, WeeklyCadence):
+            if type(slot.cadence.weekdays) is not tuple:
+                raise ValueError("content_not_json")
+        validate_content_payload(slot.content)
 
 
 def _cadence_snapshot(cadence: Cadence) -> dict[str, object]:

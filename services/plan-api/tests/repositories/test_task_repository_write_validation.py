@@ -99,6 +99,31 @@ def test_insert_rejects_custom_object_in_rule_slot_without_writes(
     )
 
 
+@pytest.mark.parametrize("field", ["slots", "weekdays", "sections"])
+def test_insert_rejects_mutated_rule_structure_without_writes(
+    tmp_path, field: str
+) -> None:
+    database = _database(tmp_path)
+    repository = _repository("task-rule-structure")
+    draft = TaskDraft(
+        kind=TaskKind.CYCLE,
+        generation_mode=GenerationMode.ROLLING,
+        content=_content_payload("Task", "safe"),
+        schedule_rule=_schedule_rule(),
+    )
+    slot = draft.schedule_rule.slots[0]
+    if field == "slots":
+        object.__setattr__(draft.schedule_rule, "slots", _CustomList([slot]))
+    elif field == "weekdays":
+        object.__setattr__(slot.cadence, "weekdays", _CustomList([1, 3, 5]))
+    else:
+        slot.content.sections = _CustomList(slot.content.sections)
+
+    _assert_rejected_without_writes(
+        database, repository, draft, "invalid_schedule_rule"
+    )
+
+
 def _assert_rejected_without_writes(
     database: Database,
     repository: TaskRepository,
