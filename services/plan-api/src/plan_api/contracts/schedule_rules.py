@@ -10,6 +10,7 @@ from pydantic import (
     model_validator,
 )
 
+from ..validation.json_bounds import enforce_json_bounds
 from .content import (
     ContentDocument,
     content_payload_snapshot,
@@ -62,6 +63,18 @@ class ScheduleRuleV1(ScheduleContractModel):
     timezone: Literal["Asia/Shanghai"]
     horizonDays: Literal[7]
     slots: tuple[ScheduleSlotV1, ...] = Field(min_length=1, max_length=200)
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_custom_json_containers(cls, value: object) -> object:
+        if not isinstance(value, ScheduleRuleV1):
+            enforce_json_bounds(
+                _snapshot_content_documents(value),
+                max_bytes=1048576,
+                max_depth=10,
+                max_array=200,
+            )
+        return value
 
     @field_validator("schemaVersion", "horizonDays", mode="before")
     @classmethod
@@ -122,3 +135,16 @@ def _cadence_snapshot(cadence: Cadence) -> dict[str, object]:
     if isinstance(cadence, WeeklyCadence):
         return {"type": cadence.type, "weekdays": list(cadence.weekdays)}
     return {"type": cadence.type}
+
+
+def _snapshot_content_documents(value: object) -> object:
+    if isinstance(value, ContentDocument):
+        return content_payload_snapshot(value)
+    if type(value) is list:
+        return [_snapshot_content_documents(item) for item in value]
+    if type(value) is dict:
+        return {
+            key: _snapshot_content_documents(item)
+            for key, item in value.items()
+        }
+    return value

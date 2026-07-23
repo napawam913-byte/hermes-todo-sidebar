@@ -107,3 +107,18 @@ def test_rejects_non_string_json_key() -> None:
 def test_rejects_custom_json_container_subclasses(value: object) -> None:
     with pytest.raises(ValueError, match="^content_not_json$"):
         validate_content_payload(content_payload("learning.tutorial", value))
+
+
+@pytest.mark.parametrize("field", ["sections", "fields", "items"])
+def test_rejects_mutated_custom_structure_containers(field: str) -> None:
+    document = validate_content_payload(content_payload("learning.tutorial", "safe"))
+    section = document.sections[0]
+    if field == "sections":
+        document.sections = CustomList(document.sections)
+    elif field == "fields":
+        section.fields = CustomList(section.fields)
+    else:
+        section.items = CustomList(section.items)
+
+    with pytest.raises(ValueError, match="^content_not_json$"):
+        validate_content_payload(document)

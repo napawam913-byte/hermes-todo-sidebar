@@ -45,6 +45,7 @@ class ContentDocument(BaseModel):
 
 def validate_content_payload(payload: object) -> ContentDocument:
     if isinstance(payload, ContentDocument):
+        _validate_content_model_containers(payload)
         payload = content_payload_snapshot(payload)
     enforce_json_bounds(payload, max_bytes=65536, max_depth=8, max_array=200)
     try:
@@ -74,6 +75,17 @@ def content_payload_snapshot(content: ContentDocument) -> dict[str, object]:
         "locale": content.locale,
         "sections": [_section_snapshot(section) for section in content.sections],
     }
+
+
+def _validate_content_model_containers(content: ContentDocument) -> None:
+    if type(content.sections) is not list:
+        raise ValueError("content_not_json")
+    for section in content.sections:
+        if type(section.fields) is not list or type(section.items) is not list:
+            raise ValueError("content_not_json")
+        for item in section.items:
+            if type(item.fields) is not list:
+                raise ValueError("content_not_json")
 
 
 def _section_snapshot(section: ContentSection) -> dict[str, object]:
