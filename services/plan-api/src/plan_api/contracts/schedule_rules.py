@@ -63,6 +63,13 @@ class ScheduleRuleV1(ScheduleContractModel):
     horizonDays: Literal[7]
     slots: tuple[ScheduleSlotV1, ...] = Field(min_length=1, max_length=200)
 
+    @field_validator("schemaVersion", "horizonDays", mode="before")
+    @classmethod
+    def require_exact_json_int(cls, value: object) -> object:
+        if type(value) is not int:
+            raise ValueError("strict_int_required")
+        return value
+
     @model_validator(mode="after")
     def require_unique_slot_keys(self) -> "ScheduleRuleV1":
         if len(self.slots) != len({slot.slotKey for slot in self.slots}):

@@ -142,7 +142,7 @@ class TaskRepository:
             JOIN tasks t ON t.id = e.task_id
             WHERE t.status = 'active'
               AND (
-                (e.scheduled_date = ? AND e.status = 'pending')
+                e.scheduled_date = ?
                 OR (e.scheduled_date < ? AND e.status = 'pending')
                 OR (
                   e.status = 'completed'
