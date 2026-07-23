@@ -75,9 +75,31 @@ def _statements(sql: str) -> Iterator[str]:
             yield candidate
             buffer.clear()
 
-    remainder = "".join(buffer).strip()
-    if remainder:
+    remainder = "".join(buffer)
+    if not _is_comment_only(remainder):
         raise RuntimeError("incomplete_migration_statement")
+
+
+def _is_comment_only(sql: str) -> bool:
+    position = 0
+    while position < len(sql):
+        if sql[position].isspace():
+            position += 1
+            continue
+        if sql.startswith("--", position):
+            line_end = sql.find("\n", position + 2)
+            if line_end == -1:
+                return True
+            position = line_end + 1
+            continue
+        if sql.startswith("/*", position):
+            comment_end = sql.find("*/", position + 2)
+            if comment_end == -1:
+                return False
+            position = comment_end + 2
+            continue
+        return False
+    return True
 
 
 def _utc_now() -> str:
