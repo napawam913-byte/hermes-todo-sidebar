@@ -51,7 +51,7 @@ class ScheduleSlotV1(ScheduleContractModel):
     @classmethod
     def enforce_content_bounds(cls, value: object) -> ContentDocument:
         if isinstance(value, ContentDocument):
-            value = value.model_dump(mode="json")
+            value = value.model_dump(mode="python", warnings="error")
         return validate_content_payload(value)
 
 
@@ -72,7 +72,7 @@ def validate_schedule_rule_payload(payload: object) -> ScheduleRuleV1 | None:
     if payload is None:
         return None
     if isinstance(payload, ScheduleRuleV1):
-        payload = payload.model_dump(mode="json")
+        payload = payload.model_dump(mode="python", warnings="error")
     try:
         return ScheduleRuleV1.model_validate(payload)
     except ValueError:
@@ -85,7 +85,7 @@ def serialize_validated_schedule_rule(rule: ScheduleRuleV1 | None) -> str | None
     validated = validate_schedule_rule_payload(rule)
     assert validated is not None
     return json.dumps(
-        validated.model_dump(mode="json"),
+        validated.model_dump(mode="json", warnings="error"),
         ensure_ascii=False,
         allow_nan=False,
         separators=(",", ":"),

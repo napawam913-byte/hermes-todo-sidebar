@@ -1,10 +1,14 @@
 import json
+from datetime import datetime, timezone
 
 import pytest
 from pydantic import ValidationError
 
 from plan_api.contracts.content import ContentDocument
-from plan_api.contracts.schedule_rules import ScheduleRuleV1
+from plan_api.contracts.schedule_rules import (
+    ScheduleRuleV1,
+    serialize_validated_schedule_rule,
+)
 from plan_api.contracts.tasks import (
     GenerationMode,
     TaskDraft,
@@ -129,6 +133,18 @@ def test_slot_rechecks_existing_content_document_bounds() -> None:
 
     with pytest.raises(ValidationError, match="array_too_large"):
         ScheduleRuleV1.model_validate(payload)
+
+
+def test_serialization_rejects_datetime_in_mutated_slot_content() -> None:
+    payload = _rule_payload()
+    payload["slots"][0]["content"] = _content_payload("Strength", "safe")
+    rule = ScheduleRuleV1.model_validate(payload)
+    rule.slots[0].content.sections[0].fields[0].value = datetime(
+        2026, 7, 23, tzinfo=timezone.utc
+    )
+
+    with pytest.raises(ValueError, match="^invalid_schedule_rule$"):
+        serialize_validated_schedule_rule(rule)
 
 
 def test_task_draft_uses_typed_schedule_rule() -> None:

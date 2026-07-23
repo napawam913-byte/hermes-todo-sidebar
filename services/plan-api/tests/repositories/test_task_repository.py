@@ -225,6 +225,33 @@ def test_insert_revalidates_mutated_entry_content_before_writing(tmp_path) -> No
         assert connection.execute("SELECT COUNT(*) FROM task_entries").fetchone()[0] == 0
 
 
+@pytest.mark.parametrize("target", ["task", "entry"])
+def test_insert_rejects_datetime_in_mutated_content_before_writing(
+    tmp_path, target: str
+) -> None:
+    database = _database(tmp_path)
+    repository = _repository("task-mutated-datetime", "entry-mutated-datetime")
+    draft = TaskDraft(
+        kind=TaskKind.DAILY,
+        generation_mode=GenerationMode.FIXED,
+        content=_content_payload("Mutable task", "safe"),
+        entries=[
+            TaskEntryDraft(
+                scheduled_date=date(2026, 7, 23),
+                content=_content_payload("Mutable entry", "safe"),
+            )
+        ],
+    )
+    content = draft.content if target == "task" else draft.entries[0].content
+    content.sections[0].fields[0].value = NOW
+
+    with database.transaction() as connection:
+        with pytest.raises(ValueError, match="^content_not_json$"):
+            repository.insert_task(connection, draft)
+        assert connection.execute("SELECT COUNT(*) FROM tasks").fetchone()[0] == 0
+        assert connection.execute("SELECT COUNT(*) FROM task_entries").fetchone()[0] == 0
+
+
 def test_insert_revalidates_mutated_schedule_rule_before_writing(tmp_path) -> None:
     database = _database(tmp_path)
     repository = _repository("task-mutated-rule", "entry-mutated-rule")
@@ -239,12 +266,13 @@ def test_insert_revalidates_mutated_schedule_rule_before_writing(tmp_path) -> No
             _content_payload("Schedule content", list(range(200)))["sections"][0]
         )
     )
-    draft.schedule_rule.slots[0].content.sections[0].fields[0].value.append(200)
+    draft.schedule_rule.slots[0].content.sections[0].fields[0].value = NOW
 
     with database.transaction() as connection:
         with pytest.raises(ValueError, match="^invalid_schedule_rule$"):
             repository.insert_task(connection, draft)
         assert connection.execute("SELECT COUNT(*) FROM tasks").fetchone()[0] == 0
+        assert connection.execute("SELECT COUNT(*) FROM task_entries").fetchone()[0] == 0
 
 
 def _database(tmp_path) -> Database:

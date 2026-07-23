@@ -53,10 +53,10 @@ def validate_content_payload(payload: object) -> ContentDocument:
 
 def serialize_validated_content(content: ContentDocument) -> str:
     """Revalidate mutable nested content immediately before persistence."""
-    payload = content.model_dump(mode="json")
+    payload = content.model_dump(mode="python", warnings="error")
     validated = validate_content_payload(payload)
     return json.dumps(
-        validated.model_dump(mode="json"),
+        validated.model_dump(mode="json", warnings="error"),
         ensure_ascii=False,
         allow_nan=False,
         separators=(",", ":"),
