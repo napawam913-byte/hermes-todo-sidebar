@@ -28,6 +28,13 @@ def content_payload(kind: str, value: object) -> dict[str, object]:
     }
 
 
+def nested_containers(count: int) -> object:
+    value: object = {}
+    for _ in range(count - 1):
+        value = {"nested": value}
+    return value
+
+
 @pytest.mark.parametrize(
     ("kind", "value"),
     [
@@ -44,10 +51,14 @@ def test_accepts_domain_specific_field_values(kind: str, value: object) -> None:
 
 def test_rejects_unknown_top_level_field() -> None:
     payload = content_payload("fitness.workout", {"reps": [15, 12, 12]})
-    payload["unexpected"] = "nope"
+    secret = "sensitive-" + "x" * 4096
+    payload["unexpected"] = secret
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="^invalid_content$") as error:
         validate_content_payload(payload)
+
+    assert secret not in str(error.value)
+    assert secret not in repr(error.value.args)
 
 
 def test_rejects_value_larger_than_64_kb() -> None:
@@ -55,15 +66,30 @@ def test_rejects_value_larger_than_64_kb() -> None:
         validate_content_payload(content_payload("fitness.workout", "x" * 65536))
 
 
-def test_rejects_nine_level_object() -> None:
-    value: object = "leaf"
-    for _ in range(9):
-        value = {"nested": value}
+def test_allows_exactly_eight_container_levels() -> None:
+    document = validate_content_payload(
+        content_payload("learning.tutorial", nested_containers(3))
+    )
 
+    assert document.kind == "learning.tutorial"
+
+
+def test_rejects_nine_container_levels() -> None:
     with pytest.raises(ValueError, match="content_too_deep"):
-        validate_content_payload(content_payload("learning.tutorial", value))
+        validate_content_payload(content_payload("learning.tutorial", nested_containers(4)))
 
 
 def test_rejects_array_with_more_than_200_items() -> None:
     with pytest.raises(ValueError, match="array_too_large"):
         validate_content_payload(content_payload("fitness.workout", list(range(201))))
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf")])
+def test_rejects_non_finite_numbers(value: float) -> None:
+    with pytest.raises(ValueError, match="^content_not_json$"):
+        validate_content_payload(content_payload("fitness.workout", value))
+
+
+def test_rejects_non_string_json_key() -> None:
+    with pytest.raises(ValueError, match="^content_not_json$"):
+        validate_content_payload(content_payload("learning.tutorial", {1: "value"}))

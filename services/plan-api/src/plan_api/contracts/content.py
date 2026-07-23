@@ -1,6 +1,6 @@
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from ..validation.json_bounds import enforce_json_bounds
 
@@ -44,4 +44,7 @@ class ContentDocument(BaseModel):
 
 def validate_content_payload(payload: object) -> ContentDocument:
     enforce_json_bounds(payload, max_bytes=65536, max_depth=8, max_array=200)
-    return ContentDocument.model_validate(payload)
+    try:
+        return ContentDocument.model_validate(payload)
+    except ValidationError:
+        raise ValueError("invalid_content") from None

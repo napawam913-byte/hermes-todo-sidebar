@@ -26,28 +26,32 @@ def _validate_json_value(
     max_depth: int,
     max_array: int,
 ) -> None:
-    if depth > max_depth:
-        raise ValueError("content_too_deep")
     if value is None or isinstance(value, (bool, int, float, str)):
         return
     if isinstance(value, list):
+        depth += 1
+        if depth > max_depth:
+            raise ValueError("content_too_deep")
         if len(value) > max_array:
             raise ValueError("array_too_large")
         for item in value:
             _validate_json_value(
                 item,
-                depth=depth + 1,
+                depth=depth,
                 max_depth=max_depth,
                 max_array=max_array,
             )
         return
     if isinstance(value, dict):
+        depth += 1
+        if depth > max_depth:
+            raise ValueError("content_too_deep")
         for key, item in value.items():
             if not isinstance(key, str):
                 raise ValueError("content_not_json")
             _validate_json_value(
                 item,
-                depth=depth + 1,
+                depth=depth,
                 max_depth=max_depth,
                 max_array=max_array,
             )
