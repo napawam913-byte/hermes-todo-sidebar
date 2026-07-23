@@ -10,7 +10,11 @@ from pydantic import (
     model_validator,
 )
 
-from .content import ContentDocument, validate_content_payload
+from .content import (
+    ContentDocument,
+    content_payload_snapshot,
+    validate_content_payload,
+)
 
 
 class ScheduleContractModel(BaseModel):
@@ -50,8 +54,6 @@ class ScheduleSlotV1(ScheduleContractModel):
     @field_validator("content", mode="before")
     @classmethod
     def enforce_content_bounds(cls, value: object) -> ContentDocument:
-        if isinstance(value, ContentDocument):
-            value = value.model_dump(mode="python", warnings="error")
         return validate_content_payload(value)
 
 
@@ -72,7 +74,7 @@ def validate_schedule_rule_payload(payload: object) -> ScheduleRuleV1 | None:
     if payload is None:
         return None
     if isinstance(payload, ScheduleRuleV1):
-        payload = payload.model_dump(mode="python", warnings="error")
+        payload = schedule_rule_payload_snapshot(payload)
     try:
         return ScheduleRuleV1.model_validate(payload)
     except ValueError:
@@ -90,3 +92,26 @@ def serialize_validated_schedule_rule(rule: ScheduleRuleV1 | None) -> str | None
         allow_nan=False,
         separators=(",", ":"),
     )
+
+
+def schedule_rule_payload_snapshot(rule: ScheduleRuleV1) -> dict[str, object]:
+    """Copy rule fields without coercing raw values inside slot content."""
+    return {
+        "schemaVersion": rule.schemaVersion,
+        "timezone": rule.timezone,
+        "horizonDays": rule.horizonDays,
+        "slots": [
+            {
+                "slotKey": slot.slotKey,
+                "cadence": _cadence_snapshot(slot.cadence),
+                "content": content_payload_snapshot(slot.content),
+            }
+            for slot in rule.slots
+        ],
+    }
+
+
+def _cadence_snapshot(cadence: Cadence) -> dict[str, object]:
+    if isinstance(cadence, WeeklyCadence):
+        return {"type": cadence.type, "weekdays": list(cadence.weekdays)}
+    return {"type": cadence.type}
