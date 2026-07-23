@@ -3,6 +3,14 @@ import pytest
 from plan_api.contracts.content import validate_content_payload
 
 
+class CustomList(list):
+    pass
+
+
+class CustomDict(dict):
+    pass
+
+
 def content_payload(kind: str, value: object) -> dict[str, object]:
     return {
         "schemaVersion": 1,
@@ -93,3 +101,9 @@ def test_rejects_non_finite_numbers(value: float) -> None:
 def test_rejects_non_string_json_key() -> None:
     with pytest.raises(ValueError, match="^content_not_json$"):
         validate_content_payload(content_payload("learning.tutorial", {1: "value"}))
+
+
+@pytest.mark.parametrize("value", [CustomList([1]), CustomDict({"a": 1})])
+def test_rejects_custom_json_container_subclasses(value: object) -> None:
+    with pytest.raises(ValueError, match="^content_not_json$"):
+        validate_content_payload(content_payload("learning.tutorial", value))

@@ -22,6 +22,14 @@ class _ModelValue(BaseModel):
     value: int
 
 
+class _CustomList(list):
+    pass
+
+
+class _CustomDict(dict):
+    pass
+
+
 def test_insert_revalidates_mutated_entry_array_before_writing(tmp_path) -> None:
     database = _database(tmp_path)
     repository = _repository("task-mutated", "entry-mutated")
@@ -44,7 +52,15 @@ def test_insert_rejects_datetime_before_writing(tmp_path, target: str) -> None:
 
 
 @pytest.mark.parametrize("target", ["task", "entry"])
-@pytest.mark.parametrize("value", [_DataclassValue(1), _ModelValue(value=1)])
+@pytest.mark.parametrize(
+    "value",
+    [
+        _DataclassValue(1),
+        _ModelValue(value=1),
+        _CustomList([1]),
+        _CustomDict({"a": 1}),
+    ],
+)
 def test_insert_rejects_custom_object_before_writing(
     tmp_path, target: str, value
 ) -> None:
@@ -56,7 +72,15 @@ def test_insert_rejects_custom_object_before_writing(
     _assert_rejected_without_writes(database, repository, draft, "content_not_json")
 
 
-@pytest.mark.parametrize("value", [_DataclassValue(1), _ModelValue(value=1)])
+@pytest.mark.parametrize(
+    "value",
+    [
+        _DataclassValue(1),
+        _ModelValue(value=1),
+        _CustomList([1]),
+        _CustomDict({"a": 1}),
+    ],
+)
 def test_insert_rejects_custom_object_in_rule_slot_without_writes(
     tmp_path, value
 ) -> None:
