@@ -12,4 +12,7 @@ def test_health_identifies_service(tmp_path):
     with TestClient(create_app(settings)) as client:
         response = client.get("/v1/health")
     assert response.status_code == 200
-    assert response.json()["service"] == "plan-api"
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert payload["service"] == "plan-api"
+    assert payload["apiVersion"] == 1
