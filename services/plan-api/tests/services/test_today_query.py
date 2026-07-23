@@ -36,6 +36,21 @@ def test_today_filters_active_tasks_and_uses_shanghai_day_boundaries(
     _add(database, "today-early", "2026-07-23", created="2026-07-23T09:00:00Z")
     _add(
         database,
+        "today-skipped",
+        "2026-07-23",
+        status=EntryStatus.SKIPPED,
+        created="2026-07-23T09:30:00Z",
+    )
+    _add(
+        database,
+        "today-completed-outside-window",
+        "2026-07-23",
+        status=EntryStatus.COMPLETED,
+        completed="2026-07-22T15:59:59Z",
+        created="2026-07-23T09:45:00Z",
+    )
+    _add(
+        database,
         "completed-end-minus",
         "2026-07-24",
         status=EntryStatus.COMPLETED,

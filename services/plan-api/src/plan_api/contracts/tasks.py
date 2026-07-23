@@ -1,12 +1,12 @@
 from datetime import date, datetime, timedelta, timezone
 from enum import Enum
 import json
-from typing import Any, Self
+from typing import Self
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from .content import ContentDocument, validate_content_payload
-from ..validation.json_bounds import enforce_json_bounds
+from .schedule_rules import ScheduleRuleV1
 
 
 class TaskKind(str, Enum):
@@ -51,6 +51,11 @@ class TaskEntryDraft(ContractModel):
     generation_revision: int | None = None
     completed_at: datetime | None = None
 
+    @field_validator("content", mode="before")
+    @classmethod
+    def enforce_content_bounds(cls, value: object) -> ContentDocument:
+        return _validated_content(value)
+
     @field_validator("completed_at")
     @classmethod
     def normalize_completed_at(cls, value: datetime | None) -> datetime | None:
@@ -62,16 +67,21 @@ class TaskDraft(ContractModel):
     status: TaskStatus = TaskStatus.ACTIVE
     generation_mode: GenerationMode
     content: ContentDocument
-    schedule_rule: dict[str, Any] | None = None
+    schedule_rule: ScheduleRuleV1 | None = None
     generated_through_date: date | None = None
     rule_revision: int = 1
     entries: tuple[TaskEntryDraft, ...] = ()
 
-    @field_validator("schedule_rule")
+    @field_validator("content", mode="before")
+    @classmethod
+    def enforce_content_bounds(cls, value: object) -> ContentDocument:
+        return _validated_content(value)
+
+    @field_validator("schedule_rule", mode="before")
     @classmethod
     def validate_schedule_rule(
-        cls, value: dict[str, Any] | None
-    ) -> dict[str, Any] | None:
+        cls, value: object
+    ) -> ScheduleRuleV1 | None:
         return validate_schedule_rule_payload(value)
 
     @model_validator(mode="after")
@@ -103,7 +113,7 @@ class TaskView(ContractModel):
     status: TaskStatus
     generation_mode: GenerationMode
     content: ContentDocument
-    schedule_rule: dict[str, Any] | None
+    schedule_rule: ScheduleRuleV1 | None
     generated_through_date: date | None
     rule_revision: int
     version: int
@@ -133,7 +143,7 @@ def load_content_json(raw: str) -> ContentDocument:
     return validate_content_payload(payload)
 
 
-def load_schedule_rule_json(raw: str | None) -> dict[str, Any] | None:
+def load_schedule_rule_json(raw: str | None) -> ScheduleRuleV1 | None:
     if raw is None:
         return None
     try:
@@ -145,24 +155,29 @@ def load_schedule_rule_json(raw: str | None) -> dict[str, Any] | None:
 
 def validate_schedule_rule_payload(
     payload: object,
-) -> dict[str, Any] | None:
+) -> ScheduleRuleV1 | None:
     if payload is None:
         return None
+    if isinstance(payload, ScheduleRuleV1):
+        payload = payload.model_dump(mode="json")
     try:
-        enforce_json_bounds(
-            payload, max_bytes=65536, max_depth=8, max_array=200
-        )
+        return ScheduleRuleV1.model_validate(payload)
     except ValueError:
         raise ValueError("invalid_schedule_rule") from None
-    if not isinstance(payload, dict):
-        raise ValueError("invalid_schedule_rule")
-    return payload
 
 
 def dump_json(payload: object) -> str:
+    if isinstance(payload, BaseModel):
+        payload = payload.model_dump(mode="json")
     return json.dumps(
         payload, ensure_ascii=False, allow_nan=False, separators=(",", ":")
     )
+
+
+def _validated_content(value: object) -> ContentDocument:
+    if isinstance(value, ContentDocument):
+        value = value.model_dump(mode="json")
+    return validate_content_payload(value)
 
 
 def normalize_utc(value: datetime) -> datetime:
