@@ -136,6 +136,12 @@ def _validate_schedule_rule_model_containers(rule: ScheduleRuleV1) -> None:
     if type(rule.slots) is not tuple:
         raise ValueError("content_not_json")
     for slot in rule.slots:
+        if type(slot) is not ScheduleSlotV1:
+            raise ValueError("content_not_json")
+        if type(slot.cadence) not in (DailyCadence, WeeklyCadence):
+            raise ValueError("content_not_json")
+        if type(slot.content) is not ContentDocument:
+            raise ValueError("content_not_json")
         if isinstance(slot.cadence, WeeklyCadence):
             if type(slot.cadence.weekdays) is not tuple:
                 raise ValueError("content_not_json")
