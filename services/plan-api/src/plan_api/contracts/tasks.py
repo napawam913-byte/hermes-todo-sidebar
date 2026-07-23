@@ -163,7 +163,7 @@ def dump_json(payload: object) -> str:
 
 def _validated_content(value: object) -> ContentDocument:
     if isinstance(value, ContentDocument):
-        value = value.model_dump(mode="json")
+        value = value.model_dump(mode="python", warnings="error")
     return validate_content_payload(value)
 
 

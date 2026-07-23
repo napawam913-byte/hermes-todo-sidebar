@@ -225,6 +225,36 @@ def test_insert_revalidates_mutated_entry_content_before_writing(tmp_path) -> No
         assert connection.execute("SELECT COUNT(*) FROM task_entries").fetchone()[0] == 0
 
 
+@pytest.mark.parametrize("draft_type", [TaskDraft, TaskEntryDraft])
+def test_drafts_reject_pre_mutated_document_without_writing(
+    tmp_path, draft_type
+) -> None:
+    database = _database(tmp_path)
+    content = _content("Pre-mutated document")
+    content.sections.append(
+        ContentSection.model_validate(
+            _content_payload("Mutable section", "safe")["sections"][0]
+        )
+    )
+    content.sections[-1].fields[0].value = NOW
+
+    with database.transaction() as connection:
+        with pytest.raises(ValidationError, match="content_not_json"):
+            if draft_type is TaskDraft:
+                TaskDraft(
+                    kind=TaskKind.DAILY,
+                    generation_mode=GenerationMode.FIXED,
+                    content=content,
+                    entries=[_entry("2026-07-23")],
+                )
+            else:
+                TaskEntryDraft(
+                    scheduled_date=date(2026, 7, 23), content=content
+                )
+        assert connection.execute("SELECT COUNT(*) FROM tasks").fetchone()[0] == 0
+        assert connection.execute("SELECT COUNT(*) FROM task_entries").fetchone()[0] == 0
+
+
 @pytest.mark.parametrize("target", ["task", "entry"])
 def test_insert_rejects_datetime_in_mutated_content_before_writing(
     tmp_path, target: str
