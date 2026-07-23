@@ -6,7 +6,7 @@ from typing import Self
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from .content import ContentDocument, validate_content_payload
-from .schedule_rules import ScheduleRuleV1
+from .schedule_rules import ScheduleRuleV1, validate_schedule_rule_payload
 
 
 class TaskKind(str, Enum):
@@ -151,19 +151,6 @@ def load_schedule_rule_json(raw: str | None) -> ScheduleRuleV1 | None:
     except (json.JSONDecodeError, TypeError):
         raise ValueError("invalid_schedule_rule") from None
     return validate_schedule_rule_payload(payload)
-
-
-def validate_schedule_rule_payload(
-    payload: object,
-) -> ScheduleRuleV1 | None:
-    if payload is None:
-        return None
-    if isinstance(payload, ScheduleRuleV1):
-        payload = payload.model_dump(mode="json")
-    try:
-        return ScheduleRuleV1.model_validate(payload)
-    except ValueError:
-        raise ValueError("invalid_schedule_rule") from None
 
 
 def dump_json(payload: object) -> str:

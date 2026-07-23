@@ -89,6 +89,37 @@ def test_rejects_unsupported_or_invalid_cadence(cadence: object) -> None:
         ScheduleRuleV1.model_validate(payload)
 
 
+@pytest.mark.parametrize("weekday", ["1", 1.0, True])
+def test_weekly_weekdays_require_strict_json_integers(weekday: object) -> None:
+    payload = _rule_payload()
+    payload["slots"][0]["cadence"]["weekdays"] = [weekday]
+
+    with pytest.raises(ValidationError):
+        ScheduleRuleV1.model_validate(payload)
+
+
+def test_weekly_weekdays_must_be_unique() -> None:
+    payload = _rule_payload()
+    payload["slots"][0]["cadence"]["weekdays"] = [1, 3, 3]
+
+    with pytest.raises(ValidationError, match="duplicate_weekdays"):
+        ScheduleRuleV1.model_validate(payload)
+
+
+def test_rule_slot_keys_must_be_unique() -> None:
+    payload = _rule_payload()
+    payload["slots"].append(
+        {
+            "slotKey": "strength",
+            "cadence": {"type": "daily"},
+            "content": _content_payload("Daily strength"),
+        }
+    )
+
+    with pytest.raises(ValidationError, match="duplicate_slot_keys"):
+        ScheduleRuleV1.model_validate(payload)
+
+
 def test_slot_rechecks_existing_content_document_bounds() -> None:
     oversized = ContentDocument.model_validate(
         _content_payload("Oversized", list(range(201)))

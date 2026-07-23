@@ -1,3 +1,4 @@
+import json
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -48,3 +49,15 @@ def validate_content_payload(payload: object) -> ContentDocument:
         return ContentDocument.model_validate(payload)
     except ValidationError:
         raise ValueError("invalid_content") from None
+
+
+def serialize_validated_content(content: ContentDocument) -> str:
+    """Revalidate mutable nested content immediately before persistence."""
+    payload = content.model_dump(mode="json")
+    validated = validate_content_payload(payload)
+    return json.dumps(
+        validated.model_dump(mode="json"),
+        ensure_ascii=False,
+        allow_nan=False,
+        separators=(",", ":"),
+    )

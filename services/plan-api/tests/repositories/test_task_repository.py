@@ -3,7 +3,7 @@ from datetime import date, datetime, timezone
 import pytest
 from pydantic import ValidationError
 
-from plan_api.contracts.content import ContentDocument
+from plan_api.contracts.content import ContentDocument, ContentSection
 from plan_api.contracts.tasks import (
     EntrySource,
     EntryStatus,
@@ -206,6 +206,45 @@ def test_valid_dict_content_writes_and_round_trips(tmp_path) -> None:
     assert task is not None
     assert task.content.title == "Dictionary task"
     assert task.entries[0].content.title == "Dictionary entry"
+
+
+def test_insert_revalidates_mutated_entry_content_before_writing(tmp_path) -> None:
+    database = _database(tmp_path)
+    repository = _repository("task-mutated", "entry-mutated")
+    entry = TaskEntryDraft(
+        scheduled_date=date(2026, 7, 23),
+        content=_content_payload("Mutable entry", list(range(200))),
+    )
+    draft = _draft(TaskKind.DAILY, [entry])
+    draft.entries[0].content.sections[0].fields[0].value.append(200)
+
+    with database.transaction() as connection:
+        with pytest.raises(ValueError, match="^array_too_large$"):
+            repository.insert_task(connection, draft)
+        assert connection.execute("SELECT COUNT(*) FROM tasks").fetchone()[0] == 0
+        assert connection.execute("SELECT COUNT(*) FROM task_entries").fetchone()[0] == 0
+
+
+def test_insert_revalidates_mutated_schedule_rule_before_writing(tmp_path) -> None:
+    database = _database(tmp_path)
+    repository = _repository("task-mutated-rule", "entry-mutated-rule")
+    draft = _draft(
+        TaskKind.CYCLE,
+        [_entry("2026-07-23", slot_key="strength")],
+        mode=GenerationMode.ROLLING,
+        schedule_rule=_schedule_rule(),
+    )
+    draft.schedule_rule.slots[0].content.sections.append(
+        ContentSection.model_validate(
+            _content_payload("Schedule content", list(range(200)))["sections"][0]
+        )
+    )
+    draft.schedule_rule.slots[0].content.sections[0].fields[0].value.append(200)
+
+    with database.transaction() as connection:
+        with pytest.raises(ValueError, match="^invalid_schedule_rule$"):
+            repository.insert_task(connection, draft)
+        assert connection.execute("SELECT COUNT(*) FROM tasks").fetchone()[0] == 0
 
 
 def _database(tmp_path) -> Database:

@@ -4,6 +4,8 @@ import sqlite3
 from typing import Any
 from uuid import uuid4
 
+from ..contracts.content import serialize_validated_content
+from ..contracts.schedule_rules import serialize_validated_schedule_rule
 from ..contracts.tasks import (
     EntryStatus,
     TaskDraft,
@@ -12,7 +14,6 @@ from ..contracts.tasks import (
     TaskStatus,
     TaskView,
     TodayItem,
-    dump_json,
     format_utc,
     load_content_json,
     load_schedule_rule_json,
@@ -35,6 +36,11 @@ class TaskRepository:
     ) -> str:
         if draft.kind is TaskKind.DAILY and len(draft.entries) != 1:
             raise ValueError("daily_requires_one_entry")
+        task_content = serialize_validated_content(draft.content)
+        schedule_rule = serialize_validated_schedule_rule(draft.schedule_rule)
+        entry_contents = tuple(
+            serialize_validated_content(entry.content) for entry in draft.entries
+        )
         task_id = self._id_factory()
         now = format_utc(self._clock())
         connection.execute(
@@ -50,12 +56,8 @@ class TaskRepository:
                 draft.kind.value,
                 draft.status.value,
                 draft.generation_mode.value,
-                dump_json(draft.content.model_dump(mode="json")),
-                (
-                    dump_json(draft.schedule_rule)
-                    if draft.schedule_rule is not None
-                    else None
-                ),
+                task_content,
+                schedule_rule,
                 (
                     draft.generated_through_date.isoformat()
                     if draft.generated_through_date
@@ -66,7 +68,7 @@ class TaskRepository:
                 now,
             ),
         )
-        for entry in draft.entries:
+        for entry, content_json in zip(draft.entries, entry_contents, strict=True):
             connection.execute(
                 """
                 INSERT INTO task_entries (
@@ -80,7 +82,7 @@ class TaskRepository:
                     task_id,
                     entry.scheduled_date.isoformat(),
                     entry.status.value,
-                    dump_json(entry.content.model_dump(mode="json")),
+                    content_json,
                     entry.source.value,
                     entry.slot_key,
                     int(entry.is_overridden),
