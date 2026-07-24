@@ -1,6 +1,9 @@
+"""模块用途：执行任务级 mutation，并把规则变更交给规则调整服务。"""
+
 from collections.abc import Callable
 from datetime import datetime, timezone
 import sqlite3
+from zoneinfo import ZoneInfo
 
 from ..contracts.content import serialize_validated_content
 from ..contracts.mutations import (
@@ -10,9 +13,9 @@ from ..contracts.mutations import (
     TaskSetStatus,
     TaskUpdate,
 )
-from ..contracts.schedule_rules import serialize_validated_schedule_rule
 from ..contracts.tasks import format_utc
 from ..repositories.task_repository import TaskRepository
+from .rule_adjustment import RuleAdjustmentService
 
 
 ChangedIds = tuple[set[str], set[str]]
@@ -22,10 +25,12 @@ class TaskMutations:
     def __init__(
         self,
         repository: TaskRepository,
+        rule_adjustment: RuleAdjustmentService,
         *,
         clock: Callable[[], datetime] | None = None,
     ) -> None:
         self._repository = repository
+        self._rule_adjustment = rule_adjustment
         self._clock = clock or (lambda: datetime.now(timezone.utc))
 
     def create(
@@ -44,21 +49,39 @@ class TaskMutations:
     def update(
         self, connection: sqlite3.Connection, operation: TaskUpdate
     ) -> ChangedIds:
+        patch = operation.patch
+        changed = set(patch.model_fields_set)
+        changed_entries: set[str] = set()
+        expected_version = operation.expectedVersion
+        increment_version = True
+        if "scheduleRule" in changed:
+            task = self._repository.get_task(connection, operation.targetId)
+            if task is None:
+                raise MutationError(
+                    "target_missing", target_id=operation.targetId
+                )
+            result = self._rule_adjustment.replace_future(
+                connection,
+                task,
+                patch.scheduleRule,
+                expected_version,
+                self._clock().astimezone(ZoneInfo("Asia/Shanghai")).date(),
+            )
+            changed_entries.update(result.addedEntryIds)
+            changed_entries.update(result.removedEntryIds)
+            changed.remove("scheduleRule")
+            expected_version += 1
+            increment_version = False
+        if not changed:
+            return {operation.targetId}, changed_entries
         assignments: list[str] = []
         values: list[object] = []
-        patch = operation.patch
-        changed = patch.model_fields_set
         if "content" in changed:
             assignments.append("content_json = ?")
             values.append(serialize_validated_content(patch.content))
         if "generationMode" in changed:
             assignments.append("generation_mode = ?")
             values.append(patch.generationMode.value)
-        if "scheduleRule" in changed:
-            assignments.extend(
-                ["schedule_rule_json = ?", "rule_revision = rule_revision + 1"]
-            )
-            values.append(serialize_validated_schedule_rule(patch.scheduleRule))
         if "generatedThroughDate" in changed:
             assignments.append("generated_through_date = ?")
             values.append(
@@ -66,9 +89,11 @@ class TaskMutations:
                 if patch.generatedThroughDate
                 else None
             )
-        assignments.extend(["version = version + 1", "updated_at = ?"])
+        if increment_version:
+            assignments.append("version = version + 1")
+        assignments.append("updated_at = ?")
         values.extend(
-            [format_utc(self._clock()), operation.targetId, operation.expectedVersion]
+            [format_utc(self._clock()), operation.targetId, expected_version]
         )
         cursor = connection.execute(
             f"""
@@ -80,7 +105,7 @@ class TaskMutations:
         _require_write(
             connection, "tasks", operation.targetId, cursor.rowcount
         )
-        return {operation.targetId}, set()
+        return {operation.targetId}, changed_entries
 
     def set_status(
         self, connection: sqlite3.Connection, operation: TaskSetStatus

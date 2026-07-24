@@ -1,3 +1,5 @@
+"""模块用途：在单个数据库事务中鉴权、分派并审计 mutation 批次。"""
+
 from collections.abc import Callable
 from datetime import datetime, timezone
 import sqlite3
@@ -24,6 +26,8 @@ from ..contracts.tasks import format_utc
 from ..db.database import Database
 from ..repositories.task_repository import TaskRepository
 from .entry_mutations import EntryMutations
+from .rolling_generator import RollingGenerator
+from .rule_adjustment import RuleAdjustmentService
 from .task_mutations import ChangedIds, TaskMutations
 
 
@@ -41,7 +45,18 @@ class MutationExecutor:
         repository = TaskRepository(
             clock=self._clock, id_factory=self._id_factory
         )
-        self._tasks = TaskMutations(repository, clock=self._clock)
+        generator = RollingGenerator(
+            database,
+            repository,
+            clock=self._clock,
+            id_factory=self._id_factory,
+        )
+        adjustment = RuleAdjustmentService(
+            repository, generator, clock=self._clock
+        )
+        self._tasks = TaskMutations(
+            repository, adjustment, clock=self._clock
+        )
         self._entries = EntryMutations(
             clock=self._clock, id_factory=self._id_factory
         )
