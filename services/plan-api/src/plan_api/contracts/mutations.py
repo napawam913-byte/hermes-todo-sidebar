@@ -4,24 +4,13 @@ import hashlib
 import json
 from typing import Annotated, Literal
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    StrictInt,
-    field_validator,
-    model_validator,
-)
+from pydantic import BaseModel, ConfigDict, Field, StrictInt
+from pydantic import field_validator, model_validator
 
 from .content import ContentDocument, validate_content_payload
 from .schedule_rules import ScheduleRuleV1, validate_schedule_rule_payload
-from .tasks import (
-    EntrySource,
-    GenerationMode,
-    TaskDraft,
-    TaskEntryDraft,
-    TaskStatus,
-)
+from .tasks import EntrySource, GenerationMode, TaskDraft, TaskEntryDraft
+from .tasks import TaskStatus
 
 
 class MutationContract(BaseModel):
@@ -84,8 +73,12 @@ class TaskUpdatePatch(MutationContract):
 
     @field_validator("scheduleRule", mode="before")
     @classmethod
-    def validate_rule(cls, value: object) -> ScheduleRuleV1 | None:
-        return validate_schedule_rule_payload(value)
+    def validate_rule(cls, value: object) -> ScheduleRuleV1:
+        if value is None:
+            raise ValueError("invalid_schedule_rule")
+        rule = validate_schedule_rule_payload(value)
+        assert rule is not None
+        return rule
 
     @model_validator(mode="after")
     def require_change(self) -> "TaskUpdatePatch":

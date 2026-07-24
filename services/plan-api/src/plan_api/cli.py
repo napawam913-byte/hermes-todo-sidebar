@@ -1,9 +1,10 @@
 """模块用途：提供 Plan API 部署、维护和 OpenAPI 合同导出的命令行入口。"""
 
 from argparse import ArgumentParser, Namespace
-from datetime import date
+from datetime import date, datetime
 import json
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import uvicorn
 
@@ -56,7 +57,7 @@ def _parser() -> ArgumentParser:
         "--date",
         dest="target_date",
         type=date.fromisoformat,
-        default=date.today(),
+        default=None,
     )
 
     backup = subcommands.add_parser("backup")
@@ -78,9 +79,15 @@ def _serve(_args: Namespace) -> int:
     return 0
 
 
-def _ensure_window(database: Database, target_date: date) -> None:
+def _ensure_window(database: Database, target_date: date | None) -> None:
     apply_migrations(database)
-    RollingGenerator(database, TaskRepository()).ensure_window(target_date)
+    RollingGenerator(database, TaskRepository()).ensure_window(
+        target_date or _shanghai_today()
+    )
+
+
+def _shanghai_today() -> date:
+    return datetime.now(ZoneInfo("Asia/Shanghai")).date()
 
 
 def _backup_dir(configured: Path | None, database_path: Path) -> Path:

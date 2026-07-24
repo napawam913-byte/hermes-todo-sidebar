@@ -11,7 +11,6 @@ from .dependencies import (
     QueryServiceDep,
     ReadRole,
     RepositoryDep,
-    RollingGeneratorDep,
 )
 from .errors import ApiError
 
@@ -33,10 +32,8 @@ def snapshot(
 def today(
     target_date: Annotated[date, Query(alias="date")],
     _role: ReadRole,
-    generator: RollingGeneratorDep,
     query_service: QueryServiceDep,
 ) -> TodayView:
-    generator.ensure_window(target_date)
     return query_service.today(target_date)
 
 

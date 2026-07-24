@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 
+import plan_api.cli as cli
 from plan_api.cli import main
 
 
@@ -27,6 +28,29 @@ def test_ensure_window_command_accepts_explicit_date(tmp_path, monkeypatch):
     monkeypatch.setenv("PLAN_HERMES_TOKEN", TOKEN_B)
 
     assert main(["ensure-window", "--date", "2026-07-24"]) == 0
+
+
+def test_ensure_window_command_defaults_to_shanghai_date(
+    tmp_path, monkeypatch
+):
+    seen = {}
+
+    class FakeGenerator:
+        def __init__(self, _database, _repository) -> None:
+            pass
+
+        def ensure_window(self, target_date):
+            seen["target_date"] = target_date
+
+    monkeypatch.setenv("PLAN_DATABASE_PATH", str(tmp_path / "plan.db"))
+    monkeypatch.setenv("PLAN_DESKTOP_TOKEN", TOKEN_A)
+    monkeypatch.setenv("PLAN_HERMES_TOKEN", TOKEN_B)
+    monkeypatch.setattr(cli, "_shanghai_today", lambda: cli.date(2026, 7, 24))
+    monkeypatch.setattr(cli, "RollingGenerator", FakeGenerator)
+
+    assert main(["ensure-window"]) == 0
+
+    assert seen == {"target_date": cli.date(2026, 7, 24)}
 
 
 def test_backup_command_writes_backup(tmp_path, monkeypatch):

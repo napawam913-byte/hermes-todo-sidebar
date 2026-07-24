@@ -1,6 +1,7 @@
 """模块用途：验证规则调整不会绕过任务类型与生成元数据边界。"""
 
 import pytest
+from pydantic import ValidationError
 
 from plan_api.contracts.mutations import MutationError
 from plan_api.contracts.tasks import GenerationMode, TaskStatus
@@ -14,6 +15,45 @@ from test_rolling_generator import (
     schedule_rule,
     setup_generator,
 )
+
+
+@pytest.mark.parametrize(
+    ("draft", "message"),
+    [
+        (
+            {
+                "kind": "cycle",
+                "generation_mode": "rolling",
+                "content": content("Task"),
+            },
+            "rolling_requires_schedule_rule",
+        ),
+        (
+            {
+                "kind": "daily",
+                "generation_mode": "rolling",
+                "content": content("Daily"),
+                "schedule_rule": schedule_rule("Daily").model_dump(mode="json"),
+                "entries": [entry_draft()],
+            },
+            "daily_requires_fixed_generation",
+        ),
+        (
+            {
+                "kind": "cycle",
+                "generation_mode": "fixed",
+                "content": content("Fixed"),
+                "schedule_rule": schedule_rule("Fixed").model_dump(mode="json"),
+            },
+            "fixed_rejects_schedule_rule",
+        ),
+    ],
+)
+def test_task_create_rejects_generation_shape_mismatches(
+    draft: dict[str, object], message: str
+) -> None:
+    with pytest.raises(ValidationError, match=message):
+        batch("bad-shape", operation("task.create", draft=draft))
 
 
 @pytest.mark.parametrize(
@@ -31,7 +71,7 @@ def test_schedule_rule_update_rejects_ineligible_cycle_tasks(
     task_id = insert_cycle(
         database,
         repository,
-        rule=schedule_rule("Old"),
+        rule=None if mode is GenerationMode.FIXED else schedule_rule("Old"),
         status=status,
         mode=mode,
     )
@@ -131,6 +171,35 @@ def test_schedule_rule_update_rejects_generation_mode_mix(tmp_path) -> None:
 
     assert captured.value.code == "validation_failed"
     assert entry_rows(database, task_id) == []
+
+
+def test_task_update_rejects_direct_generation_mode_change(tmp_path) -> None:
+    database, executor = setup_executor(tmp_path)
+    task_id = _create_rolling_task(executor)
+
+    with pytest.raises(MutationError) as captured:
+        executor.execute(
+            batch("direct-mode", operation(
+                "task.update",
+                targetId=task_id,
+                expectedVersion=1,
+                patch={"generationMode": "fixed"},
+            )),
+            actor="desktop",
+        )
+
+    assert captured.value.code == "validation_failed"
+    assert entry_rows(database, task_id) == []
+
+
+def test_task_update_rejects_null_schedule_rule() -> None:
+    with pytest.raises(ValidationError, match="invalid_schedule_rule"):
+        batch("null-rule", operation(
+            "task.update",
+            targetId="task",
+            expectedVersion=1,
+            patch={"scheduleRule": None},
+        ))
 
 
 def _create_rolling_task(executor) -> str:

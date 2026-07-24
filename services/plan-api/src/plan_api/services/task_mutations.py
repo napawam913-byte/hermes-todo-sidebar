@@ -59,11 +59,11 @@ class TaskMutations:
         changed_entries: set[str] = set()
         expected_version = operation.expectedVersion
         increment_version = True
+        if "generationMode" in changed or "generatedThroughDate" in changed:
+            raise MutationError(
+                "validation_failed", target_id=operation.targetId
+            )
         if "scheduleRule" in changed:
-            if "generatedThroughDate" in changed or "generationMode" in changed:
-                raise MutationError(
-                    "validation_failed", target_id=operation.targetId
-                )
             task = self._repository.get_task(connection, operation.targetId)
             if task is None:
                 raise MutationError(
@@ -96,16 +96,6 @@ class TaskMutations:
         if "content" in changed:
             assignments.append("content_json = ?")
             values.append(serialize_validated_content(patch.content))
-        if "generationMode" in changed:
-            assignments.append("generation_mode = ?")
-            values.append(patch.generationMode.value)
-        if "generatedThroughDate" in changed:
-            assignments.append("generated_through_date = ?")
-            values.append(
-                patch.generatedThroughDate.isoformat()
-                if patch.generatedThroughDate
-                else None
-            )
         if increment_version:
             assignments.append("version = version + 1")
         assignments.append("updated_at = ?")

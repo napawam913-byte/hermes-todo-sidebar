@@ -85,9 +85,26 @@ class TaskDraft(ContractModel):
         return validate_schedule_rule_payload(value)
 
     @model_validator(mode="after")
-    def require_daily_entry(self) -> Self:
+    def require_task_shape(self) -> Self:
         if self.kind is TaskKind.DAILY and len(self.entries) != 1:
             raise ValueError("daily_requires_one_entry")
+        if self.kind is TaskKind.DAILY and self.generation_mode is not GenerationMode.FIXED:
+            raise ValueError("daily_requires_fixed_generation")
+        if (
+            self.generation_mode is GenerationMode.ROLLING
+            and self.kind is not TaskKind.CYCLE
+        ):
+            raise ValueError("rolling_requires_cycle_task")
+        if (
+            self.generation_mode is GenerationMode.ROLLING
+            and self.schedule_rule is None
+        ):
+            raise ValueError("rolling_requires_schedule_rule")
+        if (
+            self.generation_mode is GenerationMode.FIXED
+            and self.schedule_rule is not None
+        ):
+            raise ValueError("fixed_rejects_schedule_rule")
         return self
 
 

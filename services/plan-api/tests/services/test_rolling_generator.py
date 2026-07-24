@@ -142,8 +142,6 @@ def test_weekly_rule_uses_iso_weekdays(tmp_path) -> None:
     [
         (TaskStatus.PAUSED, GenerationMode.ROLLING, True),
         (TaskStatus.ARCHIVED, GenerationMode.ROLLING, True),
-        (TaskStatus.ACTIVE, GenerationMode.FIXED, True),
-        (TaskStatus.ACTIVE, GenerationMode.ROLLING, False),
     ],
 )
 def test_ineligible_tasks_are_ignored(

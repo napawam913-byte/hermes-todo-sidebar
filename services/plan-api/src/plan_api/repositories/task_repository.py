@@ -141,6 +141,7 @@ class TaskRepository:
             FROM task_entries e
             JOIN tasks t ON t.id = e.task_id
             WHERE t.status = 'active'
+              AND e.status != 'skipped'
               AND (
                 e.scheduled_date = ?
                 OR (e.scheduled_date < ? AND e.status = 'pending')

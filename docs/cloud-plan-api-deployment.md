@@ -94,6 +94,7 @@ Restore from a backup while the API is stopped:
 
 ```bash
 systemctl --user stop hermes-plan-api.service
+rm -f ~/.local/share/hermes-plan-api/plan.db-wal ~/.local/share/hermes-plan-api/plan.db-shm
 cp ~/.local/share/hermes-plan-api/backups/plan-YYYYMMDDTHHMMSSffffffZ.db ~/.local/share/hermes-plan-api/plan.db
 sqlite3 ~/.local/share/hermes-plan-api/plan.db 'PRAGMA integrity_check;'
 systemctl --user start hermes-plan-api.service

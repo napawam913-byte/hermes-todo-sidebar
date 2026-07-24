@@ -90,7 +90,6 @@ def test_today_filters_active_tasks_and_uses_shanghai_day_boundaries(
         "entry-overdue-new",
         "entry-completed-start",
         "entry-today-early",
-        "entry-today-skipped",
         "entry-today-completed-outside-window",
         "entry-today-late",
         "entry-completed-end-minus",
@@ -98,7 +97,6 @@ def test_today_filters_active_tasks_and_uses_shanghai_day_boundaries(
     assert [item.is_overdue for item in view.items] == [
         True,
         True,
-        False,
         False,
         False,
         False,

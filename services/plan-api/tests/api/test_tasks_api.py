@@ -1,6 +1,3 @@
-from datetime import date
-
-import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -26,25 +23,20 @@ def test_empty_snapshot_and_task_list_are_deterministic(
     assert tasks.json() == {"tasks": []}
 
 
-def test_today_ensures_rolling_window_before_query(
+def test_today_does_not_mutate_rolling_window_for_read_role(
     app: FastAPI,
     client: TestClient,
-    desktop_headers: dict[str, str],
-    monkeypatch: pytest.MonkeyPatch,
+    hermes_headers: dict[str, str],
 ) -> None:
-    calls: list[date] = []
-    original = app.state.rolling_generator.ensure_window
+    class FailingGenerator:
+        def ensure_window(self, _target_date) -> None:
+            raise AssertionError("read route must not generate rows")
 
-    def record(target_date: date):
-        calls.append(target_date)
-        return original(target_date)
-
-    monkeypatch.setattr(app.state.rolling_generator, "ensure_window", record)
+    app.state.rolling_generator = FailingGenerator()
     response = client.get(
-        "/v1/today?date=2026-07-24", headers=desktop_headers
+        "/v1/today?date=2026-07-24", headers=hermes_headers
     )
     assert response.status_code == 200
-    assert calls == [date(2026, 7, 24)]
     assert response.json() == {"target_date": "2026-07-24", "items": []}
 
 
