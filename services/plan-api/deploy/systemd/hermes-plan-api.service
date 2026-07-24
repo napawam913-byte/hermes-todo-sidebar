@@ -1,0 +1,15 @@
+[Unit]
+Description=Hermes Todo Plan API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/.local/share/hermes-plan-api
+EnvironmentFile=%h/.config/hermes-plan-api/plan-api.env
+ExecStart=%h/.local/share/hermes-plan-api/.venv/bin/python -m plan_api serve --host 127.0.0.1 --port 8743
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

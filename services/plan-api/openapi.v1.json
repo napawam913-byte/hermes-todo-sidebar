@@ -1,0 +1,1455 @@
+{
+  "components": {
+    "schemas": {
+      "ContentDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Kind",
+            "type": "string"
+          },
+          "locale": {
+            "maxLength": 20,
+            "minLength": 2,
+            "title": "Locale",
+            "type": "string"
+          },
+          "schemaVersion": {
+            "const": 1,
+            "title": "Schemaversion",
+            "type": "integer"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/ContentSection"
+            },
+            "maxItems": 100,
+            "title": "Sections",
+            "type": "array"
+          },
+          "summary": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "kind",
+          "title",
+          "summary",
+          "locale"
+        ],
+        "title": "ContentDocument",
+        "type": "object"
+      },
+      "ContentField": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "maxLength": 80,
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$",
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "type": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Type",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type",
+          "value"
+        ],
+        "title": "ContentField",
+        "type": "object"
+      },
+      "ContentItem": {
+        "additionalProperties": false,
+        "properties": {
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/ContentField"
+            },
+            "maxItems": 100,
+            "title": "Fields",
+            "type": "array"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "ContentItem",
+        "type": "object"
+      },
+      "ContentSection": {
+        "additionalProperties": false,
+        "properties": {
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/ContentField"
+            },
+            "maxItems": 100,
+            "title": "Fields",
+            "type": "array"
+          },
+          "id": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ContentItem"
+            },
+            "maxItems": 100,
+            "title": "Items",
+            "type": "array"
+          },
+          "label": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "layout": {
+            "enum": [
+              "fields",
+              "list",
+              "markdown",
+              "table"
+            ],
+            "title": "Layout",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "layout"
+        ],
+        "title": "ContentSection",
+        "type": "object"
+      },
+      "DailyCadence": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "daily",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "title": "DailyCadence",
+        "type": "object"
+      },
+      "EntryComplete": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedVersion": {
+            "minimum": 1.0,
+            "title": "Expectedversion",
+            "type": "integer"
+          },
+          "targetId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Targetid",
+            "type": "string"
+          },
+          "type": {
+            "const": "entry.complete",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "targetId",
+          "expectedVersion",
+          "type"
+        ],
+        "title": "EntryComplete",
+        "type": "object"
+      },
+      "EntryCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "draft": {
+            "$ref": "#/components/schemas/TaskEntryDraft"
+          },
+          "taskId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Taskid",
+            "type": "string"
+          },
+          "type": {
+            "const": "entry.create",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "taskId",
+          "draft"
+        ],
+        "title": "EntryCreate",
+        "type": "object"
+      },
+      "EntryDelete": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedVersion": {
+            "minimum": 1.0,
+            "title": "Expectedversion",
+            "type": "integer"
+          },
+          "targetId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Targetid",
+            "type": "string"
+          },
+          "type": {
+            "const": "entry.delete",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "targetId",
+          "expectedVersion",
+          "type"
+        ],
+        "title": "EntryDelete",
+        "type": "object"
+      },
+      "EntryReopen": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedVersion": {
+            "minimum": 1.0,
+            "title": "Expectedversion",
+            "type": "integer"
+          },
+          "targetId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Targetid",
+            "type": "string"
+          },
+          "type": {
+            "const": "entry.reopen",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "targetId",
+          "expectedVersion",
+          "type"
+        ],
+        "title": "EntryReopen",
+        "type": "object"
+      },
+      "EntrySkip": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedVersion": {
+            "minimum": 1.0,
+            "title": "Expectedversion",
+            "type": "integer"
+          },
+          "targetId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Targetid",
+            "type": "string"
+          },
+          "type": {
+            "const": "entry.skip",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "targetId",
+          "expectedVersion",
+          "type"
+        ],
+        "title": "EntrySkip",
+        "type": "object"
+      },
+      "EntrySource": {
+        "enum": [
+          "manual",
+          "rule_generated",
+          "hermes"
+        ],
+        "title": "EntrySource",
+        "type": "string"
+      },
+      "EntryStatus": {
+        "enum": [
+          "pending",
+          "completed",
+          "skipped"
+        ],
+        "title": "EntryStatus",
+        "type": "string"
+      },
+      "EntryUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedVersion": {
+            "minimum": 1.0,
+            "title": "Expectedversion",
+            "type": "integer"
+          },
+          "patch": {
+            "$ref": "#/components/schemas/EntryUpdatePatch"
+          },
+          "targetId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Targetid",
+            "type": "string"
+          },
+          "type": {
+            "const": "entry.update",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "targetId",
+          "expectedVersion",
+          "patch"
+        ],
+        "title": "EntryUpdate",
+        "type": "object"
+      },
+      "EntryUpdatePatch": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContentDocument"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "generationRevision": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generationrevision"
+          },
+          "isOverridden": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Isoverridden"
+          },
+          "scheduledDate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduleddate"
+          },
+          "slotKey": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slotkey"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EntrySource"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "EntryUpdatePatch",
+        "type": "object"
+      },
+      "GenerationMode": {
+        "enum": [
+          "fixed",
+          "rolling"
+        ],
+        "title": "GenerationMode",
+        "type": "string"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "MutationBatch": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotencyKey": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Idempotencykey",
+            "type": "string"
+          },
+          "operations": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "entry.complete": "#/components/schemas/EntryComplete",
+                  "entry.create": "#/components/schemas/EntryCreate",
+                  "entry.delete": "#/components/schemas/EntryDelete",
+                  "entry.reopen": "#/components/schemas/EntryReopen",
+                  "entry.skip": "#/components/schemas/EntrySkip",
+                  "entry.update": "#/components/schemas/EntryUpdate",
+                  "task.create": "#/components/schemas/TaskCreate",
+                  "task.delete": "#/components/schemas/TaskDelete",
+                  "task.setStatus": "#/components/schemas/TaskSetStatus",
+                  "task.update": "#/components/schemas/TaskUpdate"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/TaskCreate"
+                },
+                {
+                  "$ref": "#/components/schemas/TaskUpdate"
+                },
+                {
+                  "$ref": "#/components/schemas/TaskSetStatus"
+                },
+                {
+                  "$ref": "#/components/schemas/TaskDelete"
+                },
+                {
+                  "$ref": "#/components/schemas/EntryCreate"
+                },
+                {
+                  "$ref": "#/components/schemas/EntryUpdate"
+                },
+                {
+                  "$ref": "#/components/schemas/EntryComplete"
+                },
+                {
+                  "$ref": "#/components/schemas/EntryReopen"
+                },
+                {
+                  "$ref": "#/components/schemas/EntrySkip"
+                },
+                {
+                  "$ref": "#/components/schemas/EntryDelete"
+                }
+              ]
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Operations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "idempotencyKey",
+          "operations"
+        ],
+        "title": "MutationBatch",
+        "type": "object"
+      },
+      "MutationResult": {
+        "additionalProperties": false,
+        "properties": {
+          "changedEntryIds": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Changedentryids",
+            "type": "array"
+          },
+          "changedTaskIds": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Changedtaskids",
+            "type": "array"
+          },
+          "serverRevision": {
+            "minimum": 0.0,
+            "title": "Serverrevision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "serverRevision"
+        ],
+        "title": "MutationResult",
+        "type": "object"
+      },
+      "ScheduleRuleV1": {
+        "additionalProperties": false,
+        "properties": {
+          "horizonDays": {
+            "const": 7,
+            "title": "Horizondays",
+            "type": "integer"
+          },
+          "schemaVersion": {
+            "const": 1,
+            "title": "Schemaversion",
+            "type": "integer"
+          },
+          "slots": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduleSlotV1"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Slots",
+            "type": "array"
+          },
+          "timezone": {
+            "const": "Asia/Shanghai",
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "timezone",
+          "horizonDays",
+          "slots"
+        ],
+        "title": "ScheduleRuleV1",
+        "type": "object"
+      },
+      "ScheduleSlotV1": {
+        "additionalProperties": false,
+        "properties": {
+          "cadence": {
+            "discriminator": {
+              "mapping": {
+                "daily": "#/components/schemas/DailyCadence",
+                "weekly": "#/components/schemas/WeeklyCadence"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DailyCadence"
+              },
+              {
+                "$ref": "#/components/schemas/WeeklyCadence"
+              }
+            ],
+            "title": "Cadence"
+          },
+          "content": {
+            "$ref": "#/components/schemas/ContentDocument"
+          },
+          "slotKey": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Slotkey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slotKey",
+          "cadence",
+          "content"
+        ],
+        "title": "ScheduleSlotV1",
+        "type": "object"
+      },
+      "TaskCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "draft": {
+            "$ref": "#/components/schemas/TaskDraft"
+          },
+          "type": {
+            "const": "task.create",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "draft"
+        ],
+        "title": "TaskCreate",
+        "type": "object"
+      },
+      "TaskDelete": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedVersion": {
+            "minimum": 1.0,
+            "title": "Expectedversion",
+            "type": "integer"
+          },
+          "targetId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Targetid",
+            "type": "string"
+          },
+          "type": {
+            "const": "task.delete",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "targetId",
+          "expectedVersion"
+        ],
+        "title": "TaskDelete",
+        "type": "object"
+      },
+      "TaskDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "$ref": "#/components/schemas/ContentDocument"
+          },
+          "entries": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/TaskEntryDraft"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "generated_through_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated Through Date"
+          },
+          "generation_mode": {
+            "$ref": "#/components/schemas/GenerationMode"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/TaskKind"
+          },
+          "rule_revision": {
+            "default": 1,
+            "title": "Rule Revision",
+            "type": "integer"
+          },
+          "schedule_rule": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScheduleRuleV1"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus",
+            "default": "active"
+          }
+        },
+        "required": [
+          "kind",
+          "generation_mode",
+          "content"
+        ],
+        "title": "TaskDraft",
+        "type": "object"
+      },
+      "TaskEntryDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "content": {
+            "$ref": "#/components/schemas/ContentDocument"
+          },
+          "generation_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generation Revision"
+          },
+          "is_overridden": {
+            "default": false,
+            "title": "Is Overridden",
+            "type": "boolean"
+          },
+          "scheduled_date": {
+            "format": "date",
+            "title": "Scheduled Date",
+            "type": "string"
+          },
+          "slot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slot Key"
+          },
+          "source": {
+            "$ref": "#/components/schemas/EntrySource",
+            "default": "manual"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EntryStatus",
+            "default": "pending"
+          }
+        },
+        "required": [
+          "scheduled_date",
+          "content"
+        ],
+        "title": "TaskEntryDraft",
+        "type": "object"
+      },
+      "TaskEntryView": {
+        "additionalProperties": false,
+        "properties": {
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "content": {
+            "$ref": "#/components/schemas/ContentDocument"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "generation_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generation Revision"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_overridden": {
+            "title": "Is Overridden",
+            "type": "boolean"
+          },
+          "scheduled_date": {
+            "format": "date",
+            "title": "Scheduled Date",
+            "type": "string"
+          },
+          "slot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slot Key"
+          },
+          "source": {
+            "$ref": "#/components/schemas/EntrySource"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EntryStatus"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "task_id",
+          "scheduled_date",
+          "status",
+          "content",
+          "source",
+          "slot_key",
+          "is_overridden",
+          "generation_revision",
+          "version",
+          "created_at",
+          "updated_at",
+          "completed_at"
+        ],
+        "title": "TaskEntryView",
+        "type": "object"
+      },
+      "TaskKind": {
+        "enum": [
+          "daily",
+          "cycle"
+        ],
+        "title": "TaskKind",
+        "type": "string"
+      },
+      "TaskSetStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedVersion": {
+            "minimum": 1.0,
+            "title": "Expectedversion",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus"
+          },
+          "targetId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Targetid",
+            "type": "string"
+          },
+          "type": {
+            "const": "task.setStatus",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "targetId",
+          "expectedVersion",
+          "status"
+        ],
+        "title": "TaskSetStatus",
+        "type": "object"
+      },
+      "TaskStatus": {
+        "enum": [
+          "active",
+          "paused",
+          "archived"
+        ],
+        "title": "TaskStatus",
+        "type": "string"
+      },
+      "TaskUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedVersion": {
+            "minimum": 1.0,
+            "title": "Expectedversion",
+            "type": "integer"
+          },
+          "patch": {
+            "$ref": "#/components/schemas/TaskUpdatePatch"
+          },
+          "targetId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Targetid",
+            "type": "string"
+          },
+          "type": {
+            "const": "task.update",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "targetId",
+          "expectedVersion",
+          "patch"
+        ],
+        "title": "TaskUpdate",
+        "type": "object"
+      },
+      "TaskUpdatePatch": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContentDocument"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "generatedThroughDate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generatedthroughdate"
+          },
+          "generationMode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GenerationMode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scheduleRule": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScheduleRuleV1"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "TaskUpdatePatch",
+        "type": "object"
+      },
+      "TaskView": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "$ref": "#/components/schemas/ContentDocument"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/TaskEntryView"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "generated_through_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated Through Date"
+          },
+          "generation_mode": {
+            "$ref": "#/components/schemas/GenerationMode"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/TaskKind"
+          },
+          "rule_revision": {
+            "title": "Rule Revision",
+            "type": "integer"
+          },
+          "schedule_rule": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScheduleRuleV1"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "generation_mode",
+          "content",
+          "schedule_rule",
+          "generated_through_date",
+          "rule_revision",
+          "version",
+          "created_at",
+          "updated_at",
+          "entries"
+        ],
+        "title": "TaskView",
+        "type": "object"
+      },
+      "TodayItem": {
+        "additionalProperties": false,
+        "properties": {
+          "entry": {
+            "$ref": "#/components/schemas/TaskEntryView"
+          },
+          "is_overdue": {
+            "title": "Is Overdue",
+            "type": "boolean"
+          },
+          "task_content": {
+            "$ref": "#/components/schemas/ContentDocument"
+          },
+          "task_kind": {
+            "$ref": "#/components/schemas/TaskKind"
+          },
+          "task_status": {
+            "$ref": "#/components/schemas/TaskStatus"
+          }
+        },
+        "required": [
+          "task_kind",
+          "task_status",
+          "task_content",
+          "entry",
+          "is_overdue"
+        ],
+        "title": "TodayItem",
+        "type": "object"
+      },
+      "TodayView": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TodayItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "target_date": {
+            "format": "date",
+            "title": "Target Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_date",
+          "items"
+        ],
+        "title": "TodayView",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WeeklyCadence": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "weekly",
+            "title": "Type",
+            "type": "string"
+          },
+          "weekdays": {
+            "items": {
+              "maximum": 7.0,
+              "minimum": 1.0,
+              "type": "integer"
+            },
+            "minItems": 1,
+            "title": "Weekdays",
+            "type": "array"
+          }
+        },
+        "required": [
+          "type",
+          "weekdays"
+        ],
+        "title": "WeeklyCadence",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Hermes Todo Plan API",
+    "version": "1"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/v1/health": {
+      "get": {
+        "operationId": "health_v1_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/v1/mutations": {
+      "post": {
+        "operationId": "execute_mutations_v1_mutations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MutationBatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Execute Mutations"
+      }
+    },
+    "/v1/snapshot": {
+      "get": {
+        "operationId": "snapshot_v1_snapshot_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Snapshot V1 Snapshot Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Snapshot"
+      }
+    },
+    "/v1/tasks": {
+      "get": {
+        "operationId": "tasks_v1_tasks_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Tasks V1 Tasks Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Tasks"
+      }
+    },
+    "/v1/tasks/{task_id}": {
+      "get": {
+        "operationId": "task_detail_v1_tasks__task_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Task Detail"
+      }
+    },
+    "/v1/today": {
+      "get": {
+        "operationId": "today_v1_today_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "date",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodayView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Today"
+      }
+    }
+  }
+}

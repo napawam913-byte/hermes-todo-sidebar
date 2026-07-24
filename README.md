@@ -52,3 +52,24 @@ npm run dist:win
 - 源码文件继续保持小模块，单个 TS、TSX、CSS 文件不超过 220 行。
 
 后续接口位置见 [后续功能扩展点](docs/extension-points.md)。
+
+## Cloud Plan API foundation
+
+`services/plan-api` now contains the Plan API foundation: a FastAPI app,
+SQLite migrations, repository and query services, mutation execution,
+rolling window generation, authenticated routes, a CLI, atomic backups,
+user systemd units, and a deterministic `openapi.v1.json` contract.
+
+Run Plan API checks from the repository root with:
+
+```powershell
+$env:PYTHONDONTWRITEBYTECODE='1'
+C:\tmp\hermes-plan-api-python311\python.exe -m pytest services/plan-api/tests -q -p no:cacheprovider --basetemp C:\tmp\plan-api-tests
+```
+
+The Hermes plugin integration and desktop data migration are still separate
+phases. The current Electron desktop app continues to use its existing local
+data path until those phases are implemented.
+
+Deployment notes are in
+[`docs/cloud-plan-api-deployment.md`](docs/cloud-plan-api-deployment.md).

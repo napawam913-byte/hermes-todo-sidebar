@@ -86,3 +86,19 @@ figma/                      Figma 节点记录和验收记录
 - `*.logic.ts`：状态和纯函数。
 - `*.types.ts`：共享类型。
 - `*.styles.css`：稳定后可拆出的局部样式。
+
+## Cloud Plan API foundation
+
+```text
+services/plan-api/
+  src/plan_api/              FastAPI app, settings, CLI, backup, DB, API routes, contracts, repositories, services
+  src/plan_api/db/sql/       SQLite migration files bundled with the Python package
+  tests/                     Plan API unit, repository, service, contract, backup, and CLI tests
+  deploy/systemd/            User systemd service and timer units for API serving and daily maintenance
+  openapi.v1.json            Deterministic OpenAPI contract for later Hermes and desktop phases
+docs/cloud-plan-api-deployment.md  Linux user-systemd deployment, SSH tunnel, health check, backup, and restore guide
+```
+
+Boundary note: the cloud Plan API foundation is ready as an isolated service.
+Hermes sync integration and Electron desktop migration remain separate phases,
+so existing desktop/frontend files should not depend on the Plan API yet.

@@ -1,0 +1,9 @@
+[Unit]
+Description=Hermes Todo Plan API daily maintenance
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/.local/share/hermes-plan-api
+EnvironmentFile=%h/.config/hermes-plan-api/plan-api.env
+ExecStart=%h/.local/share/hermes-plan-api/.venv/bin/python -m plan_api ensure-window
+ExecStart=%h/.local/share/hermes-plan-api/.venv/bin/python -m plan_api backup --backup-dir %h/.local/share/hermes-plan-api/backups

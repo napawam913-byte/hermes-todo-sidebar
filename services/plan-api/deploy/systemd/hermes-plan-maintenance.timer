@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Hermes Todo Plan API maintenance daily
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+Unit=hermes-plan-maintenance.service
+
+[Install]
+WantedBy=timers.target
