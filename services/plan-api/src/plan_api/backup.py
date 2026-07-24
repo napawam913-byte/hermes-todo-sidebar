@@ -11,7 +11,7 @@ def create_backup(
     database: Database, backup_dir: Path, keep: int = 14
 ) -> Path:
     backup_dir.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     temporary = backup_dir / f".plan-{stamp}.db.tmp"
     destination = backup_dir / f"plan-{stamp}.db"
     with database.connect() as source:

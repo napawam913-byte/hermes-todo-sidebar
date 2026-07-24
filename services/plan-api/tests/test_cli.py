@@ -55,7 +55,7 @@ def test_export_openapi_is_deterministic(tmp_path, monkeypatch):
     assert json.loads(first.read_text(encoding="utf-8"))["openapi"] == "3.1.0"
 
 
-def test_serve_command_forwards_host_and_port(monkeypatch, tmp_path):
+def test_serve_command_uses_fixed_loopback_boundary(monkeypatch, tmp_path):
     captured = {}
 
     def fake_run(target, *, factory, host, port):
@@ -71,7 +71,7 @@ def test_serve_command_forwards_host_and_port(monkeypatch, tmp_path):
     monkeypatch.setenv("PLAN_DESKTOP_TOKEN", TOKEN_A)
     monkeypatch.setenv("PLAN_HERMES_TOKEN", TOKEN_B)
 
-    assert main(["serve", "--host", "127.0.0.1", "--port", "8743"]) == 0
+    assert main(["serve"]) == 0
 
     assert captured == {
         "target": "plan_api.app:create_app",
@@ -79,3 +79,18 @@ def test_serve_command_forwards_host_and_port(monkeypatch, tmp_path):
         "host": "127.0.0.1",
         "port": 8743,
     }
+
+
+def test_serve_command_rejects_custom_network_boundary(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setenv("PLAN_DATABASE_PATH", str(tmp_path / "plan.db"))
+    monkeypatch.setenv("PLAN_DESKTOP_TOKEN", TOKEN_A)
+    monkeypatch.setenv("PLAN_HERMES_TOKEN", TOKEN_B)
+
+    try:
+        main(["serve", "--host", "0.0.0.0"])
+    except SystemExit as error:
+        assert error.code == 2
+    else:
+        raise AssertionError("serve accepted a custom host")

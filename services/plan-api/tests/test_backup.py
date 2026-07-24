@@ -28,6 +28,20 @@ def test_create_backup_restores_integrity_checked_database(tmp_path) -> None:
     assert row == (123,)
 
 
+def test_create_backup_does_not_overwrite_same_second_backup(tmp_path) -> None:
+    database = Database(tmp_path / "plan.db")
+    apply_migrations(database)
+    backup_dir = tmp_path / "backups"
+
+    first = create_backup(database, backup_dir)
+    second = create_backup(database, backup_dir)
+
+    assert first != second
+    assert first.exists()
+    assert second.exists()
+    assert len(list(backup_dir.glob("plan-*.db"))) == 2
+
+
 def test_create_backup_keeps_only_newest_backups(tmp_path) -> None:
     database = Database(tmp_path / "plan.db")
     apply_migrations(database)

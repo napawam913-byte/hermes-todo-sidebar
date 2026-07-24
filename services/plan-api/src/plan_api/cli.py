@@ -16,6 +16,10 @@ from .services.rolling_generator import RollingGenerator
 from .settings import Settings
 
 
+API_HOST = "127.0.0.1"
+API_PORT = 8743
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     settings = Settings.from_env()
@@ -43,9 +47,7 @@ def _parser() -> ArgumentParser:
     parser = ArgumentParser(prog="plan-api")
     subcommands = parser.add_subparsers(dest="command", required=True)
 
-    serve = subcommands.add_parser("serve")
-    serve.add_argument("--host", default="127.0.0.1")
-    serve.add_argument("--port", type=int, default=8743)
+    subcommands.add_parser("serve")
 
     subcommands.add_parser("migrate")
 
@@ -66,12 +68,12 @@ def _parser() -> ArgumentParser:
     return parser
 
 
-def _serve(args: Namespace) -> int:
+def _serve(_args: Namespace) -> int:
     uvicorn.run(
         "plan_api.app:create_app",
         factory=True,
-        host=args.host,
-        port=args.port,
+        host=API_HOST,
+        port=API_PORT,
     )
     return 0
 
