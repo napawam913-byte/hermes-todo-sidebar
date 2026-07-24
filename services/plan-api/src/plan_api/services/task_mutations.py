@@ -13,7 +13,12 @@ from ..contracts.mutations import (
     TaskSetStatus,
     TaskUpdate,
 )
-from ..contracts.tasks import format_utc
+from ..contracts.tasks import (
+    GenerationMode,
+    TaskKind,
+    TaskStatus,
+    format_utc,
+)
 from ..repositories.task_repository import TaskRepository
 from .rule_adjustment import RuleAdjustmentService
 
@@ -55,10 +60,22 @@ class TaskMutations:
         expected_version = operation.expectedVersion
         increment_version = True
         if "scheduleRule" in changed:
+            if "generatedThroughDate" in changed or "generationMode" in changed:
+                raise MutationError(
+                    "validation_failed", target_id=operation.targetId
+                )
             task = self._repository.get_task(connection, operation.targetId)
             if task is None:
                 raise MutationError(
                     "target_missing", target_id=operation.targetId
+                )
+            if (
+                task.kind is not TaskKind.CYCLE
+                or task.status is not TaskStatus.ACTIVE
+                or task.generation_mode is not GenerationMode.ROLLING
+            ):
+                raise MutationError(
+                    "validation_failed", target_id=operation.targetId
                 )
             result = self._rule_adjustment.replace_future(
                 connection,
