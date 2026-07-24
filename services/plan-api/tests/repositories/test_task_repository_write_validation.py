@@ -30,6 +30,14 @@ class _CustomDict(dict):
     pass
 
 
+class _LookalikeSection:
+    id = "main"
+    label = "Main"
+    layout = "fields"
+    fields = []
+    items = []
+
+
 def test_insert_revalidates_mutated_entry_array_before_writing(tmp_path) -> None:
     database = _database(tmp_path)
     repository = _repository("task-mutated", "entry-mutated")
@@ -97,6 +105,30 @@ def test_insert_rejects_custom_object_in_rule_slot_without_writes(
     _assert_rejected_without_writes(
         database, repository, draft, "invalid_schedule_rule"
     )
+
+
+@pytest.mark.parametrize("target", ["task", "entry", "rule"])
+def test_insert_rejects_lookalike_content_section_without_writes(
+    tmp_path, target: str
+) -> None:
+    database = _database(tmp_path)
+    repository = _repository("task-section", "entry-section")
+    draft = _daily_draft("safe")
+    if target == "rule":
+        draft = TaskDraft(
+            kind=TaskKind.CYCLE,
+            generation_mode=GenerationMode.ROLLING,
+            content=_content_payload("Task", "safe"),
+            schedule_rule=_schedule_rule(),
+        )
+        content = draft.schedule_rule.slots[0].content
+        error = "invalid_schedule_rule"
+    else:
+        content = _target_content(draft, target)
+        error = "content_not_json"
+    content.sections = [_LookalikeSection()]
+
+    _assert_rejected_without_writes(database, repository, draft, error)
 
 
 def _assert_rejected_without_writes(

@@ -11,6 +11,14 @@ class CustomDict(dict):
     pass
 
 
+class LookalikeSection:
+    id = "main"
+    label = "Main"
+    layout = "fields"
+    fields = []
+    items = []
+
+
 def content_payload(kind: str, value: object) -> dict[str, object]:
     return {
         "schemaVersion": 1,
@@ -119,6 +127,14 @@ def test_rejects_mutated_custom_structure_containers(field: str) -> None:
         section.fields = CustomList(section.fields)
     else:
         section.items = CustomList(section.items)
+
+    with pytest.raises(ValueError, match="^content_not_json$"):
+        validate_content_payload(document)
+
+
+def test_rejects_mutated_lookalike_structure_object() -> None:
+    document = validate_content_payload(content_payload("learning.tutorial", "safe"))
+    document.sections = [LookalikeSection()]
 
     with pytest.raises(ValueError, match="^content_not_json$"):
         validate_content_payload(document)

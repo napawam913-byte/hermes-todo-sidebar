@@ -81,11 +81,21 @@ def _validate_content_model_containers(content: ContentDocument) -> None:
     if type(content.sections) is not list:
         raise ValueError("content_not_json")
     for section in content.sections:
+        if type(section) is not ContentSection:
+            raise ValueError("content_not_json")
         if type(section.fields) is not list or type(section.items) is not list:
             raise ValueError("content_not_json")
+        for field in section.fields:
+            if type(field) is not ContentField:
+                raise ValueError("content_not_json")
         for item in section.items:
+            if type(item) is not ContentItem:
+                raise ValueError("content_not_json")
             if type(item.fields) is not list:
                 raise ValueError("content_not_json")
+            for field in item.fields:
+                if type(field) is not ContentField:
+                    raise ValueError("content_not_json")
 
 
 def _section_snapshot(section: ContentSection) -> dict[str, object]:
