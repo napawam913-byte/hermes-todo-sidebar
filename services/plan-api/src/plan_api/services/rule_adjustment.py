@@ -55,9 +55,9 @@ class RuleAdjustmentService:
             DELETE FROM task_entries
             WHERE task_id = ? AND scheduled_date >= ?
               AND status = 'pending' AND source = 'rule_generated'
-              AND is_overridden = 0 AND generation_revision = ?
+              AND is_overridden = 0
             """,
-            (task.id, today.isoformat(), task.rule_revision),
+            (task.id, today.isoformat()),
         )
         cursor = connection.execute(
             """
@@ -99,10 +99,10 @@ class RuleAdjustmentService:
             SELECT id FROM task_entries
             WHERE task_id = ? AND scheduled_date >= ?
               AND status = 'pending' AND source = 'rule_generated'
-              AND is_overridden = 0 AND generation_revision = ?
+              AND is_overridden = 0
             ORDER BY scheduled_date, id
             """,
-            (task.id, today.isoformat(), task.rule_revision),
+            (task.id, today.isoformat()),
         ).fetchall()
         return tuple(str(row["id"]) for row in rows)
 
