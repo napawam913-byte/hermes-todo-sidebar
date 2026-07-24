@@ -1,6 +1,7 @@
 """模块用途：验证 Plan API 命令行入口和确定性 OpenAPI 导出。"""
 
 import json
+from pathlib import Path
 
 from plan_api.cli import main
 
@@ -94,3 +95,17 @@ def test_serve_command_rejects_custom_network_boundary(
         assert error.code == 2
     else:
         raise AssertionError("serve accepted a custom host")
+
+
+def test_systemd_service_uses_supported_serve_command() -> None:
+    service_path = (
+        Path(__file__).resolve().parents[1]
+        / "deploy"
+        / "systemd"
+        / "hermes-plan-api.service"
+    )
+    service = service_path.read_text(encoding="utf-8")
+
+    assert "-m plan_api serve" in service
+    assert "--host" not in service
+    assert "--port" not in service

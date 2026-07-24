@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=simple
 WorkingDirectory=%h/.local/share/hermes-plan-api
 EnvironmentFile=%h/.config/hermes-plan-api/plan-api.env
-ExecStart=%h/.local/share/hermes-plan-api/.venv/bin/python -m plan_api serve --host 127.0.0.1 --port 8743
+ExecStart=%h/.local/share/hermes-plan-api/.venv/bin/python -m plan_api serve
 Restart=on-failure
 RestartSec=5
 
