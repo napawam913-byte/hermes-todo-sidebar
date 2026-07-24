@@ -31,9 +31,9 @@ def test_invalid_token_is_structured_401(client: TestClient) -> None:
 def test_role_resolution_compares_both_tokens(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    comparisons: list[tuple[str, str]] = []
+    comparisons: list[tuple[bytes, bytes]] = []
 
-    def compare(candidate: str, configured: str) -> bool:
+    def compare(candidate: bytes, configured: bytes) -> bool:
         comparisons.append((candidate, configured))
         return candidate == configured
 
@@ -43,7 +43,10 @@ def test_role_resolution_compares_both_tokens(
         scheme="Bearer", credentials="desktop"
     )
     assert auth.resolve_role(credentials, settings) is TokenRole.DESKTOP
-    assert comparisons == [("desktop", "desktop"), ("desktop", "hermes")]
+    assert comparisons == [
+        (b"desktop", b"desktop"),
+        (b"desktop", b"hermes"),
+    ]
 
 
 @pytest.mark.parametrize("fixture_name", ["desktop_headers", "hermes_headers"])

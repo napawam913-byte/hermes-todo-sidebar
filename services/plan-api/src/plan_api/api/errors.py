@@ -20,6 +20,7 @@ def install_error_handlers(app: FastAPI) -> None:
     app.add_exception_handler(ApiError, _api_error)
     app.add_exception_handler(RequestValidationError, _validation_error)
     app.add_exception_handler(StarletteHTTPException, _http_error)
+    app.add_exception_handler(Exception, _unexpected_error)
 
 
 async def _api_error(request: Request, error: ApiError) -> JSONResponse:
@@ -41,19 +42,39 @@ async def _http_error(
     return _response(request, error.status_code, code)
 
 
+async def _unexpected_error(
+    request: Request, _error: Exception
+) -> JSONResponse:
+    return error_response(request, 500, "internal_error")
+
+
+def error_response(
+    request: Request,
+    status_code: int,
+    code: str,
+    message: str | None = None,
+    extra: dict[str, object] | None = None,
+) -> JSONResponse:
+    return _response(request, status_code, code, message, extra)
+
+
 def _response(
     request: Request,
     status_code: int,
     code: str,
     message: str | None = None,
+    extra: dict[str, object] | None = None,
 ) -> JSONResponse:
+    content = {
+        "code": code,
+        "message": message or code,
+        "requestId": _request_id(request),
+    }
+    if extra is not None:
+        content.update(extra)
     return JSONResponse(
         status_code=status_code,
-        content={
-            "code": code,
-            "message": message or code,
-            "requestId": _request_id(request),
-        },
+        content=content,
     )
 
 

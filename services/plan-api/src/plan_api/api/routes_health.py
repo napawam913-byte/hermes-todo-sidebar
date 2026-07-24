@@ -1,16 +1,19 @@
 import sqlite3
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from .dependencies import DatabaseDep
+from .errors import error_response
 
 
 router = APIRouter(prefix="/v1")
 
 
 @router.get("/health", response_model=None)
-def health(database: DatabaseDep) -> dict[str, object] | JSONResponse:
+def health(
+    request: Request, database: DatabaseDep
+) -> dict[str, object] | JSONResponse:
     try:
         with database.connect() as connection:
             row = connection.execute(
@@ -18,9 +21,11 @@ def health(database: DatabaseDep) -> dict[str, object] | JSONResponse:
             ).fetchone()
         revision = int(row["server_revision"])
     except (sqlite3.Error, TypeError):
-        return JSONResponse(
-            status_code=503,
-            content={
+        return error_response(
+            request,
+            503,
+            "database_unavailable",
+            extra={
                 "status": "degraded",
                 "service": "plan-api",
                 "apiVersion": 1,

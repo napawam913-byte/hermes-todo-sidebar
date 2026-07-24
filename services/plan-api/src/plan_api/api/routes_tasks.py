@@ -68,14 +68,21 @@ def _read_tasks(
     database: Database, repository: TaskRepository
 ) -> tuple[int, tuple[TaskView, ...]]:
     with database.connect() as connection:
-        revision_row = connection.execute(
-            "SELECT server_revision FROM app_meta WHERE id = 1"
-        ).fetchone()
-        id_rows = connection.execute(
-            "SELECT id FROM tasks ORDER BY created_at, id"
-        ).fetchall()
-        task_items = tuple(
-            repository.get_task(connection, str(row["id"])) for row in id_rows
-        )
+        connection.execute("BEGIN")
+        try:
+            revision_row = connection.execute(
+                "SELECT server_revision FROM app_meta WHERE id = 1"
+            ).fetchone()
+            id_rows = connection.execute(
+                "SELECT id FROM tasks ORDER BY created_at, id"
+            ).fetchall()
+            task_items = tuple(
+                repository.get_task(connection, str(row["id"]))
+                for row in id_rows
+            )
+            connection.commit()
+        except BaseException:
+            connection.rollback()
+            raise
     tasks = tuple(task for task in task_items if task is not None)
     return int(revision_row["server_revision"]), tasks
