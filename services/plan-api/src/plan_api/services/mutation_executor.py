@@ -26,6 +26,7 @@ from ..contracts.tasks import format_utc
 from ..db.database import Database
 from ..repositories.task_repository import TaskRepository
 from .entry_mutations import EntryMutations
+from .mutation_batch_guards import validate_batch_invariants
 from .rolling_generator import RollingGenerator
 from .rule_adjustment import RuleAdjustmentService
 from .task_mutations import ChangedIds, TaskMutations
@@ -72,6 +73,7 @@ class MutationExecutor:
             raise MutationError("permission_denied")
         try:
             request_hash = batch.request_hash()
+            validate_batch_invariants(batch)
             with self._database.transaction() as connection:
                 cached = self._cached(
                     connection, batch.idempotencyKey, request_hash
