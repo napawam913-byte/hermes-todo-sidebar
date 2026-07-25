@@ -70,4 +70,11 @@ describe("mapPlanApiSnapshot", () => {
       })],
     })]);
   });
+
+  it("rejects skipped daily entries instead of representing them as pending todos", () => {
+    const snapshot = snapshotFixture();
+    snapshot.tasks[0]!.entries[0]!.status = "skipped";
+
+    expect(() => mapPlanApiSnapshot(snapshot)).toThrow("Skipped daily entry cannot be mapped to Todo");
+  });
 });

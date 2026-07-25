@@ -34,4 +34,11 @@ describe("PlanApiVersionIndex", () => {
     expect(() => index.requireTask("missing-task")).toThrow("Unknown Plan API task: missing-task");
     expect(() => index.requireEntry("missing-entry")).toThrow("Unknown Plan API entry: missing-entry");
   });
+
+  it("uses the containing task id when an entry repeats a conflicting task id", () => {
+    const value = snapshot();
+    value.tasks[0]!.entries[0]!.task_id = "incorrect_task_id";
+
+    expect(PlanApiVersionIndex.fromSnapshot(value).requireEntry("entry_1").taskId).toBe("task_1");
+  });
 });

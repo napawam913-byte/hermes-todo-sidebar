@@ -12,11 +12,18 @@ export interface PlanApiSnapshotMapping {
 
 export function mapPlanApiSnapshot(snapshot: PlanApiSnapshot): PlanApiSnapshotMapping {
   return {
-    todos: snapshot.tasks.filter((task) => task.kind === "daily").flatMap((task) => task.entries.map(mapTodo)),
+    todos: snapshot.tasks.filter((task) => task.kind === "daily").flatMap(mapDailyTask),
     cyclePlans: snapshot.tasks.filter((task) => task.kind === "cycle").map(mapCyclePlan),
     versionIndex: PlanApiVersionIndex.fromSnapshot(snapshot),
     serverRevision: snapshot.serverRevision,
   };
+}
+
+function mapDailyTask(task: PlanApiTaskView): Todo[] {
+  if (task.entries.some((entry) => entry.status === "skipped")) {
+    throw new Error("Skipped daily entry cannot be mapped to Todo");
+  }
+  return task.entries.map(mapTodo);
 }
 
 function mapTodo(entry: PlanApiTaskEntryView): Todo {

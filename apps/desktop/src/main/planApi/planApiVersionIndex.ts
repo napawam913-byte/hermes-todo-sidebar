@@ -27,7 +27,7 @@ export class PlanApiVersionIndex {
       tasks.set(task.id, { id: task.id, version: task.version, updatedAt: task.updated_at });
       for (const entry of task.entries) {
         entries.set(entry.id, {
-          id: entry.id, taskId: entry.task_id, version: entry.version, updatedAt: entry.updated_at,
+          id: entry.id, taskId: task.id, version: entry.version, updatedAt: entry.updated_at,
         });
       }
     }
