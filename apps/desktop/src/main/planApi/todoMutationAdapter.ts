@@ -43,6 +43,7 @@ export function adaptTodoMutation(
 
   const todo = requireTodo(operation.targetId, input);
   const entry = input.versionIndex.requireEntry(todo.id);
+  assertExpected(entry.updatedAt, operation.expectedUpdatedAt);
   const task = input.versionIndex.requireTask(entry.taskId);
   if (operation.type === "todo.delete") {
     return [{ type: "task.delete", targetId: task.id, expectedVersion: task.version }];
@@ -68,7 +69,7 @@ export function adaptTodoMutation(
     });
   }
   const patch: Record<string, unknown> = {};
-  if (operation.patch.date !== undefined) patch.scheduled_date = operation.patch.date;
+  if (operation.patch.date !== undefined) patch.scheduledDate = operation.patch.date;
   if (content) patch.content = content;
   operations.push({
     type: "entry.update",
@@ -111,4 +112,10 @@ function requireTodo(id: string, input: MutationAdapterInput): Todo {
 
 function entrySource(input: MutationAdapterInput): PlanApiTaskEntryDraft["source"] {
   return input.batch.source.type === "manual" ? "manual" : "hermes";
+}
+
+function assertExpected(actual: string, expected?: string): void {
+  if (expected !== undefined && actual !== expected) {
+    throw new PlanApiError("version_conflict");
+  }
 }

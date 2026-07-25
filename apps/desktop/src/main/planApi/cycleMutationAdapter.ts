@@ -44,6 +44,9 @@ export function adaptCycleMutation(
     }];
   }
   if (operation.type === "cyclePlan.entry.create") {
+    requirePlan(operation.planId, input);
+    const task = input.versionIndex.requireTask(operation.planId);
+    assertExpected(task.updatedAt, operation.expectedUpdatedAt);
     return [{
       type: "entry.create",
       taskId: operation.planId,
@@ -61,6 +64,7 @@ export function adaptCycleMutation(
 
   const plan = requirePlan(operation.targetId, input);
   const version = input.versionIndex.requireTask(plan.id);
+  assertExpected(version.updatedAt, operation.expectedUpdatedAt);
   if (operation.type === "cyclePlan.update") {
     const next = {
       ...plan,
@@ -95,13 +99,14 @@ function adaptEntryMutation(
 ): PlanApiMutationOperation[] {
   const entry = requireEntry(operation.targetId, input);
   const version = input.versionIndex.requireEntry(entry.id);
+  assertExpected(version.updatedAt, operation.expectedUpdatedAt);
   if (operation.type === "cyclePlan.entry.update") {
     const next = mergeEntry(entry, operation.patch);
     const changesContent = operation.patch.title !== undefined
       || operation.patch.contentSummary !== undefined
       || operation.patch.contentBlocks !== undefined;
     const patch: Record<string, unknown> = {};
-    if (operation.patch.date !== undefined) patch.scheduled_date = operation.patch.date;
+    if (operation.patch.date !== undefined) patch.scheduledDate = operation.patch.date;
     if (changesContent) patch.content = cycleEntryToContentDocument(next);
     return [{ type: "entry.update", targetId: entry.id, expectedVersion: version.version, patch }];
   }
@@ -191,4 +196,10 @@ function requireEntry(id: string, input: MutationAdapterInput): CyclePlanEntry {
 
 function assertNever(value: never): never {
   throw new PlanApiError("validation_failed");
+}
+
+function assertExpected(actual: string, expected?: string): void {
+  if (expected !== undefined && actual !== expected) {
+    throw new PlanApiError("version_conflict");
+  }
 }

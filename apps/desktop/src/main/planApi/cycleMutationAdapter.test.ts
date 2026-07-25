@@ -70,8 +70,8 @@ describe("Cycle mutation adapter", () => {
       { type: "task.update", targetId: plan.id, expectedVersion: 5, patch: {
         content: expect.objectContaining({ title: "Power", summary: "Weekly" }),
       } },
-      { type: "task.setStatus", targetId: plan.id, expectedVersion: 5, status: "paused" },
-      { type: "task.delete", targetId: plan.id, expectedVersion: 5 },
+      { type: "task.setStatus", targetId: plan.id, expectedVersion: 6, status: "paused" },
+      { type: "task.delete", targetId: plan.id, expectedVersion: 7 },
     ]);
   });
 
@@ -86,12 +86,22 @@ describe("Cycle mutation adapter", () => {
     ])).operations).toEqual([
       { type: "entry.create", taskId: plan.id, draft: expect.objectContaining({ scheduled_date: entryDraft.date }) },
       { type: "entry.update", targetId: "entry_cycle", expectedVersion: 6, patch: {
-        scheduled_date: "2026-07-28", content: expect.objectContaining({ title: "Upper+" }),
+        scheduledDate: "2026-07-28", content: expect.objectContaining({ title: "Upper+" }),
       } },
-      { type: "entry.complete", targetId: "entry_cycle", expectedVersion: 6 },
-      { type: "entry.reopen", targetId: "entry_cycle", expectedVersion: 6 },
-      { type: "entry.skip", targetId: "entry_cycle", expectedVersion: 6 },
-      { type: "entry.delete", targetId: "entry_cycle", expectedVersion: 6 },
+      { type: "entry.complete", targetId: "entry_cycle", expectedVersion: 7 },
+      { type: "entry.reopen", targetId: "entry_cycle", expectedVersion: 8 },
+      { type: "entry.skip", targetId: "entry_cycle", expectedVersion: 9 },
+      { type: "entry.delete", targetId: "entry_cycle", expectedVersion: 10 },
     ]);
+  });
+
+  it("rejects missing and stale parents for cycle entry creation", () => {
+    expect(() => adaptAppMutationBatch(input([{
+      type: "cyclePlan.entry.create", planId: "missing", draft: entryDraft,
+    }]))).toThrowError(expect.objectContaining({ code: "validation_failed" }));
+    expect(() => adaptAppMutationBatch(input([{
+      type: "cyclePlan.entry.create", planId: plan.id,
+      expectedUpdatedAt: "2026-07-25T06:00:00Z", draft: entryDraft,
+    }]))).toThrowError(expect.objectContaining({ code: "version_conflict" }));
   });
 });

@@ -42,6 +42,7 @@ describe("adaptAppMutationBatch", () => {
     expect(result.idempotencyKey).toBe("ordered-request");
     expect(result.operations.map((operation) => operation.type))
       .toEqual(["task.update", "entry.update", "entry.complete"]);
+    expect(result.operations[2]).toMatchObject({ expectedVersion: 4 });
   });
 
   it("throws a safe version conflict before adapting a stale target", () => {
@@ -66,5 +67,14 @@ describe("adaptAppMutationBatch", () => {
       type: "todo.update" as const, targetId: todo.id, patch: { title: "Changed" },
     }));
     expect(() => adaptAppMutationBatch(input(operations))).toThrowError(PlanApiError);
+  });
+
+  it("rejects an operation after the same object was deleted", () => {
+    expect(() => adaptAppMutationBatch(input([
+      { type: "todo.delete", targetId: todo.id },
+      { type: "todo.complete", targetId: todo.id },
+    ]))).toThrowError(expect.objectContaining<Partial<PlanApiError>>({
+      name: "PlanApiError", code: "validation_failed",
+    }));
   });
 });

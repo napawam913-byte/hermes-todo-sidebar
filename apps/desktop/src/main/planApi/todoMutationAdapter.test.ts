@@ -65,21 +65,41 @@ describe("Todo mutation adapter", () => {
     }, {
       type: "entry.update", targetId: todo.id, expectedVersion: 3,
       patch: {
-        scheduled_date: "2026-07-27",
+        scheduledDate: "2026-07-27",
         content: expect.objectContaining({ title: "Read deeply", summary: "New notes" }),
       },
     }]);
   });
 
-  it("maps completion, reopening, and deletion to entry or parent task versions", () => {
+  it("projects entry versions through completion and reopening before parent deletion", () => {
     expect(adaptAppMutationBatch(input([
       { type: "todo.complete", targetId: todo.id, expectedUpdatedAt: todo.updatedAt },
       { type: "todo.reopen", targetId: todo.id },
       { type: "todo.delete", targetId: todo.id, expectedUpdatedAt: todo.updatedAt },
     ])).operations).toEqual([
       { type: "entry.complete", targetId: todo.id, expectedVersion: 3 },
-      { type: "entry.reopen", targetId: todo.id, expectedVersion: 3 },
+      { type: "entry.reopen", targetId: todo.id, expectedVersion: 4 },
       { type: "task.delete", targetId: "task_daily", expectedVersion: 2 },
     ]);
+  });
+
+  it("projects versions and content across consecutive Todo patches", () => {
+    const operations = adaptAppMutationBatch(input([
+      { type: "todo.update", targetId: todo.id, patch: { title: "Read deeply" } },
+      { type: "todo.update", targetId: todo.id, patch: { notes: "New notes" } },
+      { type: "todo.complete", targetId: todo.id },
+    ])).operations;
+
+    expect(operations.map((operation) => (
+      "expectedVersion" in operation ? operation.expectedVersion : undefined
+    ))).toEqual([2, 3, 3, 4, 5]);
+    expect(operations[2]).toMatchObject({
+      type: "task.update",
+      patch: { content: { title: "Read deeply", summary: "New notes" } },
+    });
+    expect(operations[3]).toMatchObject({
+      type: "entry.update",
+      patch: { content: { title: "Read deeply", summary: "New notes" } },
+    });
   });
 });
