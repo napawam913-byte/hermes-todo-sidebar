@@ -59,6 +59,21 @@ describe("content document mapper", () => {
     expect(blocks[0].data).toMatchObject({ fields: expect.any(Array) });
   });
 
+  it("keeps non-object contentBlock fields generic in cycle entries", () => {
+    const section = {
+      id: "segment", label: "Study segment", layout: "list" as const,
+      fields: [{ key: "contentBlock", label: "Payload", type: "markdown", value: entry.contentBlocks[0] }],
+      items: [{ title: "Keep this", fields: [] }],
+    };
+    const [block] = contentDocumentToBlocks({
+      schemaVersion: 1, kind: "plan.cycle_entry", title: "Entry", summary: "Summary", locale: "zh-CN",
+      sections: [section],
+    });
+
+    expect(block).toMatchObject({ kind: "plan.cycle_entry.segment", format: "json" });
+    expect(block.data).toEqual(section);
+  });
+
   it("maps Todo notes into the fixed markdown document", () => {
     expect(todoToContentDocument(todo)).toEqual({
       schemaVersion: 1, kind: "todo.general", title: "Read chapter", summary: "Take notes.", locale: "zh-CN",

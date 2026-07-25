@@ -43,9 +43,10 @@ export function contentDocumentToBlocks(content: PlanApiContentDocument): PlanCo
 }
 
 function readContentBlock(section: PlanApiContentSection): PlanContentBlock | undefined {
-  const value = section.fields.find((field) => field.key === "contentBlock")?.value;
-  if (!isContentBlock(value)) return undefined;
-  return value;
+  for (const field of section.fields) {
+    if (field.key === "contentBlock" && field.type === "object" && isContentBlock(field.value)) return field.value;
+  }
+  return undefined;
 }
 
 function genericBlock(kind: string, section: PlanApiContentSection): PlanContentBlock {
