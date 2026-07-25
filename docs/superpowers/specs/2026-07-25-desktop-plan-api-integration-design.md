@@ -11,7 +11,7 @@
 ```text
 Windows 便携版桌宠
   -> Electron 主进程
-  -> 本机 SSH 隧道 127.0.0.1:8743
+  -> 主进程自动维护的 SSH 隧道 127.0.0.1:8743
   -> 云服务器 Plan API 127.0.0.1:8743
   -> SQLite plan.db
 ```
@@ -56,15 +56,26 @@ Windows 便携版桌宠
 ### 4.2 SSH 隧道
 
 云端 Plan API 继续只监听 `127.0.0.1:8743`，不开放公网业务端口。Windows
-建立 SSH 本地端口转发后，桌面端始终访问：
+由 Electron 主进程调用系统自带的 `ssh.exe` 自动建立本地端口转发，桌面端
+始终访问：
 
 ```text
 http://127.0.0.1:8743
 ```
 
-这样本地联调和云端运行使用相同 Base URL。SSH 登录密钥由 Windows SSH
-设施管理，不写入应用仓库。第一版允许用户先通过系统脚本或快捷方式启动隧道；
-桌面端负责检测隧道是否可用并给出明确状态。
+这样本地联调和云端运行使用相同 Base URL。SSH 登录密钥由 Windows
+OpenSSH、`~/.ssh/config` 或 `ssh-agent` 管理，不写入应用配置和仓库。
+
+自动隧道规则：
+
+- 用户配置 SSH 目标，例如 `hermes-plan` 或 `ubuntu@服务器地址`。
+- 主进程使用参数数组调用 `ssh.exe`，不经过 shell。
+- 使用 `BatchMode=yes`，禁止应用内弹出密码输入。
+- 使用 `ExitOnForwardFailure=yes`，端口转发失败时立即报告。
+- 使用 ServerAlive 心跳检测断线，并采用有上限的退避重连。
+- 本地开发模式可关闭隧道，直接连接本机 Plan API。
+- 应用退出时只终止自己创建的 SSH 子进程。
+- renderer 只能看到“连接中、已连接、重连中、失败”等状态。
 
 ### 4.3 密钥管理
 
@@ -83,8 +94,10 @@ apps/desktop/src/main/planApi/
 ├── planApiClient.ts
 ├── planApiErrors.ts
 ├── planApiConnectionStore.ts
+├── planApiSshTunnel.ts
 ├── planApiSnapshotCache.ts
 ├── planApiMigrationService.ts
+├── planApiMigrationFileStore.ts
 ├── planApiVersionIndex.ts
 ├── contentDocumentMapper.ts
 ├── snapshotMapper.ts
@@ -103,6 +116,7 @@ docs/
 
 - `planApiRuntime` 负责组装客户端、缓存、迁移和 IPC，不承载具体映射逻辑。
 - `planApiClient` 只处理 HTTP、鉴权、超时和响应解析。
+- `planApiSshTunnel` 只负责 `ssh.exe` 生命周期、心跳与退避重连。
 - `snapshotMapper` 将 API Task/Entry 转换为现有 UI 领域状态。
 - `mutationAdapter` 将现有 `AppMutationOperation` 转换为 Plan API 操作。
 - Todo 与 Cycle 的转换分别拆入独立适配器。
@@ -236,7 +250,8 @@ data/
 
 “数据服务”包含：
 
-- Plan API 地址
+- 连接模式：本地直连或云端 SSH
+- SSH 目标与本地/远端端口
 - Desktop Token 输入与脱敏状态
 - 测试连接
 - 当前连接状态
@@ -311,6 +326,7 @@ Hermes 接入沿用同一 Plan API，但使用独立最小权限 Token。目标�
 ### 自动测试
 
 - API 客户端鉴权、超时和错误分类。
+- SSH 参数安全构造、启动失败、端口占用、断线重连和退出清理。
 - Todo、CyclePlan、Entry 与 ContentDocument 双向映射。
 - 所有现有手动操作到 API 操作的转换。
 - 迁移备份、幂等、空服务器限制、失败回滚和重复启动。
@@ -332,12 +348,13 @@ Hermes 接入沿用同一 Plan API，但使用独立最小权限 Token。目标�
 ## 14. 实施顺序
 
 1. 建立共享桥接合同、HTTP 客户端和错误模型。
-2. 完成快照映射与只读启动链路。
-3. 完成 Todo/Cycle 变更适配器和在线写入。
-4. 完成缓存、版本索引和离线只读。
-5. 完成旧 JSON 首次迁移。
-6. 完成设置页“数据服务”分区。
-7. 本地 API 全链路验收。
-8. SSH 隧道云端验收。
-9. 打包新的免安装测试副本。
-10. 后续单独实施 Hermes 提案与确认工具。
+2. 完成安全连接配置和自动 SSH 隧道。
+3. 完成快照映射与只读启动链路。
+4. 完成 Todo/Cycle 变更适配器和在线写入。
+5. 完成缓存、版本索引和离线只读。
+6. 完成旧 JSON 首次迁移。
+7. 完成设置页“数据服务”分区。
+8. 本地 API 全链路验收。
+9. 自动 SSH 隧道云端验收。
+10. 打包新的免安装测试副本。
+11. 后续单独实施 Hermes 提案与确认工具。
