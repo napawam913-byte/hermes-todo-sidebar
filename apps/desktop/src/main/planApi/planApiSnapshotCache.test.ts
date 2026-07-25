@@ -26,6 +26,21 @@ function emptySnapshot(): PlanApiSnapshotCacheValue {
   };
 }
 
+function validCyclePlan() {
+  return {
+    schemaVersion: 2 as const,
+    id: "plan-1",
+    title: "Plan",
+    topic: "Topic",
+    description: "Description",
+    status: "active" as const,
+    source: { type: "hermes" as const },
+    entries: [],
+    createdAt: "2026-07-25T08:00:00.000Z",
+    updatedAt: "2026-07-25T08:00:00.000Z",
+  };
+}
+
 describe("PlanApiSnapshotCache", () => {
   it("returns null for a damaged cache and never persists credentials", async () => {
     const directory = await makeDirectory();
@@ -44,6 +59,8 @@ describe("PlanApiSnapshotCache", () => {
     ["missing", undefined],
     ["top-level object", { ...emptySnapshot(), todos: {} }],
     ["cycle plan array", { ...emptySnapshot(), cyclePlans: {} }],
+    ["malformed todo", { ...emptySnapshot(), todos: [{}] }],
+    ["malformed cycle plan", { ...emptySnapshot(), cyclePlans: [{}] }],
   ])("returns null for %s cache data", async (_label, value) => {
     const directory = await makeDirectory();
     const filePath = path.join(directory, "plan-api-cache.v1.json");
@@ -62,6 +79,54 @@ describe("PlanApiSnapshotCache", () => {
     await expect(cache.load()).resolves.toEqual(snapshot);
   });
 
+  it("round-trips arbitrary content data including credential-like business keys", async () => {
+    const directory = await makeDirectory();
+    const snapshot = {
+      ...emptySnapshot(),
+      cyclePlans: [{
+        ...validCyclePlan(),
+        entries: [{
+          schemaVersion: 2 as const,
+          id: "entry-1",
+          planId: "plan-1",
+          date: "2026-07-25",
+          title: "Entry",
+          contentSummary: "Summary",
+          contentBlocks: [{ schemaVersion: 2 as const, id: "block-1", kind: "json", title: "Data", format: "json" as const, data: { token: "chapter-1", password: "wordplay" } }],
+          status: "pending" as const,
+          source: { type: "hermes" as const },
+          createdAt: "2026-07-25T08:00:00.000Z",
+          updatedAt: "2026-07-25T08:00:00.000Z",
+        }],
+      }],
+    };
+
+    const cache = new PlanApiSnapshotCache(directory);
+    await cache.save(snapshot);
+
+    await expect(cache.load()).resolves.toEqual(snapshot);
+  });
+
+  it("replaces an existing cache successfully", async () => {
+    const directory = await makeDirectory();
+    const cache = new PlanApiSnapshotCache(directory);
+    await cache.save(emptySnapshot());
+    const replacement = { ...emptySnapshot(), serverRevision: 8 };
+
+    await cache.save(replacement);
+
+    await expect(cache.load()).resolves.toEqual(replacement);
+  });
+
+  it("allows concurrent saves without sharing temporary files", async () => {
+    const directory = await makeDirectory();
+    const cache = new PlanApiSnapshotCache(directory);
+
+    await expect(Promise.all(Array.from({ length: 8 }, (_, index) => cache.save({ ...emptySnapshot(), serverRevision: index })))).resolves.toHaveLength(8);
+    await expect(readdir(directory)).resolves.not.toEqual(expect.arrayContaining(["plan-api-cache.v1.tmp"]));
+    await expect(cache.load()).resolves.toMatchObject({ schemaVersion: 1 });
+  });
+
   it("removes the temporary file when replacing the cache fails", async () => {
     const directory = await makeDirectory();
     const filePath = path.join(directory, "plan-api-cache.v1.json");
@@ -70,6 +135,6 @@ describe("PlanApiSnapshotCache", () => {
     await import("node:fs/promises").then(({ mkdir }) => mkdir(filePath));
 
     await expect(new PlanApiSnapshotCache(directory).save(emptySnapshot())).rejects.toThrow();
-    await expect(readdir(directory)).resolves.not.toContain("plan-api-cache.v1.tmp");
+    await expect(readdir(directory)).resolves.not.toEqual(expect.arrayContaining([expect.stringMatching(/^plan-api-cache\.v1\..+\.tmp$/)]));
   });
 });
