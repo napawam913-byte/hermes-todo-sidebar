@@ -44,6 +44,17 @@ describe("PlanApiClient", () => {
     expect(String(error)).not.toContain("secret-token");
   });
 
+  it("drops requestIds that contain the token", async () => {
+    const fetchImpl = vi.fn(async () => response(
+      { message: "unsafe detail", requestId: "trace-secret-token" }, 401,
+    )) as typeof fetch;
+    const error = await clientWith(fetchImpl).snapshot().catch((value: unknown) => value);
+
+    expect(error).toMatchObject({ code: "auth_failed", status: 401 });
+    expect(error).toHaveProperty("requestId", undefined);
+    expect(String(error)).not.toContain("secret-token");
+  });
+
   it.each([
     [403, "auth_failed"], [409, "version_conflict"], [422, "validation_failed"], [500, "http_error"],
   ] as const)("classifies HTTP %i as %s", async (status, code) => {

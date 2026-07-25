@@ -82,5 +82,7 @@ function classifyStatus(status: number): PlanApiErrorCode {
 function readRequestId(value: unknown, token: string): string | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
   const requestId = (value as { requestId?: unknown }).requestId;
-  return typeof requestId === "string" && requestId && requestId !== token ? requestId : undefined;
+  return typeof requestId === "string" && requestId && (!token || !requestId.includes(token))
+    ? requestId
+    : undefined;
 }
