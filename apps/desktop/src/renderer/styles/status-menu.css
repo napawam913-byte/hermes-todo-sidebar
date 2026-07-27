@@ -15,23 +15,23 @@
   font-weight: 650;
 }
 .reminder-none {
-  color: var(--ink-soft);
-  background: var(--surface-muted);
+  color: var(--ui-text-caption);
+  background: var(--ui-control);
 }
 
 .reminder-overdue {
-  color: var(--danger);
-  background: var(--danger-soft);
+  color: var(--ui-danger-text);
+  background: color-mix(in srgb, var(--ui-danger) 12%, transparent);
 }
 
 .reminder-today {
-  color: var(--accent-strong);
-  background: var(--accent-soft);
+  color: var(--ui-accent-strong);
+  background: var(--ui-accent-soft);
 }
 
 .reminder-upcoming {
-  color: var(--ink-muted);
-  background: var(--surface-muted);
+  color: var(--ui-text-secondary);
+  background: var(--ui-control);
 }
 
 .sync-pill {
@@ -40,24 +40,24 @@
 
 .sync-local,
 .sync-queued {
-  color: var(--ink-muted);
-  background: var(--surface-muted);
+  color: var(--ui-text-secondary);
+  background: var(--ui-control);
 }
 
 .sync-synced {
-  color: var(--success);
-  background: oklch(0.94 0.052 150);
+  color: var(--ui-success-text);
+  background: color-mix(in srgb, var(--ui-success) 12%, transparent);
 }
 
 .sync-failed {
-  color: var(--danger);
-  border-color: var(--danger);
-  background: white;
+  color: var(--ui-danger-text);
+  border-color: var(--ui-danger);
+  background: var(--ui-surface-solid);
 }
 
 .snooze-count {
-  color: var(--warning);
-  background: oklch(0.95 0.055 80);
+  color: var(--ui-warning-text);
+  background: color-mix(in srgb, var(--ui-warning) 12%, transparent);
 }
 
 .snooze-menu {
@@ -68,10 +68,10 @@
   gap: var(--space-1);
   min-width: 120px;
   padding: var(--space-2);
-  border: 1px solid var(--border);
+  border: 1px solid var(--ui-border);
   border-radius: var(--radius-md);
-  background: var(--surface-raised);
-  box-shadow: 0 8px 18px oklch(0.2 0.02 240 / 0.14);
+  background: var(--ui-surface);
+  box-shadow: var(--ui-shadow-panel);
 }
 
 .snooze-menu button {
@@ -79,10 +79,10 @@
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--ink);
+  color: var(--ui-text);
   text-align: left;
 }
 
 .snooze-menu button:hover {
-  background: var(--surface-muted);
+  background: var(--ui-control);
 }

@@ -17,6 +17,13 @@ describe("preload packaging", () => {
     expect(mainSource).toContain('../preload/preload.cjs');
   });
 
+  it("exposes config draft channels and tests the current form input", () => {
+    const preloadSource = readFileSync(path.join(sourceDirectory, "preload", "preload.cts"), "utf8");
+    expect(preloadSource).toContain('"ai:get-config-draft"');
+    expect(preloadSource).toContain('"ai:save-config-draft"');
+    expect(preloadSource).toContain('"ai:clear-config-draft"');
+    expect(preloadSource).toMatch(/testConnection:\s*\(input:\s*AiConfigInput\)/);
+  });
 
   it("exposes only Plan API state and connection channels", () => {
     const source = readFileSync(path.join(sourceDirectory, "preload", "preload.cts"), "utf8");

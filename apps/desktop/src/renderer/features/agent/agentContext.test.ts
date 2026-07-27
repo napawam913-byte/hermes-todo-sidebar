@@ -14,6 +14,7 @@ function makeTodo(overrides: Partial<Todo> = {}): Todo {
     notes: "不应传给 Agent 的详细备注",
     status: "pending",
     syncStatus: "failed",
+    source: { type: "manual" },
     remindAt: "2026-07-09T09:30:00.000Z",
     createdAt: "2026-07-09T08:00:00.000Z",
     updatedAt: "2026-07-09T08:00:00.000Z",

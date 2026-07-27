@@ -1,0 +1,47 @@
+/**
+ * 模块用途：通用角色包图集播放、方向镜像、暂停和减少动效适配。
+ * 模块边界：不定义窗口坐标、拖动手势或待办面板布局。
+ */
+.pet-sprite-shell,
+.pet-sprite-frame {
+  display: block;
+}
+
+.pet-sprite-shell {
+  width: 88px;
+  height: 96px;
+}
+
+.pet-sprite-frame {
+  background-image: var(--pet-atlas-url);
+  background-repeat: no-repeat;
+  background-position: 0 var(--pet-row-offset);
+  background-size: var(--pet-atlas-width) var(--pet-atlas-height);
+  filter: drop-shadow(0 5px 4px rgb(0 0 0 / 0.2));
+  animation: pet-sprite-frames var(--pet-duration) steps(5, end) var(--pet-iterations) both;
+  will-change: background-position;
+}
+
+.pet-sprite-frame.is-mirrored {
+  transform: scaleX(-1);
+}
+
+.pet-sprite-frame.is-resting {
+  animation: none;
+  background-position-x: 0;
+}
+
+/* [待删除-2026-07-21] 旧版会冻结在半步帧，新版改为 is-resting 首帧站姿。 */
+.pet-sprite-frame.is-paused { animation-play-state: paused; }
+
+@keyframes pet-sprite-frames {
+  from { background-position-x: 0; }
+  to { background-position-x: var(--pet-final-x); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pet-sprite-frame {
+    animation: none;
+    background-position-x: var(--pet-reduced-x);
+  }
+}

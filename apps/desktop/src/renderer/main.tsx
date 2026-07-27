@@ -5,17 +5,19 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./App";
-import { RepositoryWriteNotice } from "./components/RepositoryWriteNotice";
 import { bootstrapAppData } from "./data/appDataBootstrap";
+import { PetActivityProvider } from "./features/sidebar/PetActivityContext";
 import "./styles/global.css";
+import "./styles/ai-onboarding.css";
 
 async function startApplication() {
   window.hermesAppData?.onSnapshotChanged(() => window.location.reload());
   const appData = await bootstrapAppData();
   ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <React.StrictMode>
-      <RepositoryWriteNotice controller={appData.writeController} />
-      <App appData={appData} />
+      <PetActivityProvider>
+        <App appData={appData} />
+      </PetActivityProvider>
     </React.StrictMode>
   );
 }

@@ -1,0 +1,206 @@
+/**
+ * 模块用途：AI 全宽单栏对话、独立滚动区、消息气泡和操作范围浮层。
+ * 模块边界：输入框样式位于 ai-composer.css，不包含配置或提案清单。
+ */
+.ai-conversation-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--ui-surface) 92%, transparent);
+}
+
+.ai-chat-column {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ai-chat-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 46px;
+  border-bottom: 1px solid var(--ui-border);
+  padding: var(--space-2) var(--space-3);
+}
+
+.ai-chat-heading { grid-row: 1; }
+
+.ai-chat-heading-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ai-chat-heading h3 {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--ui-text);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ui-success-text);
+  font-size: 10px;
+}
+
+.ai-status::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ui-success);
+  content: "";
+}
+
+.ai-status.is-busy { color: var(--ui-warning-text); }
+.ai-status.is-busy::before { background: var(--ui-warning); }
+
+.ai-chat-scroll-shell {
+  position: relative;
+  grid-row: 2;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ai-chat-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: var(--space-3) var(--space-3) var(--space-4);
+  overflow-x: hidden;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
+.ai-chat-list::-webkit-scrollbar {
+  width: 9px;
+}
+
+.ai-chat-list::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ui-text-tertiary) 45%, transparent);
+  background-clip: padding-box;
+}
+
+.ai-bubble {
+  max-width: 78%;
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  background: var(--ui-control);
+}
+
+.ai-bubble.is-user {
+  align-self: flex-end;
+  background: var(--ui-accent-soft);
+}
+
+.ai-bubble span,
+.ai-bubble p {
+  margin: 0;
+  font-size: 12px;
+}
+
+.ai-bubble span {
+  color: var(--ui-text-caption);
+  font-size: 10px;
+}
+
+.ai-bubble p {
+  margin-top: 2px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.ai-bubble.is-typing p {
+  color: var(--ui-text-secondary);
+}
+
+.ai-jump-latest {
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 28px;
+  border: 1px solid var(--ui-border-strong);
+  border-radius: 14px;
+  padding: 0 var(--space-3);
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  box-shadow: var(--ui-shadow-panel);
+  font-size: 11px;
+}
+
+.ai-scope-control {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.ai-scope-trigger {
+  min-height: 30px;
+  padding-inline: var(--space-2);
+  font-size: 11px;
+}
+
+.ai-scope-popover {
+  position: absolute;
+  z-index: 8;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  display: grid;
+  gap: var(--space-2);
+  width: min(300px, calc(100vw - 48px));
+  border: 1px solid var(--ui-border-strong);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  background: var(--ui-surface);
+  box-shadow: var(--ui-shadow-control);
+}
+
+.ai-scope-popover strong {
+  color: var(--ui-text);
+  font-size: 12px;
+}
+
+.ai-scope-popover ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ui-text-secondary);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.ai-scope-popover small {
+  color: var(--ui-text-caption);
+  font-size: 10px;
+}
+
+@media (max-width: 719px) {
+  .ai-chat-list { padding-inline: var(--space-2); }
+  .ai-bubble { max-width: 88%; }
+  .ai-scope-trigger { min-width: 32px; }
+}

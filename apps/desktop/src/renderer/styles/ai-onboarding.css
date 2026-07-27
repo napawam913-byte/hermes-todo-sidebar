@@ -1,0 +1,81 @@
+/**
+ * 模块用途：定义 AI 空对话引导、图标和可编辑建议按钮的聚焦布局。
+ * 模块边界：不承载消息气泡、输入框或提案页面样式。
+ */
+.ai-chat-onboarding {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: min(100%, 560px);
+  margin: auto;
+  padding: var(--space-5) var(--space-3);
+  text-align: center;
+}
+
+.ai-onboarding-icon {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent-strong);
+}
+
+.ai-chat-onboarding h4,
+.ai-chat-onboarding p {
+  margin: 0;
+}
+
+.ai-chat-onboarding h4 {
+  color: var(--ui-text);
+  font-size: 15px;
+}
+
+.ai-chat-onboarding p {
+  max-width: 52ch;
+  color: var(--ui-text-secondary);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.ai-prompt-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.ai-prompt-suggestions button {
+  min-height: 32px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-3);
+  background: var(--ui-control);
+  color: var(--ui-text-secondary);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.ai-prompt-suggestions button:hover {
+  background: var(--ui-control-hover);
+  color: var(--ui-text);
+}
+
+.ai-prompt-suggestions button:focus-visible {
+  outline: 2px solid var(--ui-focus-ring);
+  outline-offset: 2px;
+}
+
+@media (max-width: 460px) {
+  .ai-chat-onboarding { padding-inline: var(--space-2); }
+  .ai-prompt-suggestions { width: 100%; }
+  .ai-prompt-suggestions button { flex: 1 1 100%; }
+}

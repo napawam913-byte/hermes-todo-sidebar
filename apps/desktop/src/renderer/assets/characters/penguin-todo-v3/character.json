@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 3,
+  "id": "penguin-todo-v3",
+  "displayName": "企鹅待办助手 V3",
+  "version": "3.0.0",
+  "atlas": {
+    "columns": 6,
+    "rows": 14,
+    "cellWidth": 192,
+    "cellHeight": 208,
+    "renderWidth": 88,
+    "renderHeight": 96
+  },
+  "clips": {
+    "idle": {
+      "base": {
+        "row": 0
+      },
+      "blink": {
+        "row": 1
+      }
+    },
+    "awaken": {
+      "row": 2
+    },
+    "dragging": {
+      "down": {
+        "row": 3
+      },
+      "up": {
+        "row": 4
+      },
+      "right": {
+        "row": 5
+      },
+      "left": {
+        "row": 6
+      }
+    },
+    "thinking": {
+      "row": 7
+    },
+    "working": {
+      "row": 8
+    },
+    "waiting": {
+      "row": 9
+    },
+    "reminding": {
+      "row": 10
+    },
+    "complete": {
+      "row": 11
+    },
+    "error": {
+      "row": 12
+    },
+    "sleeping": {
+      "row": 13
+    }
+  }
+}

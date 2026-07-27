@@ -3,7 +3,7 @@
  * 模块边界：不渲染 UI，也不访问 Electron 主进程或待办数据。
  */
 export const APPEARANCE_STORAGE_KEY = "hermes.appearance.v1";
-export const DEFAULT_CHARACTER_ID = "penguin-todo";
+export const DEFAULT_CHARACTER_ID = "penguin-todo-v3";
 export const DEFAULT_PANEL_OPACITY = 86;
 export const MIN_PANEL_OPACITY = 72;
 export const MAX_PANEL_OPACITY = 94;
@@ -11,7 +11,7 @@ export const MAX_PANEL_OPACITY = 94;
 const LEGACY_V2_DEFAULT_PANEL_OPACITY = 78;
 
 export interface AppearanceSettings {
-  schemaVersion: 3;
+  schemaVersion: 4;
   panelOpacity: number;
   characterId: string;
 }
@@ -53,23 +53,34 @@ export function createAppearanceSettingsRepository(
         const parsed = JSON.parse(storage.getItem(APPEARANCE_STORAGE_KEY) ?? "null");
         if (parsed?.schemaVersion === 1) {
           return {
-            schemaVersion: 3,
+            schemaVersion: 4,
             panelOpacity: normalizePanelOpacity(parsed.panelOpacity),
             characterId: DEFAULT_CHARACTER_ID
           };
         }
         if (parsed?.schemaVersion === 2) {
           return {
-            schemaVersion: 3,
+            schemaVersion: 4,
             panelOpacity: parsed.panelOpacity === LEGACY_V2_DEFAULT_PANEL_OPACITY
               ? DEFAULT_PANEL_OPACITY
               : normalizePanelOpacity(parsed.panelOpacity),
-            characterId: normalizeCharacterId(parsed.characterId)
+            characterId: migrateLegacyDefaultCharacterId(
+              normalizeCharacterId(parsed.characterId)
+            )
           };
         }
-        if (parsed?.schemaVersion !== 3) return createDefaultSettings();
+        if (parsed?.schemaVersion === 3) {
+          return {
+            schemaVersion: 4,
+            panelOpacity: normalizePanelOpacity(parsed.panelOpacity),
+            characterId: migrateLegacyDefaultCharacterId(
+              normalizeCharacterId(parsed.characterId)
+            )
+          };
+        }
+        if (parsed?.schemaVersion !== 4) return createDefaultSettings();
         return {
-          schemaVersion: 3,
+          schemaVersion: 4,
           panelOpacity: normalizePanelOpacity(parsed.panelOpacity),
           characterId: normalizeCharacterId(parsed.characterId)
         };
@@ -79,7 +90,7 @@ export function createAppearanceSettingsRepository(
     },
     save(settings) {
       const normalized: AppearanceSettings = {
-        schemaVersion: 3,
+        schemaVersion: 4,
         panelOpacity: normalizePanelOpacity(settings.panelOpacity),
         characterId: normalizeCharacterId(settings.characterId)
       };
@@ -90,7 +101,7 @@ export function createAppearanceSettingsRepository(
 
 export function createDefaultSettings(): AppearanceSettings {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     panelOpacity: DEFAULT_PANEL_OPACITY,
     characterId: DEFAULT_CHARACTER_ID
   };
@@ -100,4 +111,8 @@ function normalizeCharacterId(value: unknown) {
   return typeof value === "string" && /^[a-z0-9][a-z0-9-]*$/.test(value)
     ? value
     : DEFAULT_CHARACTER_ID;
+}
+
+function migrateLegacyDefaultCharacterId(characterId: string) {
+  return characterId === "penguin-todo" ? DEFAULT_CHARACTER_ID : characterId;
 }

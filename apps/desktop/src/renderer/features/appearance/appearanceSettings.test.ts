@@ -49,13 +49,13 @@ describe("外观设置", () => {
     const repository = createAppearanceSettingsRepository(storage);
 
     expect(repository.load()).toEqual({
-      schemaVersion: 3,
+      schemaVersion: 4,
       panelOpacity: 86,
       characterId: DEFAULT_CHARACTER_ID
     });
-    repository.save({ schemaVersion: 3, panelOpacity: 120, characterId: "penguin-todo" });
+    repository.save({ schemaVersion: 4, panelOpacity: 120, characterId: "penguin-todo" });
     expect(repository.load()).toEqual({
-      schemaVersion: 3,
+      schemaVersion: 4,
       panelOpacity: 94,
       characterId: "penguin-todo"
     });
@@ -69,7 +69,7 @@ describe("外观设置", () => {
     })));
 
     expect(repository.load()).toEqual({
-      schemaVersion: 3,
+      schemaVersion: 4,
       panelOpacity: 86,
       characterId: DEFAULT_CHARACTER_ID
     });
@@ -82,9 +82,23 @@ describe("外观设置", () => {
     })));
 
     expect(repository.load()).toEqual({
-      schemaVersion: 3,
+      schemaVersion: 4,
       panelOpacity: 94,
       characterId: DEFAULT_CHARACTER_ID
+    });
+  });
+
+  it("将 v3 的历史默认企鹅迁移为已验收的 V3 角色", () => {
+    const repository = createAppearanceSettingsRepository(createMemoryStorage(JSON.stringify({
+      schemaVersion: 3,
+      panelOpacity: 90,
+      characterId: "penguin-todo"
+    })));
+
+    expect(repository.load()).toEqual({
+      schemaVersion: 4,
+      panelOpacity: 90,
+      characterId: "penguin-todo-v3"
     });
   });
 
@@ -100,7 +114,7 @@ describe("外观设置", () => {
     })));
 
     expect(repository.load()).toEqual({
-      schemaVersion: 3,
+      schemaVersion: 4,
       panelOpacity: expectedOpacity,
       characterId: "study-buddy"
     });
@@ -110,15 +124,15 @@ describe("外观设置", () => {
     const storage = createMemoryStorage();
     const repository = createAppearanceSettingsRepository(storage);
 
-    repository.save({ schemaVersion: 3, panelOpacity: 90, characterId: "study-buddy" });
+    repository.save({ schemaVersion: 4, panelOpacity: 90, characterId: "study-buddy" });
 
     expect(JSON.parse(storage.readAppearance() ?? "null")).toEqual({
-      schemaVersion: 3,
+      schemaVersion: 4,
       panelOpacity: 90,
       characterId: "study-buddy"
     });
     expect(repository.load()).toEqual({
-      schemaVersion: 3,
+      schemaVersion: 4,
       panelOpacity: 90,
       characterId: "study-buddy"
     });

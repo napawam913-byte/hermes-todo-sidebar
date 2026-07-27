@@ -2,7 +2,7 @@
  * 模块用途：提供浏览器 localStorage 版本的待办仓储，让桌宠原型具备本地持久化。
  * 模块边界：只负责序列化、反序列化和损坏数据降级，不处理 UI 状态或 Hermes 同步。
  */
-import type { Todo, SyncStatus, TodoStatus } from "./types";
+import type { DataSource, DataSourceType, Todo, SyncStatus, TodoStatus } from "./types";
 import type { TodoRepository } from "./todoRepository";
 import { toLocalDateKey } from "./useLocalDateKey";
 
@@ -53,12 +53,26 @@ function normalizeTodo(value: unknown): Todo | undefined {
     notes: optionalString(value.notes),
     status: value.status,
     syncStatus: value.syncStatus,
+    source: normalizeSource(value.source),
     remindAt: optionalString(value.remindAt),
     createdAt: value.createdAt,
     updatedAt: value.updatedAt,
     completedAt: optionalString(value.completedAt),
     snoozeCount: typeof value.snoozeCount === "number" ? value.snoozeCount : 0
   };
+}
+
+function normalizeSource(value: unknown): DataSource {
+  if (!isRecord(value) || !isSourceType(value.type)) return { type: "manual" };
+  return {
+    type: value.type,
+    proposalId: optionalString(value.proposalId),
+    externalId: optionalString(value.externalId)
+  };
+}
+
+function isSourceType(value: unknown): value is DataSourceType {
+  return value === "manual" || value === "ai_draft" || value === "hermes" || value === "feishu";
 }
 
 export function normalizeTodos(value: unknown): Todo[] {

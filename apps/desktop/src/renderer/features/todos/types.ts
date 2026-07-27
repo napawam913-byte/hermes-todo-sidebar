@@ -2,8 +2,15 @@
  * 模块用途：定义待办和同步事件的前端领域类型。
  * 模块边界：只放共享类型，不放状态修改逻辑。
  */
-export type TodoStatus = "pending" | "completed";
-export type SyncStatus = "local" | "queued" | "synced" | "failed";
+import type { Todo } from "../../../shared/appDomainTypes";
+
+export type {
+  DataSource,
+  DataSourceType,
+  SyncStatus,
+  Todo,
+  TodoStatus
+} from "../../../shared/appDomainTypes";
 
 export type TodoEventType =
   | "todo.created"
@@ -15,20 +22,6 @@ export type TodoEventType =
 
 export type ReminderKind = "none" | "overdue" | "today" | "upcoming";
 
-export interface Todo {
-  id: string;
-  title: string;
-  date: string;
-  notes?: string;
-  status: TodoStatus;
-  syncStatus: SyncStatus;
-  remindAt?: string;
-  createdAt: string;
-  updatedAt: string;
-  completedAt?: string;
-  snoozeCount: number;
-}
-
 export interface TodoEvent {
   eventId: string;
   todoId: string;
@@ -36,7 +29,7 @@ export interface TodoEvent {
   payload: Record<string, unknown>;
   occurredAt: string;
   sourceDeviceId: string;
-  syncStatus: Extract<SyncStatus, "queued" | "synced" | "failed">;
+  syncStatus: "queued" | "synced" | "failed";
   retryCount: number;
 }
 

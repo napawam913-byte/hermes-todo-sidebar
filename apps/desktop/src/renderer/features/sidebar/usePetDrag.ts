@@ -2,12 +2,13 @@
  * 模块用途：把桌宠指针事件连接到已测试的拖动交互协调器。
  * 模块边界：不计算屏幕坐标，不直接调用 Electron IPC 通道名。
  */
-import { useRef, useState, type MouseEvent, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from "react";
 import type {
   PetDragPointerSample,
   PetDragStartSample
 } from "../../../shared/petDragContract";
 import { PetDragInteraction } from "./petDragInteraction";
+import type { PetDragDirection } from "./petDragDirection";
 
 interface UsePetDragOptions {
   enabled: boolean;
@@ -16,18 +17,26 @@ interface UsePetDragOptions {
 
 export function usePetDrag({ enabled, onActivate }: UsePetDragOptions) {
   const [dragging, setDragging] = useState(false);
+  const [dragDirection, setDragDirection] = useState<PetDragDirection>("down");
+  const [moving, setMoving] = useState(false);
   const interactionRef = useRef<PetDragInteraction | undefined>(undefined);
   if (!interactionRef.current && window.hermesPet) {
     interactionRef.current = new PetDragInteraction({
       bridge: window.hermesPet,
+      onDirectionChange: setDragDirection,
+      onMovingChange: setMoving,
       onDraggingChange: setDragging
     });
   }
   const interaction = interactionRef.current;
 
+  useEffect(() => () => interaction?.dispose(), [interaction]);
+
   function onPointerDown(event: PointerEvent<HTMLButtonElement>) {
     if (!enabled || event.button !== 0 || !interaction) return;
     event.preventDefault();
+    setDragDirection("down");
+    setMoving(false);
     event.currentTarget.setPointerCapture(event.pointerId);
     interaction.start(toStartSample(event));
   }
@@ -60,7 +69,9 @@ export function usePetDrag({ enabled, onActivate }: UsePetDragOptions) {
   }
 
   return {
+    dragDirection,
     dragging,
+    moving,
     pointerHandlers: { onClick, onPointerCancel, onPointerDown, onPointerMove, onPointerUp }
   };
 }

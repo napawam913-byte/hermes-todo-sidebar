@@ -57,7 +57,9 @@ describe("周期任务同面板详情布局", () => {
       "utf8"
     );
 
-    expect(todaySource).toContain("}, [props.detailResetVersion]);");
-    expect(cycleSource).toContain("}, [detailResetVersion]);");
+    expect(todaySource).toContain("setActionItemKey(null)");
+    expect(todaySource).toContain("[props.interactionResetVersion]");
+    expect(todaySource).not.toContain("setSelectedItemKey(null);\n    setActionItemKey(null)");
+    expect(cycleSource).not.toContain("setSelectedPlanId(null);\n  }, [");
   });
 });

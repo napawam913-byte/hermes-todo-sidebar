@@ -5,17 +5,21 @@
 .today-todo-card {
   position: relative;
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: 1px solid var(--ui-border);
   border-radius: var(--radius-md);
-  background: var(--surface-raised);
+  background: var(--ui-surface);
   transition:
     background-color var(--button-hover) ease-out,
     border-color var(--button-hover) ease-out;
 }
 
 .today-todo-card.is-selected {
-  border-color: var(--accent);
-  background: oklch(0.96 0.035 205);
+  border-color: var(--ui-accent);
+  background: var(--ui-accent-soft);
+}
+
+.today-todo-card:hover {
+  background: var(--ui-control);
 }
 
 .today-todo-card.is-completed {
@@ -23,18 +27,18 @@
 }
 
 .today-todo-card.is-overdue {
-  border-color: color-mix(in srgb, #d9485f 42%, var(--border));
+  border-color: color-mix(in srgb, var(--ui-danger) 42%, var(--ui-border));
 }
 
 .today-todo-card.is-overdue .todo-item-status {
-  background: #d9485f;
+  background: var(--ui-danger);
 }
 
 .overdue-pill {
   border-radius: 999px;
   padding: 3px 7px;
-  background: #fff0f2;
-  color: #b3263e;
+  background: color-mix(in srgb, var(--ui-danger) 12%, transparent);
+  color: var(--ui-danger-text);
   font-size: 11px;
   font-weight: 750;
 }
@@ -52,7 +56,7 @@
 }
 
 .today-todo-open:hover {
-  background: var(--surface-page);
+  background: var(--ui-control);
 }
 
 .today-todo-main {
@@ -73,19 +77,19 @@
 }
 
 .today-todo-chevron {
-  color: var(--ink-soft);
+  color: var(--ui-text-caption);
 }
 
 .today-todo-card h2 {
   margin: 0;
-  color: var(--ink);
+  color: var(--ui-text);
   font-size: 14px;
   line-height: 1.35;
 }
 
 .today-todo-card p {
   margin: var(--space-1) 0 0;
-  color: var(--ink-muted);
+  color: var(--ui-text-secondary);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -101,7 +105,7 @@
   margin: var(--space-4) var(--space-5);
   padding: var(--space-4);
   border-radius: var(--radius-md);
-  background: var(--surface-muted);
+  background: var(--ui-control);
 }
 
 .todo-detail-summary-row {
@@ -113,27 +117,27 @@
 
 .todo-detail-summary p {
   margin: 0;
-  color: var(--ink-muted);
+  color: var(--ui-text-secondary);
   font-size: 13px;
   line-height: 1.55;
 }
 
 .todo-detail-status {
-  color: var(--accent-strong);
+  color: var(--ui-accent-strong);
   font-size: 12px;
   font-weight: 750;
 }
 
 .todo-detail-status.is-completed {
-  color: var(--success);
+  color: var(--ui-success-text);
 }
 
 .todo-detail-content {
   display: grid;
   gap: var(--space-5);
   padding: var(--space-5);
-  border-top: 1px solid var(--border);
-  background: var(--surface-page);
+  border-top: 1px solid var(--ui-border);
+  background: var(--ui-surface);
 }
 
 .todo-detail-metadata {
@@ -147,7 +151,7 @@
   grid-template-columns: 76px 1fr;
   gap: var(--space-3);
   padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--ui-border);
 }
 
 .todo-detail-metadata-row dt,
@@ -157,11 +161,11 @@
 }
 
 .todo-detail-metadata-row dt {
-  color: var(--ink-soft);
+  color: var(--ui-text-caption);
 }
 
 .todo-detail-metadata-row dd {
-  color: var(--ink);
+  color: var(--ui-text);
 }
 
 .todo-detail-section {
@@ -172,7 +176,7 @@
 .todo-detail-section h3,
 .todo-detail-empty strong {
   margin: 0;
-  color: var(--ink);
+  color: var(--ui-text);
   font-size: 14px;
 }
 
@@ -180,11 +184,11 @@
   display: grid;
   gap: var(--space-1);
   padding: var(--space-4);
-  border: 1px dashed var(--border);
+  border: 1px dashed var(--ui-border);
   border-radius: var(--radius-md);
 }
 
 .todo-detail-empty span {
-  color: var(--ink-muted);
+  color: var(--ui-text-secondary);
   font-size: 12px;
 }

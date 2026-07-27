@@ -1,0 +1,209 @@
+/**
+ * 模块用途：AI 变更提案、操作差异和整批确认栏的响应式布局。
+ * 模块边界：不负责模型配置与自然语言输入样式。
+ */
+.ai-proposal-page {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 36fr) minmax(0, 64fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: 0;
+}
+
+.ai-proposal-conversation,
+.ai-proposal-main {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.ai-proposal-conversation {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-right: var(--space-3);
+  border-right: 1px solid var(--ui-border);
+}
+
+.ai-proposal-conversation h3,
+.ai-proposal-heading h3,
+.ai-proposal-heading p {
+  margin: 0;
+}
+
+.ai-proposal-conversation small {
+  margin-top: auto;
+  color: var(--ui-text-caption);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.ai-proposal-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.ai-proposal-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.ai-proposal-heading div {
+  min-width: 0;
+}
+
+.ai-proposal-heading p {
+  margin-top: var(--space-1);
+  color: var(--ui-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.ai-danger-pill {
+  flex: 0 0 auto;
+  border: 1px solid var(--ui-danger);
+  border-radius: 999px;
+  padding: 3px var(--space-2);
+  color: var(--ui-danger-text);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.ai-operation-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  overflow: auto;
+  padding-right: var(--space-1);
+}
+
+.ai-operation-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  background: var(--ui-surface-critical);
+}
+
+.ai-operation-card.is-create { border-left: 3px solid var(--ui-accent); }
+.ai-operation-card.is-complete { border-left: 3px solid var(--ui-success); }
+.ai-operation-card.is-update { border-left: 3px solid var(--ui-warning); }
+.ai-operation-card.is-delete { border-color: var(--ui-danger); }
+
+.ai-operation-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--ui-text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.ai-operation-badge span {
+  overflow: hidden;
+  margin-left: auto;
+  color: var(--ui-text-caption);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-operation-card strong {
+  overflow-wrap: anywhere;
+  color: var(--ui-text);
+  font-size: 13px;
+}
+
+.ai-operation-card p,
+.ai-operation-card small {
+  margin: 0;
+  color: var(--ui-text-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.ai-operation-card.is-delete small {
+  color: var(--ui-danger-text);
+  font-weight: 700;
+}
+
+.ai-operation-card pre {
+  max-height: 132px;
+  margin: var(--space-1) 0 0;
+  overflow: auto;
+  padding: var(--space-2);
+  background: var(--ui-control);
+  color: var(--ui-text-secondary);
+  font: 10px/1.45 ui-monospace, "Cascadia Code", monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ai-confirm-bar {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--ui-border);
+}
+
+.ai-confirm-bar > div {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ai-confirm-bar strong,
+.ai-confirm-bar span {
+  font-size: 11px;
+}
+
+.ai-confirm-bar span {
+  color: var(--ui-danger-text);
+}
+
+.ai-confirm-bar.is-readonly {
+  border-color: var(--ui-border);
+}
+
+.ai-confirm-bar.is-readonly span {
+  color: var(--ui-text-caption);
+}
+
+@media (max-width: 719px) {
+  .ai-proposal-page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ai-proposal-conversation {
+    display: none;
+  }
+
+  .ai-operation-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ai-confirm-bar {
+    grid-column: 1;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ai-confirm-bar > div:last-child {
+    justify-content: flex-end;
+  }
+
+  .ai-confirm-bar.is-readonly > button {
+    align-self: flex-end;
+  }
+}

@@ -1,0 +1,76 @@
+/**
+ * 模块用途：定义同一 DOM 主从面板在紧凑与宽屏下的响应式排布。
+ * 模块边界：只控制容器几何与滚动，不定义待办和周期任务视觉。
+ */
+.responsive-master-detail {
+  container-type: inline-size;
+  display: flex;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.responsive-master-detail-layout {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.responsive-master-pane,
+.responsive-detail-pane {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.responsive-master-detail.has-detail .responsive-master-pane {
+  display: none;
+}
+
+.responsive-master-detail.is-master-only .responsive-master-detail-layout {
+  width: min(100%, 760px);
+  max-width: 760px;
+  margin-inline: auto;
+}
+
+.responsive-master-pane .cycle-plan-view {
+  height: 100%;
+  overflow: hidden;
+}
+
+.responsive-master-pane .cycle-plan-list {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: var(--space-1);
+  scrollbar-gutter: stable;
+}
+
+@container (min-width: 720px) {
+  .responsive-master-detail.has-detail .responsive-master-detail-layout {
+    grid-template-columns: minmax(280px, 2fr) minmax(0, 3fr);
+  }
+
+  .responsive-master-detail.has-detail .responsive-master-pane {
+    display: flex;
+  }
+
+  .responsive-master-detail.has-detail .responsive-detail-pane {
+    border-left: 1px solid var(--ui-border);
+  }
+
+  .responsive-detail-pane .detail-page {
+    border-top: 0;
+  }
+}

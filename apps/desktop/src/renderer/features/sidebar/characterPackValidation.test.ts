@@ -1,5 +1,5 @@
 /**
- * 模块用途：验证角色包 V2 合同、V1 兼容迁移和默认角色回退。
+ * 模块用途：验证旧角色包合同、V1/V2 兼容迁移和默认角色回退。
  * 模块边界：不加载真实图片，也不依赖 Vite 的资源发现能力。
  */
 import { describe, expect, it } from "vitest";
@@ -61,14 +61,14 @@ const validV2Manifest: CharacterPackManifestV2 = {
 };
 
 describe("角色包 Manifest", () => {
-  it("接受完整的 v2 角色包", () => {
-    expect(normalizeCharacterPackManifest(validV2Manifest)).toEqual(validV2Manifest);
+  it("接受完整的 v2 角色包并升级到统一运行时合同", () => {
+    expect(normalizeCharacterPackManifest(validV2Manifest).schemaVersion).toBe(3);
   });
 
-  it("把 v1 主题角色包规范化为无主题的 v2", () => {
+  it("把 v1 主题角色包规范化为无主题的 v3", () => {
     const normalized = normalizeCharacterPackManifest(validV1Manifest);
 
-    expect(normalized.schemaVersion).toBe(2);
+    expect(normalized.schemaVersion).toBe(3);
     expect("theme" in normalized).toBe(false);
     expect(normalized.id).toBe("penguin-todo");
   });
@@ -133,7 +133,7 @@ describe("角色包 Manifest", () => {
     const fallback = registry.resolve("missing-character");
 
     expect(fallback.manifest.id).toBe("penguin-todo");
-    expect(fallback.manifest.schemaVersion).toBe(2);
+    expect(fallback.manifest.schemaVersion).toBe(3);
     expect("theme" in fallback.manifest).toBe(false);
   });
 });

@@ -8,8 +8,8 @@
   display: block;
   width: 100vw;
   height: 100vh;
-  background: var(--surface-page);
-  border-left: 1px solid var(--border);
+  background: var(--ui-surface);
+  border-left: 1px solid var(--ui-border);
   box-shadow: var(--shadow-panel);
 }
 
@@ -43,99 +43,51 @@
   width: 88px;
   height: 96px;
   border: 0;
-  border-radius: 26px;
   background: transparent;
-  color: var(--accent-strong);
   cursor: pointer;
+  isolation: isolate;
+  outline: none;
 }
 
-.desktop-pet-button:hover .desktop-pet-body {
-  border-color: oklch(0.73 0.09 185);
-  background: oklch(0.98 0.02 185);
+.desktop-pet-character {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 86%;
+  transition: transform 120ms ease-out, filter 120ms ease-out;
+}
+
+.desktop-pet-button:hover .desktop-pet-character {
   transform: translateY(-2px);
 }
 
-.desktop-pet-button:active .desktop-pet-body {
+.desktop-pet-button:active .desktop-pet-character {
   transform: translateY(1px) scale(0.98);
 }
 
-.desktop-pet-aura {
+.desktop-pet-button:focus-visible::after {
+  content: "";
   position: absolute;
-  inset: 14px 9px 4px;
-  border-radius: 999px;
-  background: oklch(0.78 0.04 190 / 0.22);
-  filter: blur(12px);
-}
-
-.desktop-pet-body {
-  position: relative;
-  display: grid;
-  grid-template-rows: 18px 1fr 24px;
-  justify-items: center;
-  width: 70px;
-  height: 78px;
-  border: 1px solid var(--border);
-  border-radius: 28px 28px 24px 24px;
-  background: linear-gradient(180deg, var(--surface-panel), oklch(0.94 0.02 220));
-  box-shadow: 0 10px 24px oklch(0.2 0.02 240 / 0.18);
-  transition:
-    background-color var(--button-hover) ease-out,
-    border-color var(--button-hover) ease-out,
-    transform var(--button-hover) ease-out;
-}
-
-.desktop-pet-ears {
-  position: absolute;
-  top: -6px;
-  display: flex;
-  gap: 25px;
-}
-
-.desktop-pet-ears span {
-  width: 14px;
-  height: 14px;
-  border: 1px solid var(--border);
-  border-radius: 10px 10px 4px 4px;
-  background: var(--surface-panel);
-}
-
-.desktop-pet-face {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  height: 32px;
-  margin-top: 14px;
-}
-
-.desktop-pet-eye {
-  width: 7px;
-  height: 10px;
-  border-radius: 999px;
-  background: var(--ink);
-}
-
-.desktop-pet-belly {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 24px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent-strong);
+  inset: 3px;
+  z-index: 3;
+  border: 2px solid var(--ui-accent);
+  border-radius: 22px;
+  pointer-events: none;
 }
 
 .desktop-pet-count {
   position: absolute;
-  right: 8px;
-  bottom: 9px;
+  right: 1px;
+  bottom: 4px;
+  z-index: 4;
   display: grid;
   place-items: center;
   min-width: 22px;
   height: 22px;
+  border: 2px solid var(--ui-surface-solid);
   border-radius: 999px;
   padding: 0 5px;
-  background: var(--ink);
-  color: white;
+  background: var(--ui-accent);
+  color: var(--ui-text-on-accent);
   font-size: 11px;
   font-weight: 750;
 }
@@ -146,9 +98,9 @@
   right: 15px;
   width: 10px;
   height: 10px;
-  border: 2px solid white;
+  border: 2px solid var(--ui-surface-solid);
   border-radius: 999px;
-  background: var(--danger);
+  background: var(--ui-danger);
 }
 
 .idle-icon-button {
@@ -157,12 +109,12 @@
   place-items: center;
   width: 48px;
   height: 48px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--ui-border);
   border-right: 0;
   border-radius: var(--radius-md) 0 0 var(--radius-md);
-  background: var(--surface-panel);
-  color: var(--accent-strong);
-  box-shadow: 0 4px 12px oklch(0.2 0.02 240 / 0.12);
+  background: var(--ui-surface);
+  color: var(--ui-accent-strong);
+  box-shadow: var(--ui-shadow-control);
 }
 
 .edge-handle {
@@ -175,13 +127,13 @@
   height: 100vh;
   padding: var(--space-4) 0;
   border: 0;
-  border-right: 1px solid var(--border);
-  background: var(--surface-panel);
-  color: var(--ink-muted);
+  border-right: 1px solid var(--ui-border);
+  background: var(--ui-surface);
+  color: var(--ui-text-secondary);
 }
 
 .edge-handle:hover {
-  color: var(--accent-strong);
+  color: var(--ui-accent-strong);
 }
 
 .edge-handle-mark {
@@ -192,8 +144,8 @@
   width: 30px;
   height: 30px;
   border-radius: var(--radius-md);
-  background: var(--accent-soft);
-  color: var(--accent-strong);
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent-strong);
 }
 
 .edge-alert-dot {
@@ -203,7 +155,7 @@
   width: 7px;
   height: 7px;
   border-radius: 999px;
-  background: var(--danger);
+  background: var(--ui-danger);
 }
 
 .edge-count {
@@ -213,8 +165,8 @@
   min-width: 24px;
   height: 24px;
   border-radius: 999px;
-  background: var(--ink);
-  color: white;
+  background: var(--ui-text);
+  color: var(--ui-text-on-accent);
   font-size: 12px;
   font-weight: 700;
 }

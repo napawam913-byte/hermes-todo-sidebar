@@ -12,6 +12,7 @@ export const mockTodos: Todo[] = [
     notes: "只保留新增、完成和同步状态占位。",
     status: "pending",
     syncStatus: "synced",
+    source: { type: "manual" },
     createdAt: "2026-07-08T09:00:00.000Z",
     updatedAt: "2026-07-08T09:00:00.000Z",
     snoozeCount: 0
@@ -22,6 +23,7 @@ export const mockTodos: Todo[] = [
     date: "2026-07-10",
     status: "pending",
     syncStatus: "queued",
+    source: { type: "manual" },
     createdAt: "2026-07-08T09:20:00.000Z",
     updatedAt: "2026-07-08T09:20:00.000Z",
     snoozeCount: 0
@@ -33,6 +35,7 @@ export const mockTodos: Todo[] = [
     notes: "先显示状态，不实际联网。",
     status: "pending",
     syncStatus: "failed",
+    source: { type: "manual" },
     createdAt: "2026-07-08T09:40:00.000Z",
     updatedAt: "2026-07-08T09:40:00.000Z",
     snoozeCount: 0

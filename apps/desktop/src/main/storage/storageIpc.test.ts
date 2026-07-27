@@ -5,10 +5,11 @@
 import type { IpcMain } from "electron";
 import { describe, expect, it, vi } from "vitest";
 import type { AppStateService } from "./appStateService.js";
+import type { AppMutationExecutor } from "./appMutationExecutor.js";
 import { registerStorageIpc, STORAGE_CHANNELS } from "./storageIpc.js";
 
 describe("registerStorageIpc", () => {
-  it("registers load and slice replacement handlers", async () => {
+  it("registers load, compatibility replacement and mutation handlers", async () => {
     const handlers = new Map<string, (...args: unknown[]) => unknown>();
     const ipc = {
       handle(channel: string, listener: (...args: unknown[]) => unknown) {
@@ -20,8 +21,11 @@ describe("registerStorageIpc", () => {
       replaceTodos: vi.fn(async (todos) => ({ todos })),
       replaceCyclePlans: vi.fn(async (cyclePlans) => ({ cyclePlans }))
     } as unknown as AppStateService;
+    const executor = {
+      execute: vi.fn(async (request) => ({ todos: request.operations }))
+    } as unknown as AppMutationExecutor;
 
-    registerStorageIpc(ipc, service);
+    registerStorageIpc(ipc, service, executor);
 
     await expect(handlers.get(STORAGE_CHANNELS.load)?.({})).resolves.toEqual({
       schemaVersion: 1
@@ -30,5 +34,12 @@ describe("registerStorageIpc", () => {
     await handlers.get(STORAGE_CHANNELS.replaceCyclePlans)?.({}, [{ id: "plan_1" }]);
     expect(service.replaceTodos).toHaveBeenCalledWith([{ id: "todo_1" }]);
     expect(service.replaceCyclePlans).toHaveBeenCalledWith([{ id: "plan_1" }]);
+    const request = {
+      source: { type: "manual" as const },
+      summary: "新增待办",
+      operations: [{ type: "todo.create" as const, draft: { title: "训练", date: "2026-07-15" } }]
+    };
+    await handlers.get(STORAGE_CHANNELS.executeMutations)?.({}, request);
+    expect(executor.execute).toHaveBeenCalledWith(request);
   });
 });

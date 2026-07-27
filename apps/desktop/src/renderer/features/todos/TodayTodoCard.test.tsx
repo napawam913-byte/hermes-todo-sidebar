@@ -23,6 +23,7 @@ const manualItem: TodayItem = {
     notes: "测试详情入口",
     status: "pending",
     syncStatus: "local",
+    source: { type: "manual" },
     createdAt: "2026-07-10T08:00:00.000Z",
     updatedAt: "2026-07-10T08:00:00.000Z",
     snoozeCount: 0
@@ -33,9 +34,11 @@ describe("TodayTodoCard", () => {
   it("为卡片主体提供查看详情入口", () => {
     const html = renderToStaticMarkup(
       <TodayTodoCard
+        busy={false}
         item={manualItem}
         selected={false}
         onComplete={() => undefined}
+        onMore={() => undefined}
         onOpen={() => undefined}
       />
     );

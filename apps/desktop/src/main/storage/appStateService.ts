@@ -40,6 +40,12 @@ export class AppStateService {
     }));
   }
 
+  transact(
+    update: (state: StoredAppStateV1) => StoredAppStateV1
+  ): Promise<StoredAppStateV1> {
+    return this.enqueueUpdate((state) => update(structuredClone(state)));
+  }
+
   async exportTo(destinationPath: string): Promise<void> {
     await this.writeTail;
     await this.persistence.exportTo(destinationPath);

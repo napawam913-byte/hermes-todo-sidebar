@@ -13,7 +13,7 @@
 
 .source-manual {
   background: var(--ui-control);
-  color: var(--ink-muted);
+  color: var(--ui-text-secondary);
 }
 
 .source-cycle {
@@ -22,18 +22,18 @@
 }
 
 .source-ai {
-  background: oklch(0.93 0.055 290);
-  color: oklch(0.42 0.11 292);
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent-strong);
 }
 
 .source-hermes {
-  background: oklch(0.93 0.055 210);
-  color: oklch(0.38 0.1 215);
+  background: var(--ui-control);
+  color: var(--ui-text-on-glass-secondary);
 }
 
 .source-feishu {
-  background: oklch(0.94 0.045 155);
-  color: oklch(0.39 0.09 160);
+  background: var(--ui-control);
+  color: var(--ui-text-secondary);
 }
 
 .empty-state {
@@ -42,12 +42,12 @@
   padding: var(--space-5);
   border: 1px dashed var(--ui-border);
   border-radius: var(--radius-md);
-  color: var(--ink-muted);
+  color: var(--ui-text-secondary);
   background: var(--ui-surface);
 }
 
 .empty-state strong {
-  color: var(--ink);
+  color: var(--ui-text);
   font-size: 14px;
 }
 

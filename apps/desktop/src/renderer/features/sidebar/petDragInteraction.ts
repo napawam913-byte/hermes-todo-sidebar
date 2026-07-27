@@ -6,6 +6,12 @@ import type {
   PetDragPointerSample,
   PetDragStartSample
 } from "../../../shared/petDragContract";
+import {
+  createPetDragDirectionTracker,
+  updatePetDragDirection,
+  type PetDragDirection,
+  type PetDragDirectionTracker
+} from "./petDragDirection";
 
 export interface PetDragBridge {
   startDrag(sample: PetDragStartSample): void;
@@ -16,13 +22,18 @@ export interface PetDragBridge {
 
 interface PetDragInteractionOptions {
   bridge: PetDragBridge;
+  onDirectionChange?: (direction: PetDragDirection) => void;
   onDraggingChange?: (dragging: boolean) => void;
+  onMovingChange?: (moving: boolean) => void;
 }
 
 export class PetDragInteraction {
   private startSample: PetDragStartSample | undefined;
   private lastTimeMs = 0;
   private dragging = false;
+  private directionTracker: PetDragDirectionTracker | undefined;
+  private moving = false;
+  private motionPauseTimer: ReturnType<typeof setTimeout> | undefined;
   private suppressNextClick = false;
 
   constructor(private readonly options: PetDragInteractionOptions) {}
@@ -31,6 +42,7 @@ export class PetDragInteraction {
     if (this.startSample) return;
     this.suppressNextClick = false;
     this.startSample = { ...sample };
+    this.directionTracker = createPetDragDirectionTracker(sample);
     this.lastTimeMs = sample.timeMs;
     this.dragging = false;
     this.options.bridge.startDrag(sample);
@@ -43,7 +55,10 @@ export class PetDragInteraction {
       this.dragging = true;
       this.options.onDraggingChange?.(true);
     }
-    if (this.dragging) this.options.bridge.updateDrag(sample);
+    if (this.dragging) {
+      this.updateMotion(sample);
+      this.options.bridge.updateDrag(sample);
+    }
   }
 
   end(sample: PetDragPointerSample): void {
@@ -75,6 +90,10 @@ export class PetDragInteraction {
     return suppressed;
   }
 
+  dispose(): void {
+    this.clearMotionPause();
+  }
+
   private accepts(sample: PetDragPointerSample): boolean {
     return this.acceptsPointer(sample.pointerId) && sample.timeMs >= this.lastTimeMs;
   }
@@ -90,8 +109,37 @@ export class PetDragInteraction {
       || Math.abs(sample.screenY - start.screenY) >= 4;
   }
 
+  private updateMotion(sample: PetDragPointerSample): void {
+    const previous = this.directionTracker ?? createPetDragDirectionTracker(sample);
+    const next = updatePetDragDirection(previous, sample);
+    this.directionTracker = next;
+    if (next.direction !== previous.direction) {
+      this.options.onDirectionChange?.(next.direction);
+    }
+    this.setMoving(true);
+    this.clearMotionPause();
+    this.motionPauseTimer = setTimeout(() => {
+      this.motionPauseTimer = undefined;
+      this.setMoving(false);
+    }, 120);
+  }
+
+  private setMoving(moving: boolean): void {
+    if (this.moving === moving) return;
+    this.moving = moving;
+    this.options.onMovingChange?.(moving);
+  }
+
+  private clearMotionPause(): void {
+    if (this.motionPauseTimer) clearTimeout(this.motionPauseTimer);
+    this.motionPauseTimer = undefined;
+  }
+
   private reset(): void {
+    this.clearMotionPause();
+    this.setMoving(false);
     this.startSample = undefined;
+    this.directionTracker = undefined;
     this.lastTimeMs = 0;
     this.dragging = false;
   }

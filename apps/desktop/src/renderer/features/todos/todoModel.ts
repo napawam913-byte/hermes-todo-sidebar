@@ -51,6 +51,7 @@ export function createTodoDraft(input: CreateTodoDraftInput): TodoMutationResult
     date: toLocalDateKey(input.now),
     status: "pending",
     syncStatus: "queued",
+    source: { type: "manual" },
     remindAt: input.remindAt?.toISOString(),
     createdAt: timestamp,
     updatedAt: timestamp,

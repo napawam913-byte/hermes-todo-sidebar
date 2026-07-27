@@ -1,6 +1,25 @@
 /// <reference types="vite/client" />
 
 interface Window {
+  hermesAi?: {
+    getConfig: () => Promise<import("../shared/aiBridgeContract").AiPublicConfig>;
+    getConfigDraft: () => Promise<import("../shared/aiBridgeContract").AiConfigDraftV1 | null>;
+    saveConfigDraft: (
+      draft: import("../shared/aiBridgeContract").AiConfigDraftV1
+    ) => Promise<void>;
+    clearConfigDraft: () => Promise<void>;
+    saveConfig: (
+      input: import("../shared/aiBridgeContract").AiConfigInput
+    ) => Promise<import("../shared/aiBridgeContract").AiPublicConfig>;
+    testConnection: (
+      input: import("../shared/aiBridgeContract").AiConfigInput
+    ) => Promise<import("../shared/aiBridgeContract").AiConnectionResult>;
+    generate: (
+      input: import("../shared/aiMutationTypes").AiGenerateRequest
+    ) => Promise<import("../shared/aiMutationTypes").AiGenerateResult>;
+    execute: (proposalId: string) => Promise<import("../shared/aiMutationTypes").AiExecuteResult>;
+    discard: (proposalId: string) => Promise<boolean>;
+  };
   hermesAppData?: {
     loadState: () => Promise<
       import("../shared/planApiBridgeContract").PlanApiSnapshotEnvelope

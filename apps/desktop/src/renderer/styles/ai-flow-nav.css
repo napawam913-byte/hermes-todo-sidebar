@@ -1,0 +1,57 @@
+/** 模块用途：AI Flow 二级导航与宽窄面板切换状态。 */
+.ai-flow-nav {
+  display: grid;
+  grid-template-columns: auto minmax(72px, 1fr) minmax(72px, 1fr);
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.ai-flow-nav button {
+  display: inline-flex;
+  min-width: 0;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-3);
+  background: transparent;
+  color: var(--ui-text-secondary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.ai-flow-nav button:hover:not(:disabled) {
+  background: var(--ui-control-hover);
+  color: var(--ui-text);
+}
+
+.ai-flow-nav button.is-active {
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent-strong);
+}
+
+.ai-flow-nav button:disabled {
+  opacity: 0.48;
+  cursor: default;
+}
+
+.ai-flow-nav .ai-flow-back {
+  justify-content: flex-start;
+  padding-inline: var(--space-2);
+}
+
+@media (max-width: 460px) {
+  .ai-flow-nav {
+    grid-template-columns: auto minmax(64px, 1fr) minmax(64px, 1fr);
+  }
+
+  .ai-flow-nav button {
+    padding: 0 var(--space-2);
+    font-size: 11px;
+  }
+}

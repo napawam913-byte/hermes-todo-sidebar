@@ -2,7 +2,9 @@
  * 模块用途：展示今日待办的完整只读详情，兼容手动待办和周期任务条目。
  * 模块边界：不修改待办状态，不生成计划，也不调用 Hermes。
  */
+import { MoreHorizontal, Pencil } from "lucide-react";
 import { DetailPageShell } from "../../components/DetailPageShell";
+import { QuietButton } from "../../components/buttons";
 import { ContentBlockPreview } from "../cyclePlans/ContentBlockPreview";
 import { SyncStatusPill } from "../sync/SyncStatusPill";
 import { SourcePill } from "./SourcePill";
@@ -11,9 +13,12 @@ import type { TodayItem } from "./todayItems";
 interface TodayTodoDetailDrawerProps {
   item: TodayItem;
   onClose: () => void;
+  onEdit?: () => void;
+  onOpenActions: () => void;
 }
 
-export function TodayTodoDetailDrawer({ item, onClose }: TodayTodoDetailDrawerProps) {
+export function TodayTodoDetailDrawer(props: TodayTodoDetailDrawerProps) {
+  const { item, onClose } = props;
   const completed = item.status === "completed";
   const blocks = item.kind === "cycle"
     ? item.entry.contentBlocks
@@ -33,6 +38,13 @@ export function TodayTodoDetailDrawer({ item, onClose }: TodayTodoDetailDrawerPr
         </div>
         <p>{description || "暂无补充说明"}</p>
       </section>
+
+      <div className="todo-detail-actions">
+        {props.onEdit ? (
+          <QuietButton icon={<Pencil size={16} />} onClick={props.onEdit}>编辑待办</QuietButton>
+        ) : null}
+        <QuietButton icon={<MoreHorizontal size={16} />} onClick={props.onOpenActions}>更多操作</QuietButton>
+      </div>
 
       <div className="todo-detail-content">
         <dl className="todo-detail-metadata">

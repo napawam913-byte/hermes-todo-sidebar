@@ -8,7 +8,8 @@ import { toLocalDateKey } from "./useLocalDateKey";
 
 export type TodayFilterKey = "pending" | "completed" | "all";
 export type TodayItemKind = "manual" | "cycle";
-export type TodaySourceLabel = "手动" | "周期任务";
+export type TodaySourceLabel = "手动" | "周期任务" | "AI草稿" | "Hermes" | "飞书";
+type ManualSourceLabel = Exclude<TodaySourceLabel, "周期任务">;
 
 interface TodayItemBase {
   id: string;
@@ -21,7 +22,7 @@ interface TodayItemBase {
 
 export interface ManualTodayItem extends TodayItemBase {
   kind: "manual";
-  sourceLabel: "手动";
+  sourceLabel: ManualSourceLabel;
   todo: Todo;
 }
 
@@ -57,14 +58,6 @@ export function filterTodayItems(items: TodayItem[], filter: TodayFilterKey): To
   return items.filter((item) => item.status === filter);
 }
 
-export function getTodaySummary(items: TodayItem[]) {
-  return {
-    pending: items.filter((item) => item.status === "pending").length,
-    completed: items.filter((item) => item.status === "completed").length,
-    all: items.length
-  };
-}
-
 function getVisibleCycleEntries(plans: CyclePlan[], dateKey: string): CyclePlanEntryWithPlan[] {
   return plans
     .filter((plan) => plan.status === "active")
@@ -97,9 +90,16 @@ function toManualTodayItem(todo: Todo, dateKey: string): ManualTodayItem {
     status: todo.status,
     date: todo.date,
     isOverdue: todo.status === "pending" && todo.date < dateKey,
-    sourceLabel: "手动",
+    sourceLabel: toTodoSourceLabel(todo),
     todo
   };
+}
+
+function toTodoSourceLabel(todo: Todo): ManualSourceLabel {
+  if (todo.source.type === "ai_draft") return "AI草稿";
+  if (todo.source.type === "hermes") return "Hermes";
+  if (todo.source.type === "feishu") return "飞书";
+  return "手动";
 }
 
 function toCycleTodayItem(entry: CyclePlanEntryWithPlan, dateKey: string): CycleTodayItem {

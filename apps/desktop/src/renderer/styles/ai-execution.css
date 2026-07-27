@@ -1,0 +1,99 @@
+/** 模块用途：AI 原子执行成功、失败和恢复操作布局。 */
+.ai-execution-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-4);
+  min-width: 0;
+  max-width: 680px;
+  width: 100%;
+  margin: 0 auto;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-md);
+  padding: clamp(16px, 4vw, 28px);
+  background: var(--ui-surface-critical);
+}
+
+.ai-execution-panel.is-success {
+  border-color: color-mix(in srgb, var(--ui-success) 48%, var(--ui-border));
+}
+
+.ai-execution-panel.is-failed {
+  border-color: var(--ui-danger);
+  background: color-mix(in srgb, var(--ui-danger) 12%, transparent);
+}
+
+.ai-result-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.ai-result-title svg {
+  flex: 0 0 auto;
+}
+
+.ai-execution-panel.is-success .ai-result-title svg { color: var(--ui-success); }
+.ai-execution-panel.is-failed .ai-result-title svg { color: var(--ui-danger); }
+
+.ai-result-title p,
+.ai-result-title h3,
+.ai-result-summary {
+  margin: 0;
+}
+
+.ai-result-title p {
+  color: var(--ui-text-caption);
+  font-size: 11px;
+}
+
+.ai-result-title h3 {
+  margin-top: 2px;
+  color: var(--ui-text);
+  font-size: 20px;
+}
+
+.ai-result-summary {
+  color: var(--ui-text-secondary);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.ai-failure-detail {
+  display: grid;
+  gap: var(--space-1);
+  border: 1px solid var(--ui-danger);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  background: var(--ui-surface-critical);
+}
+
+.ai-failure-detail strong {
+  color: var(--ui-danger-text);
+  font-size: 13px;
+}
+
+.ai-failure-detail span,
+.ai-failure-detail code {
+  overflow-wrap: anywhere;
+  color: var(--ui-text-secondary);
+  font-size: 11px;
+}
+
+.ai-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+@media (max-width: 460px) {
+  .ai-execution-panel {
+    justify-content: flex-start;
+    padding: var(--space-4);
+  }
+
+  .ai-result-actions > button {
+    flex: 1 1 100%;
+  }
+}

@@ -1,0 +1,133 @@
+/**
+ * 模块用途：手动待办与周期计划变更表单、危险确认和保存错误的共享样式。
+ * 模块边界：只处理通用变更交互，不定义今日列表或 AI Flow 的页面布局。
+ */
+.mutation-error,
+.danger-confirm {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border: 1px solid var(--ui-danger);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  background: color-mix(in srgb, var(--ui-danger) 12%, transparent);
+  color: var(--ui-danger-text);
+}
+
+.mutation-error {
+  margin: 0 var(--space-5) var(--space-3);
+}
+
+.mutation-error div,
+.danger-confirm {
+  flex-direction: column;
+}
+
+.mutation-error div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.mutation-error span,
+.danger-confirm span,
+.danger-copy {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.mutation-error button {
+  border: 0;
+  background: transparent;
+  color: currentColor;
+  font-weight: 700;
+}
+
+.todo-editor,
+.todo-action-menu {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+
+.todo-editor label {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--ui-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.todo-editor input,
+.todo-editor textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  outline: 0;
+  background: var(--ui-surface-solid);
+  color: var(--ui-text);
+  font: inherit;
+}
+
+.todo-editor input {
+  min-height: 40px;
+}
+
+.todo-editor textarea {
+  resize: vertical;
+}
+
+.todo-editor input:focus,
+.todo-editor textarea:focus {
+  border-color: var(--ui-accent);
+  box-shadow: 0 0 0 2px var(--ui-accent-soft);
+}
+
+.todo-editor-actions,
+.todo-action-grid,
+.cycle-entry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.todo-action-menu header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ui-button.is-danger,
+.danger-copy {
+  color: var(--ui-danger-text);
+}
+
+.ui-button.is-danger {
+  border-color: var(--ui-danger);
+}
+
+.cycle-drawer-actions {
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.cycle-drawer-actions + .danger-confirm {
+  margin: 0 var(--space-5) var(--space-3);
+}
+
+.cycle-entry-actions {
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--ui-border);
+}
+
+@media (max-width: 520px) {
+  .todo-editor-actions,
+  .todo-action-grid,
+  .cycle-entry-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}

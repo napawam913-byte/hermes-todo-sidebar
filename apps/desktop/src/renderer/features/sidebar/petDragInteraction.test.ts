@@ -97,4 +97,39 @@ describe("PetDragInteraction", () => {
     expect(bridge.endDrag).not.toHaveBeenCalled();
     expect(interaction.consumeClickSuppression()).toBe(false);
   });
+
+  it("拖动时按连续屏幕坐标发布四向行走方向", () => {
+    const bridge = createBridge();
+    const onDirectionChange = vi.fn();
+    const interaction = new PetDragInteraction({ bridge, onDirectionChange });
+
+    interaction.start(startSample);
+    interaction.move(pointerSample(104, 100, 11, 20));
+    interaction.move(pointerSample(104, 96, 11, 30));
+
+    expect(onDirectionChange).toHaveBeenNthCalledWith(1, "right");
+    expect(onDirectionChange).toHaveBeenNthCalledWith(2, "up");
+  });
+
+  it("停止移动 120ms 后暂停步态并在下一次移动时恢复", () => {
+    vi.useFakeTimers();
+    const bridge = createBridge();
+    const onMovingChange = vi.fn();
+    const interaction = new PetDragInteraction({ bridge, onMovingChange });
+
+    interaction.start(startSample);
+    interaction.move(pointerSample(104, 100));
+    expect(onMovingChange).toHaveBeenLastCalledWith(true);
+
+    vi.advanceTimersByTime(119);
+    expect(onMovingChange).not.toHaveBeenCalledWith(false);
+    vi.advanceTimersByTime(1);
+    expect(onMovingChange).toHaveBeenLastCalledWith(false);
+
+    interaction.move(pointerSample(108, 100, 11, 30));
+    expect(onMovingChange).toHaveBeenLastCalledWith(true);
+    interaction.cancel(11);
+    expect(onMovingChange).toHaveBeenLastCalledWith(false);
+    vi.useRealTimers();
+  });
 });

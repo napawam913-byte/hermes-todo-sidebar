@@ -1,0 +1,146 @@
+/**
+ * 模块用途：定义外观设置分区、角色缩略图网格和透明度滑块样式。
+ * 模块边界：不承载设置导航或模型连接表单。
+ */
+.appearance-settings-group {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.settings-group-heading h3,
+.appearance-settings-heading h3 {
+  color: var(--ui-text);
+  font-size: 13px;
+}
+
+.settings-group-heading p,
+.appearance-settings-heading p,
+.appearance-settings-scale {
+  margin-top: var(--space-1);
+  color: var(--ui-text-secondary);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.appearance-settings-section .settings-section-divider {
+  margin-block: 0;
+}
+
+.character-picker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.character-option {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  min-height: 104px;
+  padding: 8px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-md);
+  background: var(--ui-surface-solid);
+  color: var(--ui-text);
+  text-align: center;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.character-option:hover {
+  border-color: var(--ui-border-strong);
+  background: color-mix(in srgb, var(--ui-accent-soft) 25%, var(--ui-surface-solid));
+}
+
+.character-option.is-selected {
+  border-color: var(--ui-accent);
+  box-shadow: inset 0 0 0 1px var(--ui-accent);
+}
+
+.character-option:focus-visible {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 2px;
+}
+
+.character-option img {
+  width: 48px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.character-option-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  width: 100%;
+}
+
+.character-option-copy strong {
+  color: var(--ui-text);
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.character-option-copy small {
+  color: var(--ui-text-tertiary);
+  font-size: 10px;
+}
+
+.character-option.is-selected .character-option-copy small,
+.character-option svg {
+  color: var(--ui-accent-strong);
+}
+
+.character-option > svg {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.appearance-settings-heading {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.appearance-settings-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent-strong);
+}
+
+.appearance-settings-heading output {
+  color: var(--ui-accent-strong);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.appearance-settings-group input[type="range"] {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--ui-accent);
+}
+
+.appearance-settings-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0;
+}
+
+@container settings (min-width: 720px) {
+  .character-picker {
+    grid-template-columns: repeat(auto-fit, minmax(156px, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .character-option { transition: none; }
+}

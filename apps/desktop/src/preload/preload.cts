@@ -7,6 +7,8 @@ import type {
   PetDragPointerSample,
   PetDragStartSample
 } from "../shared/petDragContract.js";
+import type { AiConfigDraftV1, AiConfigInput } from "../shared/aiBridgeContract.js";
+import type { AiGenerateRequest } from "../shared/aiMutationTypes.js";
 import type { AppMutationBatch } from "../shared/appMutationTypes.js";
 import type {
   PlanApiConnectionInput,
@@ -20,6 +22,18 @@ function subscribe(channel: string, callback: (payload: unknown) => void) {
   return () => ipcRenderer.removeListener(channel, listener);
 }
 
+contextBridge.exposeInMainWorld("hermesAi", {
+  getConfig: () => ipcRenderer.invoke("ai:get-config"),
+  getConfigDraft: () => ipcRenderer.invoke("ai:get-config-draft"),
+  saveConfigDraft: (draft: AiConfigDraftV1) =>
+    ipcRenderer.invoke("ai:save-config-draft", draft),
+  clearConfigDraft: () => ipcRenderer.invoke("ai:clear-config-draft"),
+  saveConfig: (input: AiConfigInput) => ipcRenderer.invoke("ai:save-config", input),
+  testConnection: (input: AiConfigInput) => ipcRenderer.invoke("ai:test-connection", input),
+  generate: (input: AiGenerateRequest) => ipcRenderer.invoke("ai:generate", input),
+  execute: (proposalId: string) => ipcRenderer.invoke("ai:execute", proposalId),
+  discard: (proposalId: string) => ipcRenderer.invoke("ai:discard", proposalId)
+});
 
 contextBridge.exposeInMainWorld("hermesAppData", {
   loadState: () => ipcRenderer.invoke("plan-api:load-state"),

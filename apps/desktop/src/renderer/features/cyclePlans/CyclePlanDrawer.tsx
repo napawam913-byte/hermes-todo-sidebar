@@ -2,22 +2,36 @@
  * 模块用途：周期任务主题详情抽屉，展示主题下的日期条目和选中内容块。
  * 模块边界：只读展示周期任务细节，不编辑条目，也不调用 Hermes。
  */
-import { Pencil } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Archive, Check, Pause, Play, RotateCcw, SkipForward, Sparkles, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { DetailPageShell } from "../../components/DetailPageShell";
 import { QuietButton } from "../../components/buttons";
+import type { ManualMutationHandler } from "../../data/manualMutation";
 import { ContentBlockPreview } from "./ContentBlockPreview";
 import { CyclePlanEntryCard } from "./CyclePlanEntryCard";
+import {
+  buildDeletePlanOperation,
+  buildEntryStatusOperation,
+  buildSetPlanStatusOperation
+} from "./cyclePlanMutationCommands";
 import type { CyclePlan } from "./cyclePlanTypes";
 
 interface CyclePlanDrawerProps {
+  busy: boolean;
+  interactionResetVersion?: number;
   plan: CyclePlan;
   todayKey: string;
   onClose: () => void;
-  onEdit: () => void;
+  onAiAdjust: () => void;
+  onMutate: ManualMutationHandler;
 }
 
-export function CyclePlanDrawer({ onClose, onEdit, plan, todayKey }: CyclePlanDrawerProps) {
+export function CyclePlanDrawer(props: CyclePlanDrawerProps) {
+  const { onClose, onAiAdjust, plan, todayKey } = props;
+  const [confirmPlanDelete, setConfirmPlanDelete] = useState(false);
+  useEffect(() => {
+    setConfirmPlanDelete(false);
+  }, [props.interactionResetVersion]);
   const sortedEntries = useMemo(
     () => [...plan.entries].sort((left, right) => left.date.localeCompare(right.date)),
     [plan.entries]
@@ -35,10 +49,34 @@ export function CyclePlanDrawer({ onClose, onEdit, plan, todayKey }: CyclePlanDr
       </section>
 
       <div className="cycle-drawer-actions">
-        <QuietButton icon={<Pencil size={15} strokeWidth={1.8} />} onClick={onEdit}>
-          编辑计划
+        <QuietButton disabled={props.busy} icon={<Sparkles size={15} strokeWidth={1.8} />} onClick={onAiAdjust}>
+          AI 调整
+        </QuietButton>
+        <QuietButton
+          disabled={props.busy}
+          icon={plan.status === "active" ? <Pause size={15} /> : <Play size={15} />}
+          onClick={() => void runPlanStatus(plan.status === "active" ? "paused" : "active")}
+        >
+          {plan.status === "active" ? "暂停计划" : "启用计划"}
+        </QuietButton>
+        <QuietButton disabled={props.busy} icon={<Archive size={15} />} onClick={() => void runPlanStatus("archived")}>
+          归档计划
+        </QuietButton>
+        <QuietButton
+          className="is-danger"
+          disabled={props.busy}
+          icon={<Trash2 size={15} />}
+          onClick={() => confirmPlanDelete ? void deletePlan() : setConfirmPlanDelete(true)}
+        >
+          {confirmPlanDelete ? "确认删除计划" : "删除计划"}
         </QuietButton>
       </div>
+      {confirmPlanDelete ? (
+        <div className="danger-confirm" role="alert">
+          <strong>将永久删除计划及其 {plan.entries.length} 个条目</strong>
+          <span>此操作不可恢复，请再次确认。</span>
+        </div>
+      ) : null}
 
       <div className="cycle-entry-list">
         {sortedEntries.map((entry) => (
@@ -60,8 +98,38 @@ export function CyclePlanDrawer({ onClose, onEdit, plan, todayKey }: CyclePlanDr
           {selectedEntry.contentBlocks.map((block) => (
             <ContentBlockPreview block={block} key={block.id} />
           ))}
+          <div className="cycle-entry-actions">
+            <QuietButton
+              disabled={props.busy}
+              icon={selectedEntry.status === "completed" ? <RotateCcw size={15} /> : <Check size={15} />}
+              onClick={() => void runEntry(selectedEntry.status === "completed" ? "reopen" : "complete")}
+            >
+              {selectedEntry.status === "completed" ? "恢复条目" : "完成条目"}
+            </QuietButton>
+            <QuietButton disabled={props.busy} icon={<SkipForward size={15} />} onClick={() => void runEntry("skip")}>
+              跳过条目
+            </QuietButton>
+            <QuietButton className="is-danger" disabled={props.busy} icon={<Trash2 size={15} />} onClick={() => void runEntry("delete")}>
+              删除条目
+            </QuietButton>
+          </div>
         </div>
       ) : null}
     </DetailPageShell>
   );
+
+  async function runPlanStatus(status: "active" | "paused" | "archived") {
+    await props.onMutate(`${status === "active" ? "启用" : status === "paused" ? "暂停" : "归档"}${plan.title}`, [
+      buildSetPlanStatusOperation(plan, status)
+    ]);
+  }
+
+  async function deletePlan() {
+    if (await props.onMutate(`永久删除${plan.title}`, [buildDeletePlanOperation(plan)])) onClose();
+  }
+
+  async function runEntry(action: "complete" | "reopen" | "skip" | "delete") {
+    if (!selectedEntry) return;
+    await props.onMutate(`更新条目：${selectedEntry.title}`, [buildEntryStatusOperation(selectedEntry, action)]);
+  }
 }

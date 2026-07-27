@@ -58,7 +58,7 @@ export function CyclePlanDetail({ onBack, plan }: CyclePlanDetailProps) {
       ) : (
         <div className="empty-state">
           <strong>这个计划还没有条目</strong>
-          <span>后续可以由手动添加或 Hermes/AI 草稿生成。</span>
+          <span>使用 AI 生成标准 JSON 提案，确认后写入日期条目。</span>
         </div>
       )}
     </section>

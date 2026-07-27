@@ -14,25 +14,22 @@
   padding-right: var(--space-1);
 }
 
-.cycle-plan-toolbar,
 .cycle-detail-header {
   display: grid;
   gap: var(--space-2);
 }
 
-.cycle-plan-toolbar p,
 .cycle-detail-header p,
 .cycle-content-title span {
   margin: 0;
-  color: var(--ink-soft);
+  color: var(--ui-text-caption);
   font-size: 12px;
 }
 
-.cycle-plan-toolbar h2,
 .cycle-detail-header h2,
 .cycle-content-title h3 {
   margin: 0;
-  color: var(--ink);
+  color: var(--ui-text);
   font-size: 16px;
   line-height: 1.25;
 }
@@ -96,7 +93,7 @@
 .cycle-entry-card h3,
 .content-block h4 {
   margin: 0;
-  color: var(--ink);
+  color: var(--ui-text);
   font-size: 14px;
   line-height: 1.3;
 }
@@ -105,7 +102,7 @@
 .cycle-entry-card p,
 .fitness-exercise p {
   margin: var(--space-1) 0 0;
-  color: var(--ink-muted);
+  color: var(--ui-text-secondary);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -115,7 +112,7 @@
   flex-wrap: wrap;
   gap: var(--space-2);
   margin-top: var(--space-2);
-  color: var(--ink-muted);
+  color: var(--ui-text-secondary);
   font-size: 11px;
 }
 
@@ -137,7 +134,7 @@
 
 .cycle-entry-date {
   display: block;
-  color: var(--ink-soft);
+  color: var(--ui-text-caption);
   font-size: 11px;
   margin-bottom: var(--space-1);
 }
@@ -151,18 +148,18 @@
 }
 
 .status-pending {
-  background: var(--accent-soft);
-  color: var(--accent-strong);
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent-strong);
 }
 
 .status-completed {
-  background: oklch(0.91 0.075 150);
-  color: var(--success);
+  background: var(--ui-success-soft);
+  color: var(--ui-success-text);
 }
 
 .status-skipped {
-  background: var(--surface-muted);
-  color: var(--ink-muted);
+  background: var(--ui-control);
+  color: var(--ui-text-secondary);
 }
 
 .content-block {
@@ -181,7 +178,7 @@
 }
 
 .content-block-header span {
-  color: var(--ink-soft);
+  color: var(--ui-text-caption);
   font-size: 11px;
 }
 
@@ -189,7 +186,7 @@
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
-  color: var(--ink-muted);
+  color: var(--ui-text-secondary);
   font-size: 11px;
   line-height: 1.45;
 }
@@ -208,12 +205,12 @@
 }
 
 .fitness-exercise strong {
-  color: var(--ink);
+  color: var(--ui-text);
   font-size: 13px;
 }
 
 .fitness-exercise span {
-  color: var(--ink-muted);
+  color: var(--ui-text-secondary);
   font-size: 11px;
   line-height: 1.4;
 }

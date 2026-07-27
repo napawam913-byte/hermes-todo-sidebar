@@ -18,6 +18,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { configureLaunchAtLogin, ensureSingleInstance } from "./lifecycle/appLifecycle.js";
+import { registerAiRuntime } from "./ai/aiBootstrap.js";
 import { createDataTransferActions } from "./lifecycle/dataTransferController.js";
 import { createPlanApiBeforeQuitHandler } from "./lifecycle/planApiShutdown.js";
 import { getRuntimeChannel, getTestUserDataPath } from "./lifecycle/runtimeChannel.js";
@@ -141,6 +142,7 @@ async function bootstrap() {
   await mkdir(dataDirectory, { recursive: true });
   const appStateService = new AppStateService(new AppStateFileStore({ dataDirectory }));
   await appStateService.initialize();
+  registerAiRuntime(ipcMain, appStateService, app.getPath("userData"));
   createMainWindow();
   planApiRuntime = registerPlanApiRuntime({
     ipc: ipcMain, userDataDirectory: app.getPath("userData"), dataDirectory,

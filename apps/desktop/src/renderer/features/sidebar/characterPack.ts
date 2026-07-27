@@ -3,6 +3,12 @@
  * 模块边界：不发现文件、不加载图片，也不读写用户的角色选择设置。
  */
 import type { PetDragDirection } from "./petDragDirection";
+import {
+  upgradeLegacyCharacterPack,
+  validateCharacterPackV3,
+  type CharacterPackManifestV3
+} from "./characterPackV3";
+export type { CharacterPackManifestV3 } from "./characterPackV3";
 
 export interface AnimationClip {
   row: number;
@@ -54,7 +60,7 @@ export interface CharacterPackManifestV2 {
 }
 
 export interface CharacterPack {
-  manifest: CharacterPackManifestV2;
+  manifest: CharacterPackManifestV3;
   atlasUrl: string;
   thumbnailUrl: string;
 }
@@ -69,20 +75,14 @@ const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 const V1_KEYS = ["schemaVersion", "id", "displayName", "version", "atlas", "clips", "theme"];
 const V2_KEYS = ["schemaVersion", "id", "displayName", "version", "atlas", "clips"];
 
-export function normalizeCharacterPackManifest(value: unknown): CharacterPackManifestV2 {
+export function normalizeCharacterPackManifest(value: unknown): CharacterPackManifestV3 {
   const manifest = requireRecord(value, "角色包");
   if (manifest.schemaVersion === 1) {
     const legacy = validateV1Manifest(manifest);
-    return {
-      schemaVersion: 2,
-      id: legacy.id,
-      displayName: legacy.displayName,
-      version: legacy.version,
-      atlas: legacy.atlas,
-      clips: legacy.clips
-    };
+    return upgradeLegacyCharacterPack(legacy);
   }
-  if (manifest.schemaVersion === 2) return validateV2Manifest(manifest);
+  if (manifest.schemaVersion === 2) return upgradeLegacyCharacterPack(validateV2Manifest(manifest));
+  if (manifest.schemaVersion === 3) return validateCharacterPackV3(manifest);
   throw new Error("角色包版本无效");
 }
 

@@ -12,11 +12,9 @@
   cursor: grabbing;
 }
 
-.desktop-pet-button.is-dragging .desktop-pet-body {
-  border-color: var(--accent);
-  background: var(--surface-panel);
-  box-shadow: 0 14px 30px oklch(0.2 0.02 240 / 0.22);
-  transform: translateY(-2px);
+.desktop-pet-button.is-dragging .desktop-pet-character {
+  filter: saturate(1.04);
+  transform: scale(1.02);
 }
 
 .sidebar-shell.is-expanded .desktop-pet-button {
@@ -24,7 +22,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .desktop-pet-button.is-dragging .desktop-pet-body {
+  .desktop-pet-button.is-dragging .desktop-pet-character {
     transform: none;
   }
 }

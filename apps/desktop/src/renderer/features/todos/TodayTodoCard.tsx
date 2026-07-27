@@ -9,13 +9,15 @@ import { SourcePill } from "./SourcePill";
 import type { TodayItem } from "./todayItems";
 
 interface TodayTodoCardProps {
+  busy: boolean;
   item: TodayItem;
   onComplete: () => void;
+  onMore: () => void;
   onOpen: () => void;
   selected: boolean;
 }
 
-export function TodayTodoCard({ item, onComplete, onOpen, selected }: TodayTodoCardProps) {
+export function TodayTodoCard({ busy, item, onComplete, onMore, onOpen, selected }: TodayTodoCardProps) {
   const completed = item.status === "completed";
   const classes = [
     "today-todo-card",
@@ -51,13 +53,13 @@ export function TodayTodoCard({ item, onComplete, onOpen, selected }: TodayTodoC
       </button>
       <div className="todo-item-actions">
         <IconButton
-          disabled={completed}
+          disabled={busy || completed}
           icon={<Check size={17} strokeWidth={1.8} />}
           onClick={onComplete}
         >
           标记完成
         </IconButton>
-        <IconButton icon={<MoreHorizontal size={17} strokeWidth={1.8} />}>更多操作</IconButton>
+        <IconButton disabled={busy} icon={<MoreHorizontal size={17} strokeWidth={1.8} />} onClick={onMore}>更多操作</IconButton>
       </div>
     </article>
   );

@@ -1,115 +1,61 @@
 /**
- * 模块用途：周期任务主视图，协调主题列表、只读详情和手动编辑抽屉。
- * 模块边界：只管理视图选择，不调用 Hermes 或生成 AI 草稿。
+ * 模块用途：协调周期任务主列表与同面板详情。
+ * 模块边界：只管理计划选择，不直接调用模型或构造 Mutation。
  */
-import { Plus, Sparkles } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { PrimaryButton, QuietButton } from "../../components/buttons";
-import { CyclePlanCard } from "./CyclePlanCard";
+import { useMemo, useState } from "react";
+import { ResponsiveMasterDetail } from "../../components/ResponsiveMasterDetail";
+import type { ManualMutationHandler } from "../../data/manualMutation";
+import type { AiPlannerLaunchContext } from "../ai/aiPlannerLaunchContext";
 import { CyclePlanDrawer } from "./CyclePlanDrawer";
-import { CyclePlanEditorDrawer } from "./CyclePlanEditorDrawer";
+import { CyclePlanListPane } from "./CyclePlanListPane";
 import type { CyclePlan } from "./cyclePlanTypes";
 
 interface CyclePlanViewProps {
-  detailResetVersion: number;
+  busy: boolean;
+  interactionResetVersion: number;
   plans: CyclePlan[];
   todayKey: string;
-  onUpsertPlan: (plan: CyclePlan) => void;
+  onAiOpen: (context: AiPlannerLaunchContext) => void;
+  onMutate: ManualMutationHandler;
 }
 
-export function CyclePlanView({
-  detailResetVersion,
-  onUpsertPlan,
-  plans,
-  todayKey
-}: CyclePlanViewProps) {
+export function CyclePlanView(props: CyclePlanViewProps) {
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-  const [editorPlanId, setEditorPlanId] = useState<"new" | string | null>(null);
   const selectedPlan = useMemo(
-    () => plans.find((plan) => plan.id === selectedPlanId),
-    [plans, selectedPlanId]
+    () => props.plans.find((plan) => plan.id === selectedPlanId),
+    [props.plans, selectedPlanId]
   );
-  const editorPlan = plans.find((plan) => plan.id === editorPlanId);
-
-  useEffect(() => {
-    setSelectedPlanId(null);
-    setEditorPlanId(null);
-  }, [detailResetVersion]);
-
-  if (selectedPlan) {
-    return (
-      <CyclePlanDrawer
-        key={selectedPlan.id}
-        plan={selectedPlan}
-        todayKey={todayKey}
-        onClose={() => setSelectedPlanId(null)}
-        onEdit={() => {
-          setSelectedPlanId(null);
-          setEditorPlanId(selectedPlan.id);
-        }}
-      />
-    );
-  }
-
-  if (editorPlanId !== null) {
-    return (
-      <CyclePlanEditorDrawer
-        dateKey={todayKey}
-        plan={editorPlan}
-        onClose={() => setEditorPlanId(null)}
-        onSave={(plan) => {
-          onUpsertPlan(plan);
-          setEditorPlanId(null);
-          setSelectedPlanId(plan.id);
-        }}
-      />
-    );
-  }
-
-  return (
-    <section className="cycle-plan-view">
-      <div className="cycle-plan-toolbar">
-        <div>
-          <p>周期任务</p>
-          <h2>按日期生成今日待办</h2>
-        </div>
-        <div className="cycle-plan-actions">
-          <QuietButton disabled icon={<Sparkles size={16} strokeWidth={1.8} />}>
-            AI 安排草稿
-          </QuietButton>
-          <PrimaryButton
-            icon={<Plus size={16} strokeWidth={2} />}
-            onClick={() => {
-              setSelectedPlanId(null);
-              setEditorPlanId("new");
-            }}
-          >
-            手动添加
-          </PrimaryButton>
-        </div>
-      </div>
-
-      <div className="cycle-plan-list">
-        {plans.length === 0 ? (
-          <div className="empty-state">
-            <strong>暂无周期任务</strong>
-            <span>后续可以手动创建，或让 Hermes/AI 先生成草稿再确认。</span>
-          </div>
-        ) : (
-          plans.map((plan) => (
-            <CyclePlanCard
-              key={plan.id}
-              plan={plan}
-              selected={plan.id === selectedPlanId}
-              todayKey={todayKey}
-              onOpen={() => {
-                setEditorPlanId(null);
-                setSelectedPlanId(plan.id);
-              }}
-            />
-          ))
-        )}
-      </div>
-    </section>
+  const master = (
+    <CyclePlanListPane
+      busy={props.busy}
+      plans={props.plans}
+      selectedPlanId={selectedPlanId}
+      todayKey={props.todayKey}
+      onAiCreate={() => props.onAiOpen({ type: "cyclePlan.create" })}
+      onOpen={(plan) => setSelectedPlanId(plan.id)}
+    />
   );
+  const detail = selectedPlan ? (
+    <CyclePlanDrawer
+      busy={props.busy}
+      interactionResetVersion={props.interactionResetVersion}
+      key={selectedPlan.id}
+      plan={selectedPlan}
+      todayKey={props.todayKey}
+      onClose={() => setSelectedPlanId(null)}
+      onAiAdjust={() => openAiAdjust(selectedPlan)}
+      onMutate={props.onMutate}
+    />
+  ) : undefined;
+
+  return <ResponsiveMasterDetail master={master} detail={detail} />;
+
+  function openAiAdjust(plan: CyclePlan) {
+    props.onAiOpen({
+      type: "cyclePlan.adjust",
+      targetPlanId: plan.id,
+      targetPlanTitle: plan.title,
+      targetPlanSummary: plan.description || `${plan.entries.length} 个日期条目`
+    });
+  }
 }

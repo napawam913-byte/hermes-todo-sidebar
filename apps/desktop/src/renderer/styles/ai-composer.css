@@ -1,0 +1,72 @@
+/**
+ * 模块用途：固定在对话栏底部的 AI 输入区和自适应文本框样式。
+ * 模块边界：不定义消息列表、模型状态或任务上下文布局。
+ */
+.ai-composer-dock {
+  display: grid;
+  grid-row: 3;
+  gap: var(--space-1);
+  min-width: 0;
+  border-top: 1px solid var(--ui-border);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  background: color-mix(in srgb, var(--ui-surface) 88%, transparent);
+}
+
+.ai-composer-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  align-items: end;
+  min-width: 0;
+  border-radius: var(--radius-md);
+  background: var(--ui-surface-solid);
+  box-shadow: var(--ui-shadow-control);
+}
+
+.ai-composer-dock textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  max-height: 120px;
+  resize: none;
+  border: 0;
+  padding: 11px 4px 9px var(--space-3);
+  overflow-y: hidden;
+  background: transparent;
+  color: var(--ui-text);
+  font: inherit;
+  line-height: 1.45;
+}
+
+.ai-composer-dock textarea:focus {
+  outline: 0;
+}
+
+.ai-composer-control:focus-within {
+  outline: 2px solid var(--ui-focus-ring);
+}
+
+.ai-composer-send {
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  align-self: end;
+  margin: 4px;
+  background: var(--ui-accent);
+  color: var(--ui-text-on-accent);
+}
+
+.ai-composer-send:hover:not(:disabled) {
+  background: var(--ui-accent-hover);
+  color: var(--ui-text-on-accent);
+}
+
+.ai-composer-hint {
+  padding-left: 4px;
+  color: var(--ui-text-caption);
+  font-size: 10px;
+}
+
+@media (max-width: 719px) {
+  .ai-composer-dock { padding-inline: var(--space-2); }
+  .ai-composer-hint { display: none; }
+}

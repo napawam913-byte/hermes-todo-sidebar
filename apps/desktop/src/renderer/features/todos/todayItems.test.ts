@@ -1,10 +1,10 @@
 /**
  * 模块用途：验证今日待办视图如何合并手动待办和周期计划条目。
- * 模块边界：只覆盖列表组装、筛选和摘要，不访问 UI 或本地存储。
+ * 模块边界：只覆盖列表组装和筛选，不访问 UI 或本地存储。
  */
 import { describe, expect, it } from "vitest";
 import { mockCyclePlans } from "../cyclePlans/mockCyclePlans";
-import { buildTodayItems, filterTodayItems, getTodaySummary } from "./todayItems";
+import { buildTodayItems, filterTodayItems } from "./todayItems";
 import type { Todo } from "./types";
 
 const manualTodos: Todo[] = [
@@ -14,6 +14,7 @@ const manualTodos: Todo[] = [
     date: "2026-07-09",
     status: "pending",
     syncStatus: "local",
+    source: { type: "manual" },
     createdAt: "2026-07-09T08:00:00.000Z",
     updatedAt: "2026-07-09T08:00:00.000Z",
     snoozeCount: 0
@@ -24,6 +25,7 @@ const manualTodos: Todo[] = [
     date: "2026-07-10",
     status: "pending",
     syncStatus: "local",
+    source: { type: "manual" },
     createdAt: "2026-07-10T08:00:00.000Z",
     updatedAt: "2026-07-10T08:00:00.000Z",
     snoozeCount: 0
@@ -34,6 +36,7 @@ const manualTodos: Todo[] = [
     date: "2026-07-10",
     status: "completed",
     syncStatus: "synced",
+    source: { type: "manual" },
     createdAt: "2026-07-09T08:00:00.000Z",
     updatedAt: "2026-07-10T09:00:00.000Z",
     completedAt: "2026-07-10T09:00:00.000Z",
@@ -45,6 +48,7 @@ const manualTodos: Todo[] = [
     date: "2026-07-11",
     status: "pending",
     syncStatus: "local",
+    source: { type: "manual" },
     createdAt: "2026-07-10T08:00:00.000Z",
     updatedAt: "2026-07-10T08:00:00.000Z",
     snoozeCount: 0
@@ -82,17 +86,19 @@ describe("todayItems", () => {
     expect(filterTodayItems(items, "all")).toHaveLength(5);
   });
 
-  it("builds summary cards from the merged today view", () => {
-    const items = buildTodayItems({
-      todos: manualTodos,
-      cyclePlans: mockCyclePlans,
+  it("keeps the AI draft source visible in today's list", () => {
+    const aiTodo: Todo = {
+      ...manualTodos[1],
+      id: "todo_ai_draft",
+      source: { type: "ai_draft", proposalId: "proposal_1" }
+    };
+
+    const [item] = buildTodayItems({
+      todos: [aiTodo],
+      cyclePlans: [],
       dateKey: "2026-07-10"
     });
 
-    expect(getTodaySummary(items)).toEqual({
-      pending: 4,
-      completed: 1,
-      all: 5
-    });
+    expect(item.sourceLabel).toBe("AI草稿");
   });
 });

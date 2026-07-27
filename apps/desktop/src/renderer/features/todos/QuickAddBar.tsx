@@ -7,18 +7,18 @@ import { FormEvent, useState } from "react";
 import { PrimaryButton } from "../../components/buttons";
 
 interface QuickAddBarProps {
-  onAdd: (title: string) => void;
+  busy?: boolean;
+  onAdd: (title: string) => Promise<boolean>;
 }
 
-export function QuickAddBar({ onAdd }: QuickAddBarProps) {
+export function QuickAddBar({ busy = false, onAdd }: QuickAddBarProps) {
   const [title, setTitle] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!title.trim()) return;
 
-    onAdd(title);
-    setTitle("");
+    if (await onAdd(title)) setTitle("");
   }
 
   return (
@@ -27,9 +27,12 @@ export function QuickAddBar({ onAdd }: QuickAddBarProps) {
         aria-label="待办标题"
         placeholder="添加一个待办..."
         value={title}
+        disabled={busy}
         onChange={(event) => setTitle(event.target.value)}
       />
-      <PrimaryButton icon={<Plus size={16} strokeWidth={2} />}>添加</PrimaryButton>
+      <PrimaryButton disabled={busy} icon={<Plus size={16} strokeWidth={2} />} type="submit">
+        {busy ? "保存中" : "添加"}
+      </PrimaryButton>
     </form>
   );
 }
