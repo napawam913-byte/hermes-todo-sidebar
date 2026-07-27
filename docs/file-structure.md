@@ -102,3 +102,11 @@ docs/cloud-plan-api-deployment.md  Linux user-systemd deployment, SSH tunnel, he
 Boundary note: the cloud Plan API foundation is ready as an isolated service.
 Hermes sync integration and Electron desktop migration remain separate phases,
 so existing desktop/frontend files should not depend on the Plan API yet.
+
+## 桌面 Plan API 集成边界
+
+- `services/plan-api/`：独立 FastAPI/SQLite 服务，负责迁移、版本、备份和 HTTP 数据合同；它不承载 Electron UI 或浏览器 Demo 状态。
+- `src/main/planApi/`：主进程连接配置、Token 密文保存、SSH 隧道、缓存、迁移协调和 API 适配；正式数据读写只在这一层接入服务端。
+- `src/renderer/data/`：renderer 的数据服务控制器和状态桥接，只消费 preload 白名单，不能直接访问 Token、SQLite、SSH 或网络客户端。
+- 手动操作与 AI 已确认提案都先转换为同一变更批次，最终统一调用 `PlanApiRuntime.execute()`；离线缓存只能读取，不能绕过该入口写入。
+- `AppMutationExecutor` 已删除，`AppMutationGateway` 及旧本地正式写入路径不再是桌面正式数据通道；浏览器预览仍可用同形 Demo 写入 `localStorage`。

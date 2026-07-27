@@ -62,3 +62,9 @@
 - 文件名包含 `-test.` 的便携版使用 `%APPDATA%\hermes-todo-sidebar-test`。
 - 测试副本不会写入正式版 `userData`，可以和当前稳定版并存验收。
 - 测试通过前保留 `0.1.1` 稳定便携版，不覆盖也不删除。
+
+## Plan API 数据服务
+
+桌面正式数据已切换为 Plan API/SQLite；`state.v1.json` 降级为迁移来源和兼容导出，不应再作为正式数据副本。浏览器预览仍使用独立的 `localStorage` Demo。
+
+在桌宠“设置 > 数据服务”中可选择本地直连或云端 SSH，填写地址/SSH 别名、端口和 Desktop Token 后先测试再保存。数据服务离线时应用只读显示最近缓存，恢复本地服务或 SSH 连通性后等待重连，再刷新并重试写入。完整字段说明、迁移和云端维护步骤见 `docs/desktop-plan-api-integration.md`。
