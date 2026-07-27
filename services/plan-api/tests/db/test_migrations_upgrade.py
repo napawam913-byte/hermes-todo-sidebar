@@ -12,7 +12,10 @@ from plan_api.db.migrations import apply_migrations
 def test_migrations_run_in_lexical_order(tmp_path, monkeypatch) -> None:
     migration_dir = tmp_path / "sql"
     migration_dir.mkdir()
-    _write(migration_dir / "010_finish.sql", "INSERT INTO migration_order VALUES ('010');")
+    _write(
+        migration_dir / "010_finish.sql",
+        "INSERT INTO migration_order VALUES ('010');",
+    )
     _write(
         migration_dir / "001_metadata.sql",
         """
@@ -24,8 +27,13 @@ def test_migrations_run_in_lexical_order(tmp_path, monkeypatch) -> None:
         CREATE TABLE migration_order (version TEXT NOT NULL);
         """,
     )
-    _write(migration_dir / "002_middle.sql", "INSERT INTO migration_order VALUES ('002');")
-    monkeypatch.setattr(migrations, "_migration_files", lambda: list(migration_dir.iterdir()))
+    _write(
+        migration_dir / "002_middle.sql",
+        "INSERT INTO migration_order VALUES ('002');",
+    )
+    monkeypatch.setattr(
+        migrations, "_migration_files", lambda: list(migration_dir.iterdir())
+    )
     database = Database(tmp_path / "plan.db")
 
     apply_migrations(database)
@@ -55,7 +63,10 @@ def test_applied_migration_checksum_is_verified(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(migrations, "_migration_files", lambda: [migration])
     database = Database(tmp_path / "plan.db")
     apply_migrations(database)
-    migration.write_text(migration.read_text(encoding="utf-8") + "SELECT 1;\n", encoding="utf-8")
+    migration.write_text(
+        migration.read_text(encoding="utf-8") + "SELECT 1;\n",
+        encoding="utf-8",
+    )
 
     with pytest.raises(RuntimeError, match="migration_checksum_mismatch"):
         apply_migrations(database)
@@ -81,7 +92,9 @@ def test_failed_migration_rolls_back_sql_and_record(tmp_path, monkeypatch) -> No
         INSERT INTO missing_table VALUES ('failure');
         """,
     )
-    monkeypatch.setattr(migrations, "_migration_files", lambda: [failing, initial])
+    monkeypatch.setattr(
+        migrations, "_migration_files", lambda: [failing, initial]
+    )
     database = Database(tmp_path / "plan.db")
 
     with pytest.raises(sqlite3.OperationalError):
@@ -135,7 +148,9 @@ def test_migration_allows_trailing_whitespace_and_comments(
     apply_migrations(database)
 
     with database.connect() as connection:
-        applied = connection.execute("SELECT version FROM schema_migrations").fetchall()
+        applied = connection.execute(
+            "SELECT version FROM schema_migrations"
+        ).fetchall()
     assert [row["version"] for row in applied] == ["001_metadata"]
 
 
@@ -165,7 +180,9 @@ def test_incomplete_migration_rolls_back_sql_and_record(
         {incomplete_sql}
         """,
     )
-    monkeypatch.setattr(migrations, "_migration_files", lambda: [failing, initial])
+    monkeypatch.setattr(
+        migrations, "_migration_files", lambda: [failing, initial]
+    )
     database = Database(tmp_path / "plan.db")
 
     with pytest.raises(RuntimeError, match="incomplete_migration_statement"):

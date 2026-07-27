@@ -8,7 +8,7 @@
 
 ## 本地直连
 
-1. 在本机启动 Plan API，并确认 `http://127.0.0.1:8743/health` 返回健康状态。
+1. 在本机启动 Plan API，并确认 `http://127.0.0.1:8743/v1/health` 返回健康状态。
 2. 桌宠打开“设置 > 数据服务”，选择“本地直连”。
 3. 在 `Base URL` 填入服务地址，例如 `http://127.0.0.1:8743`；在 `Desktop Token` 填入服务端签发的令牌。
 4. 点击“测试连接”，确认 API 版本和服务版本显示正常，再点击“保存连接”。保存后输入框会清空 Token，只保留安全存储的密文。
@@ -47,10 +47,27 @@ Host hermes-plan
 云端用户服务常用命令：
 
 ```bash
-systemctl --user start plan-api
-systemctl --user stop plan-api
-systemctl --user status plan-api
-journalctl --user -u plan-api -f
+systemctl --user start hermes-plan-api.service
+systemctl --user stop hermes-plan-api.service
+systemctl --user status hermes-plan-api.service
+journalctl --user -u hermes-plan-api.service -f
 ```
 
-备份前先停止写入或安排维护窗口，再复制 SQLite 数据库及其 `-wal`、`-shm` 伴随文件到受保护的备份位置。恢复应在服务停止后完成：保留当前库副本，恢复同一套数据库文件，校验文件权限后启动服务并通过健康检查和桌面只读查看验收。不要把备份、数据库或密钥放进 Git。
+使用 Plan API 的一致性备份命令，不要复制运行中的主库或它的 `-wal`、`-shm` 文件：
+
+```bash
+~/.local/share/hermes-plan-api/.venv/bin/python -m plan_api backup --backup-dir ~/.local/share/hermes-plan-api/backups
+```
+
+恢复时先停止服务，删除目标库的 WAL/SHM，再复制一个 `plan-*.db` 备份并校验：
+
+```bash
+systemctl --user stop hermes-plan-api.service
+rm -f ~/.local/share/hermes-plan-api/plan.db-wal ~/.local/share/hermes-plan-api/plan.db-shm
+cp ~/.local/share/hermes-plan-api/backups/plan-YYYYMMDDTHHMMSSffffffZ.db ~/.local/share/hermes-plan-api/plan.db
+sqlite3 ~/.local/share/hermes-plan-api/plan.db 'PRAGMA integrity_check;'
+systemctl --user start hermes-plan-api.service
+curl -H "Authorization: Bearer $PLAN_DESKTOP_TOKEN" http://127.0.0.1:8743/v1/health
+```
+
+仅恢复 `PRAGMA integrity_check` 返回 `ok` 的备份。不要把备份、数据库或密钥放进 Git。
