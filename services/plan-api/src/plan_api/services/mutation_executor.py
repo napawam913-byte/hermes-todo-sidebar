@@ -27,6 +27,7 @@ from ..db.database import Database
 from ..repositories.task_repository import TaskRepository
 from .entry_mutations import EntryMutations
 from .mutation_batch_guards import validate_batch_invariants
+from .mutation_revision_guard import require_expected_revision
 from .rolling_generator import RollingGenerator
 from .rule_adjustment import RuleAdjustmentService
 from .task_mutations import ChangedIds, TaskMutations
@@ -80,7 +81,7 @@ class MutationExecutor:
                 )
                 if cached is not None:
                     return cached
-                self._require_expected_revision(
+                require_expected_revision(
                     connection, batch.expectedServerRevision
                 )
                 changed_tasks: set[str] = set()
@@ -156,17 +157,6 @@ class MutationExecutor:
         if row["request_hash"] != request_hash:
             raise MutationError("validation_failed")
         return MutationResult.model_validate_json(row["response_json"])
-
-    def _require_expected_revision(
-        self, connection: sqlite3.Connection, expected: int | None
-    ) -> None:
-        if expected is None:
-            return
-        row = connection.execute(
-            "SELECT server_revision FROM app_meta WHERE id = 1"
-        ).fetchone()
-        if row is None or int(row["server_revision"]) != expected:
-            raise MutationError("version_conflict")
 
     def _bump_revision(self, connection: sqlite3.Connection) -> int:
         connection.execute(
