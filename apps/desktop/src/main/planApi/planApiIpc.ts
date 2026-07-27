@@ -4,6 +4,7 @@ import { parseAppMutationBatch } from "../../shared/appMutationValidation.js";
 import type { AppMutationBatch } from "../../shared/appMutationTypes.js";
 import type { PlanApiConnectionInput, PlanApiConnectionTestResult, PlanApiPublicConfig, PlanApiSnapshotEnvelope } from "../../shared/planApiBridgeContract.js";
 import type { StoredAppStateV1 } from "../storage/appStateTypes.js";
+import type { PlanApiMigrationInspection } from "./planApiMigrationService.js";
 
 export const PLAN_API_CHANNELS = {
   load: "plan-api:load-state", execute: "plan-api:execute-mutations", config: "plan-api:get-config",
@@ -13,7 +14,7 @@ type IpcPort = Pick<IpcMain, "handle" | "removeHandler">;
 type Runtime = {
   loadState(): Promise<StoredAppStateV1>; executeMutations(batch: AppMutationBatch): Promise<StoredAppStateV1>;
   getConfig(): Promise<PlanApiPublicConfig>; testConnection(input: PlanApiConnectionInput): Promise<PlanApiConnectionTestResult>;
-  saveConnection(input: PlanApiConnectionInput): Promise<PlanApiPublicConfig>; migrateLegacyState(): Promise<unknown>; keepRemoteData(): Promise<unknown>;
+  saveConnection(input: PlanApiConnectionInput): Promise<PlanApiPublicConfig>; migrateLegacyState(): Promise<PlanApiMigrationInspection>; keepRemoteData(): Promise<PlanApiMigrationInspection>;
   subscribe(listener: (snapshot: PlanApiSnapshotEnvelope) => void): () => void;
 };
 const cleanupByIpc = new WeakMap<object, () => void>();
@@ -26,8 +27,8 @@ export function registerPlanApiIpc(ipc: IpcPort, runtime: Runtime, publish: (cha
   ipc.handle(PLAN_API_CHANNELS.load, () => runtime.loadState());
   ipc.handle(PLAN_API_CHANNELS.execute, (_event, batch) => runtime.executeMutations(parseAppMutationBatch(batch)));
   ipc.handle(PLAN_API_CHANNELS.config, () => runtime.getConfig());
-  ipc.handle(PLAN_API_CHANNELS.test, (_event, input) => runtime.testConnection(input as PlanApiConnectionInput));
-  ipc.handle(PLAN_API_CHANNELS.save, (_event, input) => runtime.saveConnection(input as PlanApiConnectionInput));
+  ipc.handle(PLAN_API_CHANNELS.test, (_event, input) => runtime.testConnection(parseConnectionInput(input)));
+  ipc.handle(PLAN_API_CHANNELS.save, (_event, input) => runtime.saveConnection(parseConnectionInput(input)));
   ipc.handle(PLAN_API_CHANNELS.migrate, () => runtime.migrateLegacyState());
   ipc.handle(PLAN_API_CHANNELS.keepRemote, () => runtime.keepRemoteData());
   const unsubscribe = runtime.subscribe((snapshot) => { publish("plan-api:snapshot-changed", snapshot); publish("plan-api:status-changed", snapshot.status); });
@@ -37,4 +38,23 @@ export function registerPlanApiIpc(ipc: IpcPort, runtime: Runtime, publish: (cha
   };
   cleanupByIpc.set(ipc, cleanup);
   return cleanup;
+}
+
+/** 边界：仅接收连接表单的精确公开字段，令牌不会被事件或配置读取接口返回。 */
+function parseConnectionInput(value: unknown): PlanApiConnectionInput {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("连接配置必须是对象");
+  const input = value as Record<string, unknown>;
+  const keys = ["mode", "baseUrl", "sshTarget", "localPort", "remotePort", "desktopToken"];
+  if (Object.keys(input).length !== keys.length || keys.some((key) => !(key in input))) throw new Error("连接配置字段无效");
+  if (input.mode !== "local" && input.mode !== "ssh") throw new Error("连接模式无效");
+  if (typeof input.baseUrl !== "string" || !validUrl(input.baseUrl)) throw new Error("服务地址无效");
+  if (typeof input.sshTarget !== "string" || input.mode === "ssh" && !input.sshTarget.trim()) throw new Error("SSH 目标无效");
+  if (!port(input.localPort) || !port(input.remotePort)) throw new Error("端口无效");
+  if (typeof input.desktopToken !== "string") throw new Error("令牌无效");
+  return { mode: input.mode, baseUrl: input.baseUrl, sshTarget: input.sshTarget, localPort: input.localPort, remotePort: input.remotePort, desktopToken: input.desktopToken };
+}
+function port(value: unknown): value is number { return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 65535; }
+function validUrl(value: string): boolean {
+  try { const url = new URL(value.trim()); return !!url.hostname && (url.protocol === "http:" || url.protocol === "https:") && !url.username && !url.password; }
+  catch { return false; }
 }

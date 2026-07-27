@@ -16,6 +16,7 @@ function runtime() {
     listener, unsubscribe,
   };
 }
+const connection = () => ({ mode: "local", baseUrl: "https://plan.example:8743", sshTarget: "", localPort: 8743, remotePort: 8743, desktopToken: "desktop-token" });
 
 describe("registerPlanApiIpc", () => {
   it("registers runtime data and connection handlers without legacy replace channels", () => {
@@ -40,5 +41,18 @@ describe("registerPlanApiIpc", () => {
     expect(plan.unsubscribe).toHaveBeenCalledOnce();
     registerPlanApiIpc(ipc, plan)();
     expect(plan.unsubscribe).toHaveBeenCalledTimes(3);
+  });
+
+  it("rejects malformed connection payloads before testing or saving", () => {
+    const handlers = new Map<string, Handler>(); const plan = runtime();
+    registerPlanApiIpc(fakeIpc(handlers), plan);
+    const test = handlers.get("plan-api:test-connection")!;
+    const save = handlers.get("plan-api:save-connection")!;
+    expect(() => test({}, { ...connection(), extra: true })).toThrow("字段");
+    expect(() => save({}, { ...connection(), baseUrl: "file:///token" })).toThrow("地址");
+    expect(() => test({}, { ...connection(), mode: "ssh", sshTarget: "", localPort: 0 })).toThrow();
+    expect(() => save({}, { ...connection(), remotePort: 8743.5, desktopToken: 1 })).toThrow("端口");
+    expect(() => test({}, connection())).not.toThrow();
+    expect(plan.testConnection).toHaveBeenCalledWith(connection());
   });
 });

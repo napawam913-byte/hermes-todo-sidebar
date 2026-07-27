@@ -19,6 +19,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { configureLaunchAtLogin, ensureSingleInstance } from "./lifecycle/appLifecycle.js";
 import { createDataTransferActions } from "./lifecycle/dataTransferController.js";
+import { createPlanApiBeforeQuitHandler } from "./lifecycle/planApiShutdown.js";
 import { getRuntimeChannel, getTestUserDataPath } from "./lifecycle/runtimeChannel.js";
 import { createTrayMenuTemplate } from "./lifecycle/trayController.js";
 import { registerPlanApiRuntime, type RegisteredPlanApiRuntime } from "./planApi/planApiBootstrap.js";
@@ -103,14 +104,6 @@ async function createTray(runtime: RegisteredPlanApiRuntime, dataDirectory: stri
       });
       return result.canceled ? undefined : result.filePath;
     },
-    /* requestImportPath: async () => { return undefined;
-      const result = await dialog.showOpenDialog({
-        title: "导入待办数据",
-        properties: ["openFile"],
-        filters: [{ name: "JSON 数据", extensions: ["json"] }]
-      });
-      return result.canceled ? undefined : result.filePaths[0];
-    */
     showError: async (message) => {
       await dialog.showMessageBox({ type: "error", title: "Hermes 待办桌宠", message });
     },
@@ -151,6 +144,7 @@ async function bootstrap() {
   createMainWindow();
   planApiRuntime = registerPlanApiRuntime({
     ipc: ipcMain, userDataDirectory: app.getPath("userData"), dataDirectory,
+    isPackaged: app.isPackaged,
     legacyStateService: appStateService,
     publish: (channel, payload) => mainWindow?.webContents.send(channel, payload),
   });
@@ -179,10 +173,8 @@ if (ensureSingleInstance(app)) {
   });
 }
 
-app.on("before-quit", () => {
-  isQuitting = true;
-  void planApiRuntime?.shutdown();
-});
+const beforePlanApiQuit = createPlanApiBeforeQuitHandler(() => planApiRuntime, () => app.quit());
+app.on("before-quit", (event) => { isQuitting = true; beforePlanApiQuit(event); });
 app.on("window-all-closed", () => {
   // Windows 正式版保持托盘进程存活，仅托盘“退出”结束应用。
 });

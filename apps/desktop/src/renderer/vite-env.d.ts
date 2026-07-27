@@ -26,8 +26,8 @@ interface Window {
     saveConnection: (
       input: import("../shared/planApiBridgeContract").PlanApiConnectionInput
     ) => Promise<import("../shared/planApiBridgeContract").PlanApiPublicConfig>;
-    migrateLegacyState: () => Promise<unknown>;
-    keepRemoteData: () => Promise<unknown>;
+    migrateLegacyState: () => Promise<import("../main/planApi/planApiMigrationService").PlanApiMigrationInspection>;
+    keepRemoteData: () => Promise<import("../main/planApi/planApiMigrationService").PlanApiMigrationInspection>;
     onStatusChanged: (
       callback: (status: import("../shared/planApiBridgeContract").PlanApiRuntimeStatus) => void
     ) => () => void;

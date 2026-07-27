@@ -7,6 +7,7 @@ import type { CyclePlan } from "../features/cyclePlans/cyclePlanTypes";
 import type { TodoRepository } from "../features/todos/todoRepository";
 import type { Todo } from "../features/todos/types";
 import type { AppMutationBatch } from "../../shared/appMutationTypes";
+import { createSnapshotMutationBatch, type DomainSnapshot } from "./electronMutationDiff";
 
 export interface DesktopStateSnapshot {
   todos: unknown[];
@@ -32,17 +33,29 @@ export interface ElectronRepositories {
 export function createElectronRepositories(
   options: ElectronRepositoryOptions
 ): ElectronRepositories {
-  const initialTodos = structuredClone(options.todos);
-  const initialCyclePlans = structuredClone(options.cyclePlans);
+  let serverSnapshot: DomainSnapshot = clone({ todos: options.todos, cyclePlans: options.cyclePlans });
+  let desiredSnapshot = clone(serverSnapshot);
+  let tail = Promise.resolve();
+  const save = (patch: Partial<DomainSnapshot>) => {
+    desiredSnapshot = clone({ ...desiredSnapshot, ...patch });
+    tail = tail.then(async () => {
+      const batch = createSnapshotMutationBatch(serverSnapshot, desiredSnapshot);
+      if (!batch) return;
+      const snapshot = await options.bridge.executeMutations(batch);
+      serverSnapshot = clone({ todos: snapshot.todos as Todo[], cyclePlans: snapshot.cyclePlans as CyclePlan[] });
+    }).catch(() => undefined);
+  };
 
   return {
     todoRepository: {
-      loadTodos: () => structuredClone(initialTodos),
-      saveTodos: () => undefined
+      loadTodos: () => structuredClone(serverSnapshot.todos),
+      saveTodos: (todos) => save({ todos })
     },
     cyclePlanRepository: {
-      loadPlans: () => structuredClone(initialCyclePlans),
-      savePlans: () => undefined
+      loadPlans: () => structuredClone(serverSnapshot.cyclePlans),
+      savePlans: (cyclePlans) => save({ cyclePlans })
     }
   };
 }
+
+function clone(snapshot: DomainSnapshot): DomainSnapshot { return structuredClone(snapshot); }

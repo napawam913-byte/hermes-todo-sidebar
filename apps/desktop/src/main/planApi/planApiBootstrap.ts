@@ -9,11 +9,12 @@ import { PlanApiConnectionTester, reservePlanApiTestPort } from "./planApiConnec
 import { registerPlanApiIpc } from "./planApiIpc.js";
 import { PlanApiMigrationFileStore } from "./planApiMigrationFileStore.js";
 import { PlanApiMigrationService } from "./planApiMigrationService.js";
+import type { PlanApiMigrationInspection } from "./planApiMigrationService.js";
 import { PlanApiRuntime } from "./planApiRuntime.js";
 import { PlanApiSnapshotCache } from "./planApiSnapshotCache.js";
 import { PlanApiSshTunnel, type SshTunnelConfig } from "./planApiSshTunnel.js";
 
-export interface PlanApiBootstrapOptions { ipc: IpcMain; userDataDirectory: string; dataDirectory: string; legacyStateService: AppStateService; publish(channel: string, payload: unknown): void; }
+export interface PlanApiBootstrapOptions { ipc: IpcMain; userDataDirectory: string; dataDirectory: string; isPackaged: boolean; legacyStateService: AppStateService; publish(channel: string, payload: unknown): void; }
 export interface RegisteredPlanApiRuntime {
   initialize(): Promise<PlanApiSnapshotEnvelope>; shutdown(): Promise<void>; getStoredSnapshot(): Promise<ReturnType<AppStateService["getSnapshot"]>>;
   execute(batch: AppMutationBatch): Promise<ReturnType<AppStateService["getSnapshot"]>>; refresh(): Promise<PlanApiSnapshotEnvelope>;
@@ -27,14 +28,14 @@ function tunnelPort(tunnel: PlanApiSshTunnel) {
 export function registerPlanApiRuntime(options: PlanApiBootstrapOptions): RegisteredPlanApiRuntime {
   const connections = new PlanApiConnectionStore(new PlanApiConnectionFileStore(options.userDataDirectory), {
     isAvailable: () => safeStorage.isEncryptionAvailable(), encrypt: (value) => safeStorage.encryptString(value), decrypt: (value) => safeStorage.decryptString(value),
-  }, undefined, { isPackaged: () => process.env.NODE_ENV === "production", get: (name) => process.env[name] });
+  }, undefined, { isPackaged: () => options.isPackaged, get: (name) => process.env[name] });
   const tunnel = new PlanApiSshTunnel();
   const client = (baseUrl: string, token: string) => new PlanApiClient({ baseUrl, token });
   const runtime = new PlanApiRuntime({
     connectionStore: connections, cache: new PlanApiSnapshotCache(options.dataDirectory), legacyStateService: options.legacyStateService, createClient: client, tunnel: tunnelPort(tunnel),
     connectionTester: new PlanApiConnectionTester({ resolveConnection: (input) => connections.resolveConnection(input), reservePort: reservePlanApiTestPort, createTunnel: () => tunnelPort(new PlanApiSshTunnel()), createClient: client }),
   });
-  const migration = async (run: (service: PlanApiMigrationService) => Promise<unknown>) => {
+  const migration = async (run: (service: PlanApiMigrationService) => Promise<PlanApiMigrationInspection>) => {
     const connection = await connections.resolveConnection();
     if (!connection) throw new Error("Plan API is not configured");
     const baseUrl = connection.mode === "ssh" ? `http://127.0.0.1:${connection.localPort}` : connection.baseUrl;
