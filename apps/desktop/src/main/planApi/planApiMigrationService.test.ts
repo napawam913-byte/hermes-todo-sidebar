@@ -1,60 +1,109 @@
-import { describe, expect, it, vi } from "vitest";
-import { PlanApiMigrationError, PlanApiMigrationService } from "./planApiMigrationService.js";
-
-const time = "2026-07-25T00:00:00.000Z";
-const todo = (id = "todo-1") => ({ id, title: "本地待办", date: "2026-07-25", status: "pending", syncStatus: "local", source: { type: "manual" }, createdAt: time, updatedAt: time, snoozeCount: 0 });
-const entry = (planId = "plan-1") => ({ schemaVersion: 2, id: "entry-1", planId, date: "2026-07-26", title: "训练", contentSummary: "上肢", contentBlocks: [{ schemaVersion: 2, id: "block-1", kind: "fitness", title: "动作", format: "json", data: {} }], status: "pending", source: { type: "manual" }, createdAt: time, updatedAt: time });
-const plan = () => ({ schemaVersion: 2, id: "plan-1", title: "健身", topic: "训练", description: "每周计划", status: "active", source: { type: "manual" }, entries: [entry()], createdAt: time, updatedAt: time });
-const legacy = (todos = [todo()], cyclePlans = [plan()]) => ({ schemaVersion: 1 as const, todos, cyclePlans, settings: { launchAtLogin: true }, updatedAt: time });
-const remote = (tasks: any[] = []) => ({ serverRevision: 1, tasks });
-const imported = () => remote([{ id: "a", entries: [{}] }, { id: "b", entries: [{}] }]);
-function setup(options: { state?: any; snapshots?: any[]; mutate?: () => Promise<unknown>; record?: any } = {}) {
-  const fileStore = { loadRecord: vi.fn(async () => options.record ?? null), backupLegacy: vi.fn(async () => "backup.json"), saveRecord: vi.fn(async () => undefined) };
-  const client = { snapshot: vi.fn(async () => options.snapshots?.shift() ?? remote()), mutate: vi.fn(options.mutate ?? (async () => undefined)) };
-  return { fileStore, client, service: new PlanApiMigrationService({ legacyState: { getSnapshot: () => options.state ?? legacy() }, client, fileStore, now: () => new Date("2026-07-25T02:00:00.000Z") }) };
-}
+import { describe, expect, it } from "vitest";
+import { PlanApiMigrationError } from "./planApiMigrationService.js";
+import {
+  cycle,
+  entry,
+  legacy,
+  resultFor,
+  setup,
+  snapshotFor,
+  time,
+  todo,
+} from "./planApiMigrationService.testHelpers.js";
 
 describe("PlanApiMigrationService", () => {
-  it("backs up before one atomic import and verifies exact task and entry counts", async () => {
-    const plan = setup({ snapshots: [remote(), remote(), imported()] });
+  it("freezes once, journals before mutate, and completes after exact verification", async () => {
+    const plan = setup();
     await expect(plan.service.migrate()).resolves.toMatchObject({ status: "completed" });
-    expect(plan.fileStore.backupLegacy.mock.invocationCallOrder[0]).toBeLessThan(plan.client.mutate.mock.invocationCallOrder[0]);
-    expect(plan.client.mutate).toHaveBeenCalledWith(expect.objectContaining({ idempotencyKey: `desktop-migration:${time}`, operations: expect.arrayContaining([expect.objectContaining({ type: "task.create" })]) }));
-    expect(plan.fileStore.saveRecord).toHaveBeenCalledWith(expect.objectContaining({ status: "completed", importedTaskCount: 2, importedEntryCount: 2 }));
+    expect(plan.legacyState.getSnapshot).toHaveBeenCalledOnce();
+    expect(plan.fileStore.backupLegacy.mock.invocationCallOrder[0])
+      .toBeLessThan(plan.client.mutate.mock.invocationCallOrder[0]);
+    expect(plan.fileStore.saveRecord.mock.calls.map(([item]) => item.status))
+      .toEqual(["pending", "completed"]);
+    expect(plan.client.mutate.mock.calls[0][0].idempotencyKey)
+      .toMatch(/^desktop-migration:[a-f0-9]{64}$/);
   });
 
-  it("blocks a non-empty remote, malformed legacy data, and more than 100 local tasks without mutating", async () => {
-    const remoteBusy = setup({ snapshots: [remote([{ id: "remote", entries: [] }])] });
-    await expect(remoteBusy.service.inspect()).resolves.toEqual({ status: "blocked", reason: "remote_not_empty" });
-    const invalid = setup({ state: legacy([{ ...todo(), unexpected: true }], []) });
-    await expect(invalid.service.inspect()).resolves.toEqual({ status: "blocked", reason: "legacy_invalid" });
-    const oversized = setup({ state: legacy(Array.from({ length: 101 }, (_, index) => todo(`todo-${index}`)), []) });
-    await expect(oversized.service.inspect()).resolves.toEqual({ status: "blocked", reason: "local_limit_exceeded" });
-    expect(remoteBusy.client.mutate).not.toHaveBeenCalled(); expect(invalid.client.mutate).not.toHaveBeenCalled(); expect(oversized.client.mutate).not.toHaveBeenCalled();
+  it("recovers a pending mutation with its original idempotency key", async () => {
+    const plan = setup({ failOnce: true });
+    await expect(plan.service.migrate()).rejects.toThrow("network");
+    expect(plan.fileStore.saveRecord.mock.calls[0][0].status).toBe("pending");
+    plan.legacyState.getSnapshot.mockClear();
+    await expect(plan.service.migrate()).resolves.toMatchObject({ status: "completed" });
+    expect(plan.legacyState.getSnapshot).toHaveBeenCalledOnce();
+    expect(plan.client.mutate.mock.calls[1][0].idempotencyKey)
+      .toBe(plan.client.mutate.mock.calls[0][0].idempotencyKey);
   });
 
-  it("preserves the backup and never records completion when mutation or verification fails", async () => {
-    const failed = setup({ snapshots: [remote(), remote()], mutate: async () => { throw new Error("network"); } });
-    await expect(failed.service.migrate()).rejects.toThrow("network");
-    expect(failed.fileStore.backupLegacy).toHaveBeenCalledOnce(); expect(failed.fileStore.saveRecord).not.toHaveBeenCalled();
-    const mismatch = setup({ snapshots: [remote(), remote(), remote([{ id: "only", entries: [] }])] });
-    await expect(mismatch.service.migrate()).rejects.toEqual(expect.objectContaining<Partial<PlanApiMigrationError>>({ code: "migration_verification_failed" }));
-    expect(mismatch.fileStore.saveRecord).not.toHaveBeenCalled();
+  it("fails closed when a pending journal no longer matches the legacy snapshot", async () => {
+    const plan = setup({ failOnce: true });
+    await expect(plan.service.migrate()).rejects.toThrow("network");
+    plan.legacyState.getSnapshot.mockReturnValue(legacy([todo({ title: "changed" })], [cycle()]));
+    await expect(plan.service.migrate()).resolves.toEqual({ status: "blocked", reason: "legacy_changed" });
+    expect(plan.client.mutate).toHaveBeenCalledOnce();
   });
 
-  it("rechecks the remote after backup so a concurrent remote import never receives a mutation", async () => {
-    const plan = setup({ snapshots: [remote(), remote([{ id: "other", entries: [] }])] });
-    await expect(plan.service.migrate()).resolves.toEqual({ status: "blocked", reason: "remote_not_empty" });
-    expect(plan.fileStore.backupLegacy).toHaveBeenCalledOnce(); expect(plan.client.mutate).not.toHaveBeenCalled();
+  it("preserves legacy status, source, and completion time in the wire batch", async () => {
+    const plan = setup({
+      state: legacy(
+        [todo({ status: "completed", source: { type: "ai_draft" }, completedAt: time })],
+        [cycle({
+          status: "draft",
+          entries: [
+            entry({ status: "candidate", source: { type: "manual" } }),
+            entry({ id: "entry-2", status: "completed", source: { type: "ai_draft" }, completedAt: time }),
+          ],
+        })],
+      ),
+    });
+    await plan.service.migrate();
+    const creates = plan.client.mutate.mock.calls[0][0].operations.filter(
+      (item: any) => item.type === "task.create",
+    );
+    expect(creates[0].draft.entries[0]).toMatchObject({ status: "completed", source: "hermes", completed_at: time });
+    expect(creates[1].draft.status).toBe("paused");
+    expect(creates[1].draft.entries).toMatchObject([
+      { status: "skipped", source: "manual" },
+      { status: "completed", source: "hermes", completed_at: time },
+    ]);
   });
 
-  it("short-circuits completed state and only skips a remote when explicitly requested", async () => {
-    const done = { schemaVersion: 1 as const, status: "completed" as const, sourceUpdatedAt: time, backupPath: "backup.json", importedTaskCount: 2, importedEntryCount: 2, completedAt: time };
-    const completed = setup({ record: done });
-    await expect(completed.service.migrate()).resolves.toMatchObject({ status: "completed" });
-    expect(completed.client.snapshot).not.toHaveBeenCalled(); expect(completed.client.mutate).not.toHaveBeenCalled();
-    const skipped = setup();
-    await expect(skipped.service.keepRemoteAndSkip()).resolves.toMatchObject({ status: "skipped" });
-    expect(skipped.fileStore.backupLegacy).not.toHaveBeenCalled(); expect(skipped.client.mutate).not.toHaveBeenCalled();
+  it("rejects changed-ID, duplicate-ID, and content mismatches without overwriting pending", async () => {
+    const ids = setup({ result: (batch) => ({ ...resultFor(batch), changedTaskIds: ["missing", "task-1"] }) });
+    await expect(ids.service.migrate()).rejects.toEqual(expect.objectContaining<Partial<PlanApiMigrationError>>({
+      code: "migration_verification_failed",
+    }));
+    expect(ids.fileStore.saveRecord.mock.calls.at(-1)?.[0].status).toBe("pending");
+    const duplicates = setup({ result: (batch) => ({
+      ...resultFor(batch), changedTaskIds: ["task-0", "task-0"], changedEntryIds: ["entry-0-0", "entry-0-0"],
+    }) });
+    await expect(duplicates.service.migrate()).rejects.toMatchObject({ code: "migration_verification_failed" });
+    expect(duplicates.fileStore.saveRecord.mock.calls.at(-1)?.[0].status).toBe("pending");
+    const content = setup({ after: (batch) => {
+      const snapshot = snapshotFor(batch);
+      snapshot.tasks[0].content.title = "wrong";
+      return snapshot;
+    } });
+    await expect(content.service.migrate()).rejects.toMatchObject({ code: "migration_verification_failed" });
+    expect(content.fileStore.saveRecord.mock.calls.at(-1)?.[0].status).toBe("pending");
+  });
+
+  it("blocks unsafe starts, backs up before skipping, and serializes concurrent work", async () => {
+    const busy = setup({ initial: { serverRevision: 9, tasks: [{ id: "remote", entries: [] }] } });
+    await expect(busy.service.migrate()).resolves.toEqual({ status: "blocked", reason: "remote_not_empty" });
+    await expect(busy.service.keepRemoteAndSkip()).resolves.toMatchObject({ status: "skipped", record: { baselineRevision: 9 } });
+    expect(busy.fileStore.backupLegacy).toHaveBeenCalledOnce();
+    expect(busy.client.mutate).not.toHaveBeenCalled();
+    const empty = setup();
+    await expect(empty.service.keepRemoteAndSkip()).resolves.toEqual({ status: "blocked", reason: "remote_empty" });
+    const invalid = setup({ state: legacy([{ ...todo(), unknown: true }], []) });
+    await expect(invalid.service.migrate()).resolves.toEqual({ status: "blocked", reason: "legacy_invalid" });
+    const oversized = setup({ state: legacy(Array.from({ length: 101 }, () => todo()), []) });
+    await expect(oversized.service.migrate()).resolves.toEqual({ status: "blocked", reason: "local_limit_exceeded" });
+    const concurrent = setup();
+    const results = await Promise.all([concurrent.service.migrate(), concurrent.service.keepRemoteAndSkip()]);
+    expect(results.map((result) => result.status)).toEqual(["completed", "completed"]);
+    expect(concurrent.fileStore.backupLegacy).toHaveBeenCalledOnce();
+    expect(concurrent.client.mutate).toHaveBeenCalledOnce();
   });
 });

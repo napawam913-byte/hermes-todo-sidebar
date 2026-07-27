@@ -1,98 +1,185 @@
-/** 模块用途：安全保存旧状态迁移的备份与一次性结果记录。 */
+/** 模块用途：保存可恢复迁移日志，并为冻结的旧状态创建不覆盖的备份。 */
 import { randomUUID } from "node:crypto";
-import { copyFile, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { link, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import type { StoredAppStateV1 } from "../storage/appStateTypes.js";
+
+const RECORD_NAME = "plan-api-migration.v1.json";
+const FINGERPRINT = /^[a-f0-9]{64}$/;
 
 export interface PlanApiMigrationRecordV1 {
   schemaVersion: 1;
-  status: "completed" | "skipped";
+  status: "pending" | "completed" | "skipped";
   sourceUpdatedAt: string;
+  sourceFingerprint: string;
   backupPath: string;
+  idempotencyKey: string;
   importedTaskCount: number;
   importedEntryCount: number;
-  completedAt: string;
+  baselineRevision: number;
+  completedAt?: string;
 }
 
 export class PlanApiMigrationStorageError extends Error {
-  constructor(readonly code: "record_invalid" | "read_failed" | "backup_failed" | "write_failed") {
+  readonly cause: { name: string; code?: string };
+
+  constructor(
+    readonly code:
+      "record_invalid" | "read_failed" | "backup_failed" | "write_failed",
+    cause?: unknown,
+  ) {
     super(`Plan API migration storage ${code}`);
     this.name = "PlanApiMigrationStorageError";
+    this.cause = safeCause(cause);
   }
 }
-
-const recordName = "plan-api-migration.v1.json";
 
 export class PlanApiMigrationFileStore {
   readonly recordPath: string;
   readonly legacyStatePath: string;
-  private saveTail: Promise<void> = Promise.resolve();
+  private writeTail: Promise<void> = Promise.resolve();
 
-  constructor(private readonly dataDirectory: string, private readonly now: () => Date = () => new Date()) {
-    this.recordPath = path.join(dataDirectory, recordName);
+  constructor(
+    private readonly dataDirectory: string,
+    private readonly now: () => Date = () => new Date(),
+  ) {
+    this.recordPath = path.join(dataDirectory, RECORD_NAME);
     this.legacyStatePath = path.join(dataDirectory, "state.v1.json");
   }
 
   async loadRecord(): Promise<PlanApiMigrationRecordV1 | null> {
     try {
       return parseRecord(await readFile(this.recordPath, "utf8"));
-    } catch (error: any) {
-      if (error?.code === "ENOENT") return null;
-      if (error instanceof SyntaxError || error?.message === "invalid migration record") {
-        throw new PlanApiMigrationStorageError("record_invalid");
-      }
-      throw new PlanApiMigrationStorageError("read_failed");
+    } catch (error: unknown) {
+      if (codeOf(error) === "ENOENT") return null;
+      const code =
+        error instanceof SyntaxError || messageOf(error) === "invalid record"
+          ? "record_invalid"
+          : "read_failed";
+      throw new PlanApiMigrationStorageError(code, error);
     }
   }
 
-  async backupLegacy(): Promise<string> {
+  async backupLegacy(snapshot: StoredAppStateV1): Promise<string> {
     const stamp = this.now().toISOString().replace(/[:.]/g, "-");
-    const backupPath = path.join(this.dataDirectory, `state.v1.pre-plan-api-${stamp}.json`);
+    const finalPath = path.join(
+      this.dataDirectory,
+      `state.v1.pre-plan-api-${stamp}-${randomUUID()}.json`,
+    );
+    const temporaryPath = `${finalPath}.tmp`;
+    let originalFailure: unknown;
     try {
       await mkdir(this.dataDirectory, { recursive: true });
-      await copyFile(this.legacyStatePath, backupPath);
-      return backupPath;
-    } catch {
-      throw new PlanApiMigrationStorageError("backup_failed");
+      await writeFile(
+        temporaryPath,
+        `${JSON.stringify(snapshot, null, 2)}\n`,
+        "utf8",
+      );
+      await link(temporaryPath, finalPath);
+      return finalPath;
+    } catch (error) {
+      originalFailure = error;
+      throw new PlanApiMigrationStorageError("backup_failed", error);
+    } finally {
+      await removeTemporary(temporaryPath, originalFailure, "backup_failed");
     }
   }
 
   async saveRecord(record: PlanApiMigrationRecordV1): Promise<void> {
-    const value = parseRecord(JSON.stringify(record));
-    const serialized = `${JSON.stringify(value, null, 2)}\n`;
-    const tempPath = path.join(this.dataDirectory, `${recordName}.${randomUUID()}.tmp`);
-    const operation = this.saveTail.then(async () => {
+    const serialized = `${JSON.stringify(parseRecord(JSON.stringify(record)), null, 2)}\n`;
+    const temporaryPath = path.join(
+      this.dataDirectory,
+      `${RECORD_NAME}.${randomUUID()}.tmp`,
+    );
+    const write = this.writeTail.then(async () => {
+      let originalFailure: unknown;
       try {
         await mkdir(this.dataDirectory, { recursive: true });
-        await writeFile(tempPath, serialized, "utf8");
-        await rename(tempPath, this.recordPath);
-      } catch {
-        throw new PlanApiMigrationStorageError("write_failed");
+        await writeFile(temporaryPath, serialized, "utf8");
+        await rename(temporaryPath, this.recordPath);
+      } catch (error) {
+        originalFailure = error;
+        throw new PlanApiMigrationStorageError("write_failed", error);
       } finally {
-        await rm(tempPath, { force: true });
+        await removeTemporary(temporaryPath, originalFailure, "write_failed");
       }
     });
-    this.saveTail = operation.catch(() => undefined);
-    await operation;
+    this.writeTail = write.catch(() => undefined);
+    await write;
+  }
+}
+
+async function removeTemporary(
+  temporaryPath: string,
+  originalFailure: unknown,
+  code: "backup_failed" | "write_failed",
+): Promise<void> {
+  try {
+    await rm(temporaryPath, { force: true });
+  } catch (cleanupError) {
+    if (!originalFailure)
+      throw new PlanApiMigrationStorageError(code, cleanupError);
   }
 }
 
 function parseRecord(raw: string): PlanApiMigrationRecordV1 {
   const value: unknown = JSON.parse(raw);
-  if (!isRecord(value) || !hasKeys(value, [
-    "schemaVersion", "status", "sourceUpdatedAt", "backupPath", "importedTaskCount", "importedEntryCount", "completedAt",
-  ]) || value.schemaVersion !== 1 || (value.status !== "completed" && value.status !== "skipped")
-    || !isTimestamp(value.sourceUpdatedAt) || !isString(value.backupPath) || !isCount(value.importedTaskCount)
-    || !isCount(value.importedEntryCount) || !isTimestamp(value.completedAt)
-    || (value.status === "completed" && !value.backupPath)) throw new Error("invalid migration record");
-  return value as unknown as PlanApiMigrationRecordV1;
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw new Error("invalid record");
+  const record = value as Record<string, unknown>;
+  const keys = [
+    "schemaVersion",
+    "status",
+    "sourceUpdatedAt",
+    "sourceFingerprint",
+    "backupPath",
+    "idempotencyKey",
+    "importedTaskCount",
+    "importedEntryCount",
+    "baselineRevision",
+    "completedAt",
+  ];
+  const required = keys.slice(0, -1);
+  const final = record.status === "completed" || record.status === "skipped";
+  const valid =
+    record.schemaVersion === 1 &&
+    (record.status === "pending" || final) &&
+    required.every((key) => key in record) &&
+    Object.keys(record).every((key) => keys.includes(key)) &&
+    typeof record.sourceUpdatedAt === "string" &&
+    typeof record.backupPath === "string" &&
+    typeof record.idempotencyKey === "string" &&
+    record.idempotencyKey.startsWith("desktop-migration:") &&
+    typeof record.sourceFingerprint === "string" &&
+    FINGERPRINT.test(record.sourceFingerprint) &&
+    numeric(record.importedTaskCount) &&
+    numeric(record.importedEntryCount) &&
+    numeric(record.baselineRevision) &&
+    (final
+      ? typeof record.completedAt === "string"
+      : !("completedAt" in record));
+  if (!valid) throw new Error("invalid record");
+  return record as unknown as PlanApiMigrationRecordV1;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+function numeric(value: unknown): boolean {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0;
 }
-function hasKeys(value: Record<string, unknown>, keys: string[]): boolean {
-  return keys.every((key) => key in value) && Object.keys(value).every((key) => keys.includes(key));
+
+function safeCause(value: unknown): { name: string; code?: string } {
+  const code = codeOf(value);
+  return {
+    name: value instanceof Error ? value.name : "Error",
+    ...(code ? { code } : {}),
+  };
 }
-function isString(value: unknown): value is string { return typeof value === "string"; }
-function isTimestamp(value: unknown): value is string { return isString(value) && !Number.isNaN(Date.parse(value)); }
-function isCount(value: unknown): value is number { return typeof value === "number" && Number.isInteger(value) && value >= 0; }
+
+function codeOf(value: unknown): string | undefined {
+  return typeof value === "object" && value !== null && "code" in value
+    ? String((value as { code: unknown }).code)
+    : undefined;
+}
+
+function messageOf(value: unknown): string | undefined {
+  return value instanceof Error ? value.message : undefined;
+}
