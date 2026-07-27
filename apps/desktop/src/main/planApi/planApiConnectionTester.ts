@@ -5,7 +5,7 @@ import { PlanApiError } from "./planApiErrors.js";
 import { parsePlanApiHealth, type PlanApiHealth } from "./planApiWireTypes.js";
 
 export interface PlanApiConnectionTestTunnel {
-  start(config: { sshTarget: string; localPort: number; remotePort: number }): void;
+  start(config: { sshTarget: string; localPort: number; remotePort: number }): undefined;
   stop(): void | Promise<void>;
 }
 export interface PlanApiConnectionTestClient { health(): Promise<PlanApiHealth>; }
@@ -39,9 +39,10 @@ export class PlanApiConnectionTester {
       if (connection.mode === "local") {
         result = success(await this.checkWithDeadline(this.dependencies.createClient(connection.baseUrl, connection.token), deadline));
       } else {
-        const localPort = await this.withDeadline(this.dependencies.reservePort(), deadline);
+        const localPort = await this.withDeadline(() => this.dependencies.reservePort(), deadline);
         this.ensureBefore(deadline); tunnel = this.dependencies.createTunnel();
-        tunnel.start({ sshTarget: connection.sshTarget, localPort, remotePort: connection.remotePort });
+        const started: unknown = tunnel.start({ sshTarget: connection.sshTarget, localPort, remotePort: connection.remotePort });
+        if (started !== undefined) { this.cleanLateStart(started, tunnel); throw new Error(); }
         this.ensureBefore(deadline);
         result = success(await this.poll(this.dependencies.createClient(`http://127.0.0.1:${localPort}`, connection.token), deadline));
       }
@@ -56,20 +57,26 @@ export class PlanApiConnectionTester {
     while (true) {
       try { return await this.checkWithDeadline(client, deadline); }
       catch (error) {
-        if (error instanceof DeadlineExceeded || error instanceof InvalidHealth || error instanceof PlanApiError && (error.code === "auth_failed" || error.code === "response_invalid")) throw error;
+        if (!retryable(error)) throw error;
         this.ensureBefore(deadline);
-        await this.withDeadline(this.sleep(Math.min(this.pollMs, deadline - this.now())), deadline);
+        await this.withDeadline(() => this.sleep(Math.min(this.pollMs, deadline - this.now())), deadline);
       }
     }
   }
   private async checkWithDeadline(client: PlanApiConnectionTestClient, deadline: number): Promise<PlanApiHealth> {
-    const value = await this.withDeadline(client.health(), deadline);
+    const value = await this.withDeadline(() => client.health(), deadline);
     try { return parsePlanApiHealth(value); } catch { throw new InvalidHealth(); }
   }
   private ensureBefore(deadline: number): void { if (this.now() >= deadline) throw new DeadlineExceeded(); }
-  private async withDeadline<T>(value: Promise<T>, deadline: number): Promise<T> {
+  private cleanLateStart(value: unknown, tunnel: PlanApiConnectionTestTunnel): void {
+    if (!thenable(value)) return;
+    void Promise.resolve(value).then(() => this.stopQuietly(tunnel), () => this.stopQuietly(tunnel));
+  }
+  private async stopQuietly(tunnel: PlanApiConnectionTestTunnel): Promise<void> { try { await tunnel.stop(); } catch { /* late cleanup is best effort */ } }
+  private async withDeadline<T>(operation: () => Promise<T>, deadline: number): Promise<T> {
     const remaining = deadline - this.now(); if (remaining <= 0) throw new DeadlineExceeded();
     let timer: ReturnType<typeof setTimeout> | undefined;
+    const value = Promise.resolve().then(operation);
     try { return await Promise.race([value, new Promise<T>((_resolve, reject) => { timer = setTimeout(() => reject(new DeadlineExceeded()), remaining); })]); }
     finally { if (timer) clearTimeout(timer); }
   }
@@ -94,6 +101,8 @@ export async function reservePlanApiTestPort(): Promise<number> {
 class DeadlineExceeded extends Error {}
 class CleanupFailed extends Error {}
 class InvalidHealth extends Error {}
+function thenable(value: unknown): value is PromiseLike<unknown> { return !!value && (typeof value === "object" || typeof value === "function") && typeof (value as { then?: unknown }).then === "function"; }
+function retryable(error: unknown): boolean { return error instanceof PlanApiError && (error.code === "offline" || error.code === "http_error" && error.status !== undefined && error.status >= 500 && error.status < 600); }
 function positive(value: number | undefined, fallback: number): number { return value !== undefined && Number.isFinite(value) && value > 0 ? value : fallback; }
 function close(server: ReturnType<typeof createServer>): Promise<void> { return new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
 function success(health: PlanApiHealth): PlanApiConnectionTestResult { return { ok: true, message: "Plan API 连接正常", apiVersion: 1, serverRevision: health.serverRevision }; }
