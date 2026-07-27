@@ -1,6 +1,6 @@
 /**
  * 模块用途：给主进程执行失败附加稳定错误码，供 renderer 选择恢复动作。
- * 模块边界：不处理 UI 文案，也不吞掉原始错误信息。
+ * 模块边界：只返回稳定安全文案，并屏蔽底层连接与请求错误细节。
  */
 import type { AiExecutionFailureCode } from "../../shared/aiMutationTypes.js";
 import { PlanApiError } from "../planApi/planApiErrors.js";

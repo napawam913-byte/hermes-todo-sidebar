@@ -19,6 +19,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { configureLaunchAtLogin, ensureSingleInstance } from "./lifecycle/appLifecycle.js";
 import { registerAiRuntime } from "./ai/aiBootstrap.js";
+import { createAiDataPorts } from "./ai/aiDataPorts.js";
+import { reportBootstrapFailure, runBootstrapSequence } from "./lifecycle/bootstrapFailure.js";
 import { createDataTransferActions } from "./lifecycle/dataTransferController.js";
 import { createPlanApiBeforeQuitHandler } from "./lifecycle/planApiShutdown.js";
 import { getRuntimeChannel, getTestUserDataPath } from "./lifecycle/runtimeChannel.js";
@@ -44,6 +46,8 @@ let tray: Tray | null = null;
 let petController: PetWindowController | null = null;
 let planApiRuntime: RegisteredPlanApiRuntime | null = null;
 let isQuitting = false;
+
+interface PreparedDesktopRuntime { runtime: RegisteredPlanApiRuntime; dataDirectory: string; }
 
 function showSidebar() {
   petController?.setExpanded(true);
@@ -132,7 +136,7 @@ async function createTray(runtime: RegisteredPlanApiRuntime, dataDirectory: stri
   tray.on("click", showSidebar);
 }
 
-async function bootstrap() {
+async function initializePlanApi(): Promise<PreparedDesktopRuntime> {
   configureLaunchAtLogin(app, {
     portable: Boolean(
       process.env.PORTABLE_EXECUTABLE_FILE || process.env.PORTABLE_EXECUTABLE_DIR
@@ -142,19 +146,26 @@ async function bootstrap() {
   await mkdir(dataDirectory, { recursive: true });
   const appStateService = new AppStateService(new AppStateFileStore({ dataDirectory }));
   await appStateService.initialize();
-  planApiRuntime = registerPlanApiRuntime({
+  const runtime = registerPlanApiRuntime({
     ipc: ipcMain, userDataDirectory: app.getPath("userData"), dataDirectory,
     isPackaged: app.isPackaged,
     legacyStateService: appStateService,
     publish: (channel, payload) => mainWindow?.webContents.send(channel, payload),
   });
-  await planApiRuntime.initialize();
-  const runtime = planApiRuntime;
+  await runtime.initialize();
+  planApiRuntime = runtime;
+  return { runtime, dataDirectory };
+}
+
+function registerAiDataRuntime({ runtime }: PreparedDesktopRuntime) {
+  const aiDataPorts = createAiDataPorts(runtime);
   registerAiRuntime(ipcMain, {
-    snapshotPort: { getSnapshot: () => runtime.getStoredSnapshot() },
-    mutationPort: { execute: (batch) => runtime.execute(batch) },
+    ...aiDataPorts,
     userDataDirectory: app.getPath("userData")
   });
+}
+
+async function createDesktopRuntime({ runtime, dataDirectory }: PreparedDesktopRuntime) {
   createMainWindow();
   if (!mainWindow) throw new Error("桌宠窗口创建失败");
   petController = new PetWindowController({
@@ -164,15 +175,33 @@ async function bootstrap() {
   });
   registerPetIpc(ipcMain, petController);
   await petController.initialize();
-  await createTray(planApiRuntime, dataDirectory);
+  await createTray(runtime, dataDirectory);
   const recoverDisplayLayout = () => void petController?.recoverDisplayLayout();
   screen.on("display-added", recoverDisplayLayout);
   screen.on("display-removed", recoverDisplayLayout);
   screen.on("display-metrics-changed", recoverDisplayLayout);
 }
 
+async function bootstrap() {
+  await runBootstrapSequence({
+    initializePlanApi,
+    registerAi: registerAiDataRuntime,
+    createDesktop: createDesktopRuntime
+  }, {
+    showError: (title, message) => dialog.showErrorBox(title, message),
+    exit: (code) => app.exit(code)
+  });
+}
+
+function handleBootstrapFailure() {
+  reportBootstrapFailure({
+    showError: (title, message) => dialog.showErrorBox(title, message),
+    exit: (code) => app.exit(code)
+  });
+}
+
 if (ensureSingleInstance(app)) {
-  void app.whenReady().then(bootstrap);
+  void app.whenReady().then(bootstrap).catch(handleBootstrapFailure);
   app.on("second-instance", showSidebar);
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();

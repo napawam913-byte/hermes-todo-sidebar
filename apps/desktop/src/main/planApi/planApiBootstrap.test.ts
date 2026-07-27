@@ -108,17 +108,19 @@ describe("createPlanApiMigrationPort", () => {
 });
 
 describe("main process Plan API ordering", () => {
-  it("initializes Plan API before registering AI with its ports", () => {
+  it("initializes Plan API before adapting and registering AI ports", () => {
     const source = readFileSync(path.resolve(mainDirectory, "../main.ts"), "utf8");
-    const registerRuntime = source.indexOf("planApiRuntime = registerPlanApiRuntime");
-    const initializeRuntime = source.indexOf("await planApiRuntime.initialize()");
+    const registerRuntime = source.indexOf("const runtime = registerPlanApiRuntime");
+    const initializeRuntime = source.indexOf("await runtime.initialize()");
+    const adaptRuntime = source.indexOf("createAiDataPorts(runtime)");
     const registerAi = source.indexOf("registerAiRuntime(ipcMain, {");
 
     expect(registerRuntime).toBeGreaterThan(-1);
     expect(initializeRuntime).toBeGreaterThan(registerRuntime);
-    expect(registerAi).toBeGreaterThan(initializeRuntime);
-    expect(source).toContain("snapshotPort:");
-    expect(source).toContain("mutationPort:");
+    expect(adaptRuntime).toBeGreaterThan(initializeRuntime);
+    expect(registerAi).toBeGreaterThan(adaptRuntime);
+    expect(source).toContain("const aiDataPorts = createAiDataPorts(runtime)");
+    expect(source).toContain("...aiDataPorts");
     expect(source).not.toContain("registerAiRuntime(ipcMain, appStateService");
   });
 });
