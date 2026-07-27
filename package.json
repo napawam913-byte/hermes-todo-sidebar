@@ -15,7 +15,7 @@
     "build:renderer": "vite build --config apps/desktop/vite.config.ts",
     "build": "npm run typecheck && npm run build:main && npm run build:renderer",
     "dist:win": "npm run build && electron-builder --win nsis portable",
-    "dist:win:compatible": "npm run build && electron-builder --win --dir && node scripts/create-compatible-portable.mjs",
+    "dist:win:compatible": "npm run build && electron-builder --win --x64 --dir && node scripts/create-compatible-portable.mjs",
     "test": "vitest run --config apps/desktop/vite.config.ts",
     "check:source-lines": "node scripts/check-source-lines.mjs"
   },
