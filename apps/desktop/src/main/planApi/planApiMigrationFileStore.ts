@@ -86,7 +86,12 @@ export class PlanApiMigrationFileStore {
   }
 
   async saveRecord(record: PlanApiMigrationRecordV1): Promise<void> {
-    const serialized = `${JSON.stringify(parseRecord(JSON.stringify(record)), null, 2)}\n`;
+    let serialized: string;
+    try {
+      serialized = `${JSON.stringify(parseRecord(JSON.stringify(record)), null, 2)}\n`;
+    } catch (error) {
+      throw new PlanApiMigrationStorageError("record_invalid", error);
+    }
     const temporaryPath = path.join(
       this.dataDirectory,
       `${RECORD_NAME}.${randomUUID()}.tmp`,
@@ -140,30 +145,45 @@ function parseRecord(raw: string): PlanApiMigrationRecordV1 {
     "completedAt",
   ];
   const required = keys.slice(0, -1);
-  const final = record.status === "completed" || record.status === "skipped";
+  const completed = record.status === "completed";
+  const skipped = record.status === "skipped";
+  const final = completed || skipped;
   const valid =
     record.schemaVersion === 1 &&
     (record.status === "pending" || final) &&
     required.every((key) => key in record) &&
     Object.keys(record).every((key) => keys.includes(key)) &&
     typeof record.sourceUpdatedAt === "string" &&
-    typeof record.backupPath === "string" &&
+    nonEmpty(record.backupPath) &&
     typeof record.idempotencyKey === "string" &&
-    record.idempotencyKey.startsWith("desktop-migration:") &&
     typeof record.sourceFingerprint === "string" &&
     FINGERPRINT.test(record.sourceFingerprint) &&
+    record.idempotencyKey === `desktop-migration:${record.sourceFingerprint}` &&
     numeric(record.importedTaskCount) &&
     numeric(record.importedEntryCount) &&
     numeric(record.baselineRevision) &&
     (final
-      ? typeof record.completedAt === "string"
-      : !("completedAt" in record));
+      ? iso(record.completedAt)
+      : !("completedAt" in record)) &&
+    (skipped
+      ? record.importedTaskCount === 0 && record.importedEntryCount === 0
+      : record.importedTaskCount > 0);
   if (!valid) throw new Error("invalid record");
   return record as unknown as PlanApiMigrationRecordV1;
 }
 
-function numeric(value: unknown): boolean {
+function numeric(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
+function nonEmpty(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function iso(value: unknown): value is string {
+  return typeof value === "string"
+    && /^\d{4}-\d{2}-\d{2}T/.test(value)
+    && !Number.isNaN(Date.parse(value));
 }
 
 function safeCause(value: unknown): { name: string; code?: string } {

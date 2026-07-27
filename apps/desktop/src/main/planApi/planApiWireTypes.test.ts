@@ -4,6 +4,7 @@ import {
   parsePlanApiMutationResult,
   parsePlanApiSnapshot,
 } from "./planApiWireTypes.js";
+import type { PlanApiMutationBatch } from "./planApiWireTypes.js";
 
 const content = (kind = "todo.unknown") => ({
   schemaVersion: 1,
@@ -69,5 +70,16 @@ describe("parsePlanApiHealth and parsePlanApiMutationResult", () => {
       status: "ok", service: "plan-api", apiVersion: 1,
       database: { status: "ok" }, serverRevision: 2, token: "secret",
     })).toThrow();
+  });
+});
+
+describe("PlanApiMutationBatch", () => {
+  it("allows an optional non-negative expected server revision", () => {
+    const batch: PlanApiMutationBatch = {
+      idempotencyKey: "expected-revision",
+      expectedServerRevision: 0,
+      operations: [],
+    };
+    expect(batch.expectedServerRevision).toBe(0);
   });
 });

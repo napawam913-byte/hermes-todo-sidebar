@@ -22,6 +22,7 @@ describe("PlanApiMigrationService", () => {
       .toEqual(["pending", "completed"]);
     expect(plan.client.mutate.mock.calls[0][0].idempotencyKey)
       .toMatch(/^desktop-migration:[a-f0-9]{64}$/);
+    expect(plan.client.mutate.mock.calls[0][0].expectedServerRevision).toBe(1);
   });
 
   it("recovers a pending mutation with its original idempotency key", async () => {
@@ -41,6 +42,17 @@ describe("PlanApiMigrationService", () => {
     plan.legacyState.getSnapshot.mockReturnValue(legacy([todo({ title: "changed" })], [cycle()]));
     await expect(plan.service.migrate()).resolves.toEqual({ status: "blocked", reason: "legacy_changed" });
     expect(plan.client.mutate).toHaveBeenCalledOnce();
+  });
+
+  it("keeps a pending migration when an uncommitted retry sees a newer remote", async () => {
+    const plan = setup({ failOnce: true });
+    await expect(plan.service.migrate()).rejects.toThrow("network");
+    plan.client.mutate.mockImplementationOnce(async (batch) => {
+      expect(batch.expectedServerRevision).toBe(1);
+      throw new Error("version_conflict");
+    });
+    await expect(plan.service.migrate()).rejects.toThrow("version_conflict");
+    expect(plan.fileStore.saveRecord.mock.calls.at(-1)?.[0].status).toBe("pending");
   });
 
   it("preserves legacy status, source, and completion time in the wire batch", async () => {
@@ -86,6 +98,11 @@ describe("PlanApiMigrationService", () => {
     } });
     await expect(content.service.migrate()).rejects.toMatchObject({ code: "migration_verification_failed" });
     expect(content.fileStore.saveRecord.mock.calls.at(-1)?.[0].status).toBe("pending");
+  });
+
+  it("accepts a successful mutation when the verification snapshot is newer", async () => {
+    const plan = setup({ after: (batch) => ({ ...snapshotFor(batch), serverRevision: 3 }) });
+    await expect(plan.service.migrate()).resolves.toMatchObject({ status: "completed" });
   });
 
   it("blocks unsafe starts, backs up before skipping, and serializes concurrent work", async () => {

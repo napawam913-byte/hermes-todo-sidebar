@@ -47,9 +47,19 @@ def operation(kind: str, **values: object) -> dict[str, object]:
     return {"type": kind, **values}
 
 
-def batch(key: str, *operations: dict[str, object]) -> MutationBatch:
+def batch(
+    key: str,
+    *operations: dict[str, object],
+    expected_server_revision: int | None = None,
+) -> MutationBatch:
+    payload: dict[str, object] = {
+        "idempotencyKey": key,
+        "operations": operations,
+    }
+    if expected_server_revision is not None:
+        payload["expectedServerRevision"] = expected_server_revision
     return MutationBatch.model_validate(
-        {"idempotencyKey": key, "operations": operations}
+        payload
     )
 
 

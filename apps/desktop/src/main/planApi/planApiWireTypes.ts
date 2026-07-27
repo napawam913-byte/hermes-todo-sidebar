@@ -37,7 +37,11 @@ export type PlanApiMutationOperation =
   | { type: "entry.create"; taskId: string; draft: PlanApiTaskEntryDraft }
   | { type: "entry.update"; targetId: string; expectedVersion: number; patch: Record<string, unknown> }
   | { type: "entry.complete" | "entry.reopen" | "entry.skip" | "entry.delete"; targetId: string; expectedVersion: number };
-export interface PlanApiMutationBatch { idempotencyKey: string; operations: PlanApiMutationOperation[] }
+export interface PlanApiMutationBatch {
+  idempotencyKey: string;
+  expectedServerRevision?: number;
+  operations: PlanApiMutationOperation[];
+}
 export interface PlanApiMutationResult { serverRevision: number; changedTaskIds: string[]; changedEntryIds: string[] }
 export interface PlanApiHealth { status: "ok"; service: "plan-api"; apiVersion: 1; database: { status: "ok" }; serverRevision: number }
 

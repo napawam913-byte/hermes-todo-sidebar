@@ -80,6 +80,9 @@ class MutationExecutor:
                 )
                 if cached is not None:
                     return cached
+                self._require_expected_revision(
+                    connection, batch.expectedServerRevision
+                )
                 changed_tasks: set[str] = set()
                 changed_entries: set[str] = set()
                 for operation in batch.operations:
@@ -153,6 +156,17 @@ class MutationExecutor:
         if row["request_hash"] != request_hash:
             raise MutationError("validation_failed")
         return MutationResult.model_validate_json(row["response_json"])
+
+    def _require_expected_revision(
+        self, connection: sqlite3.Connection, expected: int | None
+    ) -> None:
+        if expected is None:
+            return
+        row = connection.execute(
+            "SELECT server_revision FROM app_meta WHERE id = 1"
+        ).fetchone()
+        if row is None or int(row["server_revision"]) != expected:
+            raise MutationError("version_conflict")
 
     def _bump_revision(self, connection: sqlite3.Connection) -> int:
         connection.execute(

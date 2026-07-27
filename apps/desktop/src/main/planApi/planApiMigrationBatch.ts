@@ -9,6 +9,7 @@ type EntryMeta = Pick<PlanApiTaskEntryDraft, "status" | "source" | "completed_at
 export function createMigrationBatch(
   frozen: FrozenLegacyState,
   idempotencyKey: string,
+  expectedServerRevision: number,
 ): PlanApiMutationBatch {
   const batch = adaptAppMutationBatch({
     batch: { source: { type: "manual" }, summary: "legacy state migration", operations: operationsFor(frozen) },
@@ -20,6 +21,7 @@ export function createMigrationBatch(
   let taskIndex = 0;
   return {
     ...batch,
+    expectedServerRevision,
     operations: batch.operations.map((operation) => {
       if (operation.type !== "task.create") return operation;
       const entries = operation.draft.entries.map((entry, entryIndex) => ({

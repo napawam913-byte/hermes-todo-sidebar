@@ -75,6 +75,20 @@ def test_stale_mutation_version_maps_to_409(
     assert_error(response, 409, "version_conflict")
 
 
+def test_stale_expected_server_revision_maps_to_409_without_writes(
+    client: TestClient, desktop_headers: dict[str, str]
+) -> None:
+    assert client.post(
+        "/v1/mutations", headers=desktop_headers, json=daily_create()
+    ).status_code == 200
+    stale = daily_create("stale-server-revision")
+    stale["expectedServerRevision"] = 0
+    response = client.post("/v1/mutations", headers=desktop_headers, json=stale)
+
+    assert_error(response, 409, "version_conflict")
+    assert len(client.get("/v1/snapshot", headers=desktop_headers).json()["tasks"]) == 1
+
+
 def test_executor_validation_failure_maps_to_422(
     client: TestClient, desktop_headers: dict[str, str]
 ) -> None:

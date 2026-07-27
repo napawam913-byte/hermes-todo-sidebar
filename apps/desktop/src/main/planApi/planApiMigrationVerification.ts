@@ -17,8 +17,8 @@ export function migrationCommitIsVerified(
   if (hasDuplicates(result.changedTaskIds) || hasDuplicates(result.changedEntryIds)) return false;
   if (result.changedTaskIds.length !== expected.length
     || result.changedEntryIds.length !== record.importedEntryCount
-    || result.serverRevision < record.baselineRevision
-    || snapshot.serverRevision !== result.serverRevision) return false;
+    || result.serverRevision <= record.baselineRevision
+    || snapshot.serverRevision < result.serverRevision) return false;
   const tasks = new Map(snapshot.tasks.map((task) => [task.id, task]));
   const entryTaskIds = new Map(snapshot.tasks.flatMap((task) =>
     task.entries.map((entry) => [entry.id, task.id] as const)));

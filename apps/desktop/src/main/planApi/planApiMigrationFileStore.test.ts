@@ -24,8 +24,8 @@ const record = (status: "pending" | "completed" | "skipped" = "completed") => ({
   sourceFingerprint: fingerprint,
   backupPath: "backup.json",
   idempotencyKey: `desktop-migration:${fingerprint}`,
-  importedTaskCount: 2,
-  importedEntryCount: 3,
+  importedTaskCount: status === "skipped" ? 0 : 2,
+  importedEntryCount: status === "skipped" ? 0 : 3,
   baselineRevision: 0,
   ...(status === "pending" ? {} : { completedAt: "2026-07-25T01:00:00.000Z" }),
 });
@@ -93,6 +93,25 @@ describe("PlanApiMigrationFileStore", () => {
     await expect(store.loadRecord()).rejects.toMatchObject({
       code: "record_invalid",
       cause: { name: "SyntaxError" },
+    });
+  });
+  it("rejects damaged cross-field records on load and save", async () => {
+    const { store } = await setup();
+    const damaged = [
+      { ...record(), idempotencyKey: "desktop-migration:wrong" },
+      { ...record(), backupPath: "" },
+      { ...record(), completedAt: "not-an-iso-date" },
+      { ...record("skipped"), importedTaskCount: 1 },
+      { ...record("pending"), importedTaskCount: 0 },
+    ];
+    for (const item of damaged) {
+      await expect(store.saveRecord(item)).rejects.toMatchObject({
+        code: "record_invalid",
+      });
+    }
+    await writeFile(store.recordPath, JSON.stringify(damaged[0]), "utf8");
+    await expect(store.loadRecord()).rejects.toMatchObject({
+      code: "record_invalid",
     });
   });
 });

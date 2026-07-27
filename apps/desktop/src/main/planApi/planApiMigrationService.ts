@@ -106,7 +106,11 @@ export class PlanApiMigrationService {
     frozen: FrozenLegacyState,
     record: PlanApiMigrationRecordV1,
   ): Promise<PlanApiMigrationInspection> {
-    const batch = createMigrationBatch(frozen, record.idempotencyKey);
+    const batch = createMigrationBatch(
+      frozen,
+      record.idempotencyKey,
+      record.baselineRevision,
+    );
     const result = await this.deps.client.mutate(batch);
     const snapshot = await this.deps.client.snapshot();
     if (!migrationCommitIsVerified(result, snapshot, batch, record)) {

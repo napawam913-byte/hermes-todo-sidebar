@@ -46,6 +46,7 @@ class MutationError(Exception):
 
 
 ExpectedVersion = Annotated[StrictInt, Field(ge=1)]
+ExpectedServerRevision = Annotated[StrictInt, Field(ge=0)]
 Identifier = Annotated[str, Field(min_length=1, max_length=200)]
 
 
@@ -192,10 +193,14 @@ MutationOperation = Annotated[
 
 class MutationBatch(MutationContract):
     idempotencyKey: Identifier
+    expectedServerRevision: ExpectedServerRevision | None = None
     operations: tuple[MutationOperation, ...] = Field(min_length=1, max_length=100)
 
     def request_hash(self) -> str:
-        payload = [item.model_dump(mode="json") for item in self.operations]
+        payload = {
+            "expectedServerRevision": self.expectedServerRevision,
+            "operations": [item.model_dump(mode="json") for item in self.operations],
+        }
         encoded = json.dumps(
             payload,
             ensure_ascii=False,
