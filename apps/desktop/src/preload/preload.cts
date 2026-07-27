@@ -8,7 +8,11 @@ import type {
   PetDragStartSample
 } from "../shared/petDragContract.js";
 import type { AppMutationBatch } from "../shared/appMutationTypes.js";
-import type { PlanApiConnectionInput, PlanApiSnapshotEnvelope } from "../shared/planApiBridgeContract.js";
+import type {
+  PlanApiConnectionInput,
+  PlanApiMigrationInspection,
+  PlanApiSnapshotEnvelope
+} from "../shared/planApiBridgeContract.js";
 
 function subscribe(channel: string, callback: (payload: unknown) => void) {
   const listener = (_event: unknown, payload: unknown) => callback(payload);
@@ -29,6 +33,8 @@ contextBridge.exposeInMainWorld("hermesPlanApi", {
   getConfig: () => ipcRenderer.invoke("plan-api:get-config"),
   testConnection: (input: PlanApiConnectionInput) => ipcRenderer.invoke("plan-api:test-connection", input),
   saveConnection: (input: PlanApiConnectionInput) => ipcRenderer.invoke("plan-api:save-connection", input),
+  inspectMigration: (): Promise<PlanApiMigrationInspection> =>
+    ipcRenderer.invoke("plan-api:inspect-migration"),
   migrateLegacyState: () => ipcRenderer.invoke("plan-api:migrate"),
   keepRemoteData: () => ipcRenderer.invoke("plan-api:keep-remote"),
   onStatusChanged: (callback: (status: PlanApiSnapshotEnvelope["status"]) => void) =>

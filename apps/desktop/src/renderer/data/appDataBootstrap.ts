@@ -1,82 +1,167 @@
 /**
- * 模块用途：在应用启动时选择 Electron 文件状态或浏览器 Demo 数据源。
- * 模块边界：只组装初始数据与仓储，不挂载 React，也不处理窗口生命周期。
+ * 模块用途：初始化 Plan API 快照或浏览器 Demo，并组装统一变更网关。
+ * 模块边界：不挂载 React，不访问主进程实现，也不维护页面会话状态。
  */
+import type { CyclePlan, DataSource, Todo } from "../../shared/appDomainTypes";
+import type { AppMutationBatch } from "../../shared/appMutationTypes";
+import type {
+  PlanApiConnectionInput,
+  PlanApiConnectionTestResult,
+  PlanApiMigrationInspection,
+  PlanApiPublicConfig,
+  PlanApiRuntimeStatus,
+  PlanApiSnapshotEnvelope
+} from "../../shared/planApiBridgeContract";
 import {
   createLocalCyclePlanRepository,
   normalizeCyclePlans,
   type StorageLike
 } from "../features/cyclePlans/localCyclePlanRepository";
-import type { CyclePlanRepository } from "../features/cyclePlans/cyclePlanRepository";
-import type { CyclePlan } from "../features/cyclePlans/cyclePlanTypes";
 import { mockCyclePlans } from "../features/cyclePlans/mockCyclePlans";
 import { createLocalTodoRepository, normalizeTodos } from "../features/todos/localTodoRepository";
 import { mockTodos } from "../features/todos/mockTodos";
-import type { TodoRepository } from "../features/todos/todoRepository";
-import type { Todo } from "../features/todos/types";
-import { createElectronRepositories, type DesktopDataBridge, type RepositoryWriteController } from "./electronRepositories";
+import {
+  createBrowserMutationGateway,
+  createElectronMutationGateway,
+  loadBrowserMutationSnapshot,
+  type AppMutationGateway
+} from "./appMutationGateway";
+
+export interface PlanApiRendererBridge {
+  loadState(): Promise<PlanApiSnapshotEnvelope>;
+  executeMutations(batch: AppMutationBatch): Promise<PlanApiSnapshotEnvelope>;
+  onSnapshotChanged(listener: (snapshot: PlanApiSnapshotEnvelope) => void): () => void;
+  getConfig(): Promise<PlanApiPublicConfig>;
+  testConnection(input: PlanApiConnectionInput): Promise<PlanApiConnectionTestResult>;
+  saveConnection(input: PlanApiConnectionInput): Promise<PlanApiPublicConfig>;
+  inspectMigration(): Promise<PlanApiMigrationInspection>;
+  migrateLegacyState(): Promise<PlanApiMigrationInspection>;
+  keepRemoteData(): Promise<PlanApiMigrationInspection>;
+  onStatusChanged(listener: (status: PlanApiRuntimeStatus) => void): () => void;
+}
 
 export interface AppDataBootstrapResult {
-  todoRepository: TodoRepository;
-  cyclePlanRepository: CyclePlanRepository;
   initialTodos: Todo[];
   initialCyclePlans: CyclePlan[];
+  initialDataStatus: PlanApiRuntimeStatus;
+  mutationGateway: AppMutationGateway;
+  planApiBridge: PlanApiRendererBridge | null;
   startExpanded: boolean;
-  writeController: RepositoryWriteController | null;
 }
 
 interface BootstrapOptions {
-  bridge?: DesktopDataBridge;
+  bridge?: PlanApiRendererBridge;
   storage?: StorageLike;
 }
+
+const browserStatus: PlanApiRuntimeStatus = {
+  mode: "online",
+  canMutate: true,
+  message: "浏览器预览数据",
+  cacheAvailable: false
+};
 
 export async function bootstrapAppData(
   options: BootstrapOptions = {}
 ): Promise<AppDataBootstrapResult> {
-  const bridge = options.bridge ?? getDesktopBridge();
-  if (bridge) {
-    const snapshot = await loadDesktopSnapshot(bridge);
-    const initialTodos = normalizeTodos(snapshot.todos);
-    const initialCyclePlans = normalizeCyclePlans(snapshot.cyclePlans);
-    const repositories = createElectronRepositories({
-      bridge,
-      todos: initialTodos,
-      cyclePlans: initialCyclePlans
-    });
-    return {
-      ...repositories,
-      initialTodos,
-      initialCyclePlans,
-      writeController: repositories,
-      startExpanded: false
-    };
-  }
+  const bridge = options.bridge ?? getRendererBridge();
+  if (bridge) return bootstrapElectron(bridge);
+  return bootstrapBrowser(options.storage ?? getBrowserStorage());
+}
 
-  const storage = options.storage ?? getBrowserStorage();
-  const todoRepository = createLocalTodoRepository(storage);
-  const cyclePlanRepository = createLocalCyclePlanRepository(storage);
-  const persistedTodos = todoRepository.loadTodos();
-  const persistedPlans = cyclePlanRepository.loadPlans();
+async function bootstrapElectron(
+  bridge: PlanApiRendererBridge
+): Promise<AppDataBootstrapResult> {
+  const snapshot = await bridge.loadState();
+  const tracked = createTrackedBridge(bridge, snapshot.status);
   return {
-    todoRepository,
-    cyclePlanRepository,
-    initialTodos: persistedTodos.length > 0 ? persistedTodos : mockTodos,
-    initialCyclePlans: persistedPlans.length > 0 ? persistedPlans : mockCyclePlans,
-    writeController: null,
+    initialTodos: normalizeMutationTodos(snapshot.todos),
+    initialCyclePlans: normalizeCyclePlans(snapshot.cyclePlans),
+    initialDataStatus: snapshot.status,
+    mutationGateway: createElectronMutationGateway(tracked.bridge, tracked.readStatus),
+    planApiBridge: tracked.bridge,
+    startExpanded: false
+  };
+}
+
+function bootstrapBrowser(storage: StorageLike | undefined): AppDataBootstrapResult {
+  const todoRepository = createLocalTodoRepository(storage);
+  const planRepository = createLocalCyclePlanRepository(storage);
+  const unified = loadBrowserMutationSnapshot(storage);
+  const storedTodos = unified?.todos ?? todoRepository.loadTodos();
+  const storedPlans = unified?.cyclePlans ?? planRepository.loadPlans();
+  const initialTodos = storedTodos.length
+    ? normalizeMutationTodos(storedTodos)
+    : normalizeMutationTodos(mockTodos);
+  const initialCyclePlans = storedPlans.length ? normalizeCyclePlans(storedPlans) : mockCyclePlans;
+  return {
+    initialTodos,
+    initialCyclePlans,
+    initialDataStatus: browserStatus,
+    mutationGateway: createBrowserMutationGateway({
+      initialState: { todos: initialTodos, cyclePlans: initialCyclePlans },
+      storage
+    }),
+    planApiBridge: null,
     startExpanded: true
   };
 }
 
-async function loadDesktopSnapshot(bridge: DesktopDataBridge) {
-  try {
-    return await bridge.loadState();
-  } catch {
-    return { todos: [], cyclePlans: [] };
-  }
+/** 兼容旧 renderer Todo：统一网关要求持久化来源，缺失时迁移为 manual。 */
+function normalizeMutationTodos(value: unknown): Todo[] {
+  return normalizeTodos(value).map((todo) => ({
+    ...todo,
+    source: normalizeSource((todo as { source?: unknown }).source)
+  }));
 }
 
-function getDesktopBridge(): DesktopDataBridge | undefined {
-  return typeof window === "undefined" ? undefined : window.hermesAppData;
+function normalizeSource(value: unknown): DataSource {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { type: "manual" };
+  }
+  const source = value as Record<string, unknown>;
+  const type = source.type;
+  if (type !== "manual" && type !== "ai_draft" && type !== "hermes" && type !== "feishu") {
+    return { type: "manual" };
+  }
+  return {
+    type,
+    ...(typeof source.proposalId === "string" ? { proposalId: source.proposalId } : {}),
+    ...(typeof source.externalId === "string" ? { externalId: source.externalId } : {})
+  };
+}
+
+function createTrackedBridge(
+  bridge: PlanApiRendererBridge,
+  initialStatus: PlanApiRuntimeStatus
+) {
+  let status = initialStatus;
+  const capture = (snapshot: PlanApiSnapshotEnvelope) => {
+    status = snapshot.status;
+    return snapshot;
+  };
+  const tracked: PlanApiRendererBridge = {
+    ...bridge,
+    loadState: async () => capture(await bridge.loadState()),
+    executeMutations: async (batch) => capture(await bridge.executeMutations(batch)),
+    onSnapshotChanged: (listener) => bridge.onSnapshotChanged((snapshot) => {
+      listener(capture(snapshot));
+    }),
+    onStatusChanged: (listener) => bridge.onStatusChanged((next) => {
+      status = next;
+      listener(next);
+    })
+  };
+  return { bridge: tracked, readStatus: () => status };
+}
+
+function getRendererBridge(): PlanApiRendererBridge | undefined {
+  if (typeof window === "undefined") return undefined;
+  const data = window.hermesAppData;
+  const planApi = window.hermesPlanApi;
+  if (!data && !planApi) return undefined;
+  if (!data || !planApi) throw new Error("Plan API renderer bridge is incomplete");
+  return { ...data, ...planApi };
 }
 
 function getBrowserStorage(): StorageLike | undefined {

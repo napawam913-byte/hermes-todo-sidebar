@@ -1,4 +1,9 @@
 import type { StoredAppStateV1 } from "../storage/appStateTypes.js";
+import type {
+  PlanApiMigrationBlockReason,
+  PlanApiMigrationInspection,
+} from "../../shared/planApiBridgeContract.js";
+export type { PlanApiMigrationInspection } from "../../shared/planApiBridgeContract.js";
 import { createMigrationBatch } from "./planApiMigrationBatch.js";
 import {
   PlanApiMigrationFileStore,
@@ -19,13 +24,7 @@ type Client = {
   snapshot(): Promise<PlanApiSnapshot>;
   mutate(batch: PlanApiMutationBatch): Promise<PlanApiMutationResult>;
 };
-type BlockReason = "remote_not_empty" | "remote_empty" | "legacy_empty"
-  | "legacy_invalid" | "legacy_changed" | "local_limit_exceeded";
-export type PlanApiMigrationInspection =
-  | { status: "completed" | "skipped"; record: PlanApiMigrationRecordV1 }
-  | { status: "pending" }
-  | { status: "ready"; taskCount: number; entryCount: number }
-  | { status: "blocked"; reason: BlockReason };
+type BlockReason = PlanApiMigrationBlockReason;
 
 export class PlanApiMigrationError extends Error {
   constructor(readonly code: "migration_verification_failed") {

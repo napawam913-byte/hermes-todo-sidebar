@@ -1,5 +1,9 @@
 /** 模块用途：验证 Plan API 的 Electron IPC 白名单与订阅释放。 */
 import { describe, expect, it, vi } from "vitest";
+import type {
+  PlanApiMigrationInspection,
+  PlanApiSnapshotEnvelope,
+} from "../../shared/planApiBridgeContract.js";
 import { registerPlanApiIpc } from "./planApiIpc.js";
 
 type Handler = (...args: unknown[]) => unknown;
@@ -8,12 +12,31 @@ function fakeIpc(handlers: Map<string, Handler>) {
 }
 function runtime() {
   const listener = vi.fn(); const unsubscribe = vi.fn();
+  const envelope: PlanApiSnapshotEnvelope = {
+    todos: [{ id: "todo_remote" }],
+    cyclePlans: [],
+    status: {
+      mode: "online",
+      canMutate: true,
+      message: "数据服务已连接",
+      cacheAvailable: true,
+      serverRevision: 4,
+    },
+  };
+  const inspection: PlanApiMigrationInspection = {
+    status: "ready",
+    taskCount: 1,
+    entryCount: 2,
+  };
   return {
-    loadState: vi.fn(async () => ({ schemaVersion: 1, todos: [], cyclePlans: [], settings: { launchAtLogin: false }, updatedAt: "now" })),
-    executeMutations: vi.fn(), getConfig: vi.fn(async () => ({ schemaVersion: 1, configured: true, mode: "local", baseUrl: "http://plan", sshTarget: "", localPort: 8743, remotePort: 8743, tokenConfigured: true, tokenHint: "1234" })),
-    testConnection: vi.fn(), saveConnection: vi.fn(), migrateLegacyState: vi.fn(), keepRemoteData: vi.fn(),
+    loadState: vi.fn(async () => envelope),
+    executeMutations: vi.fn(async () => envelope),
+    getConfig: vi.fn(async () => ({ schemaVersion: 1 as const, configured: true, mode: "local" as const, baseUrl: "http://plan", sshTarget: "", localPort: 8743, remotePort: 8743, tokenConfigured: true, tokenHint: "1234" })),
+    testConnection: vi.fn(), saveConnection: vi.fn(),
+    inspectMigration: vi.fn(async () => inspection),
+    migrateLegacyState: vi.fn(), keepRemoteData: vi.fn(),
     subscribe: vi.fn((callback: typeof listener) => { listener.mockImplementation(callback); return unsubscribe; }),
-    listener, unsubscribe,
+    listener, unsubscribe, envelope, inspection,
   };
 }
 const connection = () => ({ mode: "local", baseUrl: "https://plan.example:8743", sshTarget: "", localPort: 8743, remotePort: 8743, desktopToken: "desktop-token" });
@@ -24,10 +47,25 @@ describe("registerPlanApiIpc", () => {
     registerPlanApiIpc(fakeIpc(handlers), runtime());
     expect([...handlers.keys()]).toEqual(expect.arrayContaining([
       "plan-api:load-state", "plan-api:execute-mutations", "plan-api:get-config",
-      "plan-api:test-connection", "plan-api:save-connection", "plan-api:migrate", "plan-api:keep-remote"
+      "plan-api:test-connection", "plan-api:save-connection",
+      "plan-api:inspect-migration", "plan-api:migrate", "plan-api:keep-remote"
     ]));
     expect(handlers.has("data:replace-todos")).toBe(false);
     expect(handlers.has("data:replace-cycle-plans")).toBe(false);
+  });
+
+  it("returns snapshot envelopes and a read-only migration inspection", async () => {
+    const handlers = new Map<string, Handler>();
+    const plan = runtime();
+    registerPlanApiIpc(fakeIpc(handlers), plan);
+
+    await expect(handlers.get("plan-api:load-state")?.()).resolves.toEqual(plan.envelope);
+    await expect(handlers.get("plan-api:inspect-migration")?.()).resolves.toEqual(
+      plan.inspection,
+    );
+    expect(plan.inspectMigration).toHaveBeenCalledOnce();
+    expect(plan.migrateLegacyState).not.toHaveBeenCalled();
+    expect(plan.keepRemoteData).not.toHaveBeenCalled();
   });
 
   it("returns public configuration only and releases replaced subscriptions", async () => {

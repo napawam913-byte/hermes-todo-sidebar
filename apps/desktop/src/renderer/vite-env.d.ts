@@ -1,21 +1,17 @@
 /// <reference types="vite/client" />
 
-interface DesktopAppState {
-  schemaVersion: 1;
-  todos: unknown[];
-  cyclePlans: unknown[];
-  settings: { launchAtLogin: boolean };
-  updatedAt: string;
-}
-
 interface Window {
   hermesAppData?: {
-    loadState: () => Promise<DesktopAppState>;
+    loadState: () => Promise<
+      import("../shared/planApiBridgeContract").PlanApiSnapshotEnvelope
+    >;
     executeMutations: (
       batch: import("../shared/appMutationTypes").AppMutationBatch
-    ) => Promise<DesktopAppState>;
+    ) => Promise<import("../shared/planApiBridgeContract").PlanApiSnapshotEnvelope>;
     onSnapshotChanged: (
-      callback: (snapshot: import("../shared/planApiBridgeContract").PlanApiSnapshotEnvelope) => void
+      callback: (
+        snapshot: import("../shared/planApiBridgeContract").PlanApiSnapshotEnvelope
+      ) => void
     ) => () => void;
   };
   hermesPlanApi?: {
@@ -26,8 +22,15 @@ interface Window {
     saveConnection: (
       input: import("../shared/planApiBridgeContract").PlanApiConnectionInput
     ) => Promise<import("../shared/planApiBridgeContract").PlanApiPublicConfig>;
-    migrateLegacyState: () => Promise<import("../main/planApi/planApiMigrationService").PlanApiMigrationInspection>;
-    keepRemoteData: () => Promise<import("../main/planApi/planApiMigrationService").PlanApiMigrationInspection>;
+    inspectMigration: () => Promise<
+      import("../shared/planApiBridgeContract").PlanApiMigrationInspection
+    >;
+    migrateLegacyState: () => Promise<
+      import("../shared/planApiBridgeContract").PlanApiMigrationInspection
+    >;
+    keepRemoteData: () => Promise<
+      import("../shared/planApiBridgeContract").PlanApiMigrationInspection
+    >;
     onStatusChanged: (
       callback: (status: import("../shared/planApiBridgeContract").PlanApiRuntimeStatus) => void
     ) => () => void;

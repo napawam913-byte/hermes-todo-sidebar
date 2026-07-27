@@ -1,7 +1,11 @@
 /** 模块用途：组合 Plan API 主进程依赖；边界：不向 renderer 暴露令牌、HTTP 或窗口对象。 */
 import { safeStorage, type IpcMain } from "electron";
 import type { AppMutationBatch } from "../../shared/appMutationTypes.js";
-import type { PlanApiConnectionInput, PlanApiSnapshotEnvelope } from "../../shared/planApiBridgeContract.js";
+import type {
+  PlanApiConnectionInput,
+  PlanApiMigrationInspection,
+  PlanApiSnapshotEnvelope,
+} from "../../shared/planApiBridgeContract.js";
 import type { AppStateService } from "../storage/appStateService.js";
 import { PlanApiClient } from "./planApiClient.js";
 import { PlanApiConnectionFileStore, PlanApiConnectionStore } from "./planApiConnectionStore.js";
@@ -9,7 +13,6 @@ import { PlanApiConnectionTester, reservePlanApiTestPort } from "./planApiConnec
 import { registerPlanApiIpc } from "./planApiIpc.js";
 import { PlanApiMigrationFileStore } from "./planApiMigrationFileStore.js";
 import { PlanApiMigrationService } from "./planApiMigrationService.js";
-import type { PlanApiMigrationInspection } from "./planApiMigrationService.js";
 import { PlanApiRuntime } from "./planApiRuntime.js";
 import { PlanApiSnapshotCache } from "./planApiSnapshotCache.js";
 import { PlanApiSshTunnel, type SshTunnelConfig } from "./planApiSshTunnel.js";
@@ -18,6 +21,42 @@ export interface PlanApiBootstrapOptions { ipc: IpcMain; userDataDirectory: stri
 export interface RegisteredPlanApiRuntime {
   initialize(): Promise<PlanApiSnapshotEnvelope>; shutdown(): Promise<void>; getStoredSnapshot(): Promise<ReturnType<AppStateService["getSnapshot"]>>;
   execute(batch: AppMutationBatch): Promise<ReturnType<AppStateService["getSnapshot"]>>; refresh(): Promise<PlanApiSnapshotEnvelope>;
+}
+
+type SnapshotRuntime = Pick<PlanApiRuntime, "getSnapshotEnvelope" | "execute">;
+type MigrationServicePort = Pick<
+  PlanApiMigrationService,
+  "inspect" | "migrate" | "keepRemoteAndSkip"
+>;
+
+/** renderer 数据端口始终返回状态信封；AI 仍可单独使用 runtime.execute 的旧状态合同。 */
+export function createPlanApiSnapshotPort(runtime: SnapshotRuntime) {
+  return {
+    loadState: () => runtime.getSnapshotEnvelope(),
+    async executeMutations(batch: AppMutationBatch): Promise<PlanApiSnapshotEnvelope> {
+      await runtime.execute(batch);
+      return runtime.getSnapshotEnvelope();
+    },
+  };
+}
+
+/** 迁移预览严格只读；只有改变迁移决策的动作才刷新运行时快照。 */
+export function createPlanApiMigrationPort(
+  resolveService: () => Promise<MigrationServicePort>,
+  refresh: () => Promise<unknown>,
+) {
+  const change = async (
+    action: (service: MigrationServicePort) => Promise<PlanApiMigrationInspection>,
+  ) => {
+    const result = await action(await resolveService());
+    await refresh();
+    return result;
+  };
+  return {
+    inspectMigration: async () => (await resolveService()).inspect(),
+    migrateLegacyState: () => change((service) => service.migrate()),
+    keepRemoteData: () => change((service) => service.keepRemoteAndSkip()),
+  };
 }
 
 /** 显式适配同步 start 契约，避免把异步值伪装为 undefined。 */
@@ -35,17 +74,21 @@ export function registerPlanApiRuntime(options: PlanApiBootstrapOptions): Regist
     connectionStore: connections, cache: new PlanApiSnapshotCache(options.dataDirectory), legacyStateService: options.legacyStateService, createClient: client, tunnel: tunnelPort(tunnel),
     connectionTester: new PlanApiConnectionTester({ resolveConnection: (input) => connections.resolveConnection(input), reservePort: reservePlanApiTestPort, createTunnel: () => tunnelPort(new PlanApiSshTunnel()), createClient: client }),
   });
-  const migration = async (run: (service: PlanApiMigrationService) => Promise<PlanApiMigrationInspection>) => {
+  const resolveMigrationService = async () => {
     const connection = await connections.resolveConnection();
     if (!connection) throw new Error("Plan API is not configured");
     const baseUrl = connection.mode === "ssh" ? `http://127.0.0.1:${connection.localPort}` : connection.baseUrl;
-    const result = await run(new PlanApiMigrationService({ legacyState: options.legacyStateService, client: client(baseUrl, connection.token), fileStore: new PlanApiMigrationFileStore(options.dataDirectory) }));
-    await runtime.refresh(); return result;
+    return new PlanApiMigrationService({
+      legacyState: options.legacyStateService,
+      client: client(baseUrl, connection.token),
+      fileStore: new PlanApiMigrationFileStore(options.dataDirectory),
+    });
   };
   const port = {
-    loadState: () => runtime.getStoredSnapshot(), executeMutations: (batch: AppMutationBatch) => runtime.execute(batch), getConfig: () => connections.getPublicConfig(),
+    ...createPlanApiSnapshotPort(runtime), getConfig: () => connections.getPublicConfig(),
     testConnection: (input: PlanApiConnectionInput) => runtime.testConnection(input), saveConnection: (input: PlanApiConnectionInput) => runtime.saveConnection(input),
-    migrateLegacyState: () => migration((service) => service.migrate()), keepRemoteData: () => migration((service) => service.keepRemoteAndSkip()), subscribe: runtime.subscribe.bind(runtime),
+    ...createPlanApiMigrationPort(resolveMigrationService, () => runtime.refresh()),
+    subscribe: runtime.subscribe.bind(runtime),
   };
   const removeIpc = registerPlanApiIpc(options.ipc, port, options.publish);
   return {

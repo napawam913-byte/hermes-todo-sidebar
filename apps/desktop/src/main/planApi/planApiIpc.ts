@@ -2,19 +2,27 @@
 import type { IpcMain } from "electron";
 import { parseAppMutationBatch } from "../../shared/appMutationValidation.js";
 import type { AppMutationBatch } from "../../shared/appMutationTypes.js";
-import type { PlanApiConnectionInput, PlanApiConnectionTestResult, PlanApiPublicConfig, PlanApiSnapshotEnvelope } from "../../shared/planApiBridgeContract.js";
-import type { StoredAppStateV1 } from "../storage/appStateTypes.js";
-import type { PlanApiMigrationInspection } from "./planApiMigrationService.js";
+import type {
+  PlanApiConnectionInput,
+  PlanApiConnectionTestResult,
+  PlanApiMigrationInspection,
+  PlanApiPublicConfig,
+  PlanApiSnapshotEnvelope,
+} from "../../shared/planApiBridgeContract.js";
 
 export const PLAN_API_CHANNELS = {
   load: "plan-api:load-state", execute: "plan-api:execute-mutations", config: "plan-api:get-config",
-  test: "plan-api:test-connection", save: "plan-api:save-connection", migrate: "plan-api:migrate", keepRemote: "plan-api:keep-remote",
+  test: "plan-api:test-connection", save: "plan-api:save-connection",
+  inspectMigration: "plan-api:inspect-migration",
+  migrate: "plan-api:migrate", keepRemote: "plan-api:keep-remote",
 } as const;
 type IpcPort = Pick<IpcMain, "handle" | "removeHandler">;
 type Runtime = {
-  loadState(): Promise<StoredAppStateV1>; executeMutations(batch: AppMutationBatch): Promise<StoredAppStateV1>;
+  loadState(): Promise<PlanApiSnapshotEnvelope>; executeMutations(batch: AppMutationBatch): Promise<PlanApiSnapshotEnvelope>;
   getConfig(): Promise<PlanApiPublicConfig>; testConnection(input: PlanApiConnectionInput): Promise<PlanApiConnectionTestResult>;
-  saveConnection(input: PlanApiConnectionInput): Promise<PlanApiPublicConfig>; migrateLegacyState(): Promise<PlanApiMigrationInspection>; keepRemoteData(): Promise<PlanApiMigrationInspection>;
+  saveConnection(input: PlanApiConnectionInput): Promise<PlanApiPublicConfig>;
+  inspectMigration(): Promise<PlanApiMigrationInspection>;
+  migrateLegacyState(): Promise<PlanApiMigrationInspection>; keepRemoteData(): Promise<PlanApiMigrationInspection>;
   subscribe(listener: (snapshot: PlanApiSnapshotEnvelope) => void): () => void;
 };
 const cleanupByIpc = new WeakMap<object, () => void>();
@@ -29,6 +37,7 @@ export function registerPlanApiIpc(ipc: IpcPort, runtime: Runtime, publish: (cha
   ipc.handle(PLAN_API_CHANNELS.config, () => runtime.getConfig());
   ipc.handle(PLAN_API_CHANNELS.test, (_event, input) => runtime.testConnection(parseConnectionInput(input)));
   ipc.handle(PLAN_API_CHANNELS.save, (_event, input) => runtime.saveConnection(parseConnectionInput(input)));
+  ipc.handle(PLAN_API_CHANNELS.inspectMigration, () => runtime.inspectMigration());
   ipc.handle(PLAN_API_CHANNELS.migrate, () => runtime.migrateLegacyState());
   ipc.handle(PLAN_API_CHANNELS.keepRemote, () => runtime.keepRemoteData());
   const unsubscribe = runtime.subscribe((snapshot) => { publish("plan-api:snapshot-changed", snapshot); publish("plan-api:status-changed", snapshot.status); });
