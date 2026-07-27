@@ -28,7 +28,12 @@ interface ElectronRepositoryOptions {
 export interface ElectronRepositories {
   todoRepository: TodoRepository;
   cyclePlanRepository: CyclePlanRepository;
+  getWriteState(): RepositoryWriteState;
+  onWriteStateChanged(listener: (state: RepositoryWriteState) => void): () => void;
+  retryPending(): void;
 }
+
+export interface RepositoryWriteState { pending: boolean; error?: string; }
 
 export function createElectronRepositories(
   options: ElectronRepositoryOptions
@@ -36,14 +41,36 @@ export function createElectronRepositories(
   let serverSnapshot: DomainSnapshot = clone({ todos: options.todos, cyclePlans: options.cyclePlans });
   let desiredSnapshot = clone(serverSnapshot);
   let tail = Promise.resolve();
+  let retryRequired = false;
+  let writeState: RepositoryWriteState = { pending: false };
+  const listeners = new Set<(state: RepositoryWriteState) => void>();
+  const publish = (state: RepositoryWriteState) => {
+    writeState = state;
+    listeners.forEach((listener) => listener({ ...state }));
+  };
+  const schedule = () => {
+    publish({ pending: true });
+    tail = tail.then(flush, flush);
+  };
   const save = (patch: Partial<DomainSnapshot>) => {
     desiredSnapshot = clone({ ...desiredSnapshot, ...patch });
-    tail = tail.then(async () => {
-      const batch = createSnapshotMutationBatch(serverSnapshot, desiredSnapshot);
-      if (!batch) return;
+    retryRequired = false;
+    schedule();
+  };
+  const flush = async () => {
+    if (retryRequired) return;
+    const desired = clone(desiredSnapshot);
+    const batch = createSnapshotMutationBatch(serverSnapshot, desired);
+    if (!batch) { publish({ pending: false }); return; }
+    try {
       const snapshot = await options.bridge.executeMutations(batch);
       serverSnapshot = clone({ todos: snapshot.todos as Todo[], cyclePlans: snapshot.cyclePlans as CyclePlan[] });
-    }).catch(() => undefined);
+      if (sameSnapshot(desiredSnapshot, desired)) desiredSnapshot = clone(serverSnapshot);
+      publish({ pending: !sameSnapshot(desiredSnapshot, serverSnapshot) });
+    } catch (error) {
+      retryRequired = true;
+      publish({ pending: false, error: message(error) });
+    }
   };
 
   return {
@@ -54,8 +81,16 @@ export function createElectronRepositories(
     cyclePlanRepository: {
       loadPlans: () => structuredClone(serverSnapshot.cyclePlans),
       savePlans: (cyclePlans) => save({ cyclePlans })
-    }
+    },
+    getWriteState: () => ({ ...writeState }),
+    onWriteStateChanged: (listener) => {
+      listeners.add(listener); listener({ ...writeState });
+      return () => listeners.delete(listener);
+    },
+    retryPending: () => { if (retryRequired) { retryRequired = false; schedule(); } }
   };
 }
 
 function clone(snapshot: DomainSnapshot): DomainSnapshot { return structuredClone(snapshot); }
+function sameSnapshot(left: DomainSnapshot, right: DomainSnapshot): boolean { return JSON.stringify(left) === JSON.stringify(right); }
+function message(error: unknown): string { return error instanceof Error ? error.message : "保存到 Plan API 失败"; }

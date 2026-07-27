@@ -57,4 +57,31 @@ describe("createElectronRepositories", () => {
       "cyclePlan.entry.skip", "cyclePlan.entry.delete"
     ]));
   });
+
+  it("restores authoritative data, reports a failure, and retries retained intent", async () => {
+    const current = structuredClone(mockTodos);
+    const next = [{ ...current[0], title: "retry me" }, ...current.slice(1)];
+    const failure = new Error("offline");
+    const port: DesktopDataBridge = {
+      loadState: vi.fn(),
+      executeMutations: vi.fn()
+        .mockRejectedValueOnce(failure)
+        .mockResolvedValueOnce({ todos: next, cyclePlans: [] })
+    };
+    const repositories = createElectronRepositories({ bridge: port, todos: current, cyclePlans: [] });
+    const states: unknown[] = [];
+    repositories.onWriteStateChanged((state) => states.push(state));
+
+    repositories.todoRepository.saveTodos(next);
+    await flush();
+    expect(repositories.todoRepository.loadTodos()).toEqual(current);
+    expect(repositories.getWriteState()).toEqual({ pending: false, error: "offline" });
+    expect(states).toContainEqual({ pending: false, error: "offline" });
+
+    repositories.retryPending();
+    await flush();
+    expect(port.executeMutations).toHaveBeenCalledTimes(2);
+    expect(repositories.todoRepository.loadTodos()).toEqual(next);
+    expect(repositories.getWriteState()).toEqual({ pending: false });
+  });
 });
