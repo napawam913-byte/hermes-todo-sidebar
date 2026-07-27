@@ -41,7 +41,7 @@ function deferred<T>() {
   return { promise: new Promise<T>((done) => { resolve = done; }), resolve };
 }
 function setup(options: {
-  connections?: ReturnType<typeof conn>[];
+  connections?: (ReturnType<typeof conn> | null)[];
   clients?: Record<string, any>;
   cacheSave?: () => Promise<void>;
   reconnect?: any;
@@ -51,7 +51,7 @@ function setup(options: {
     save: vi.fn(options.cacheSave ?? (async () => undefined)),
   };
   const store = {
-    resolveConnection: vi.fn(async () => options.connections?.shift() ?? conn()),
+    resolveConnection: vi.fn(async () => options.connections ? options.connections.shift() ?? null : conn()),
     save: vi.fn(async () => ({ configured: true })),
   };
   const legacy = {
@@ -82,7 +82,6 @@ describe("PlanApiRuntime", () => {
     await expect(plan.runtime.execute(batch())).rejects.toMatchObject({ code: "offline" });
     expect(plan.legacy.transact).not.toHaveBeenCalled();
   });
-
   it("uses exact local and SSH client wiring and fails closed without a tunnel", async () => {
     const client = { snapshot: vi.fn(async () => snapshot(1)), mutate: vi.fn() };
     const local = setup({ clients: { "http://one:8743": client } });
@@ -104,8 +103,7 @@ describe("PlanApiRuntime", () => {
     expect(tunnel.start).toHaveBeenCalledWith({ sshTarget: "hermes", localPort: 9999, remotePort: 8743 });
     expect(plan.createClient).toHaveBeenCalledWith("http://127.0.0.1:9999", ssh.token);
   });
-
-  it("serializes connection changes so the new snapshot remains cached", async () => {
+  it("recovers the lifecycle queue after a failed save and caches the new connection", async () => {
     const old = deferred<any>();
     const one = { snapshot: vi.fn(() => old.promise), mutate: vi.fn() };
     const two = { snapshot: vi.fn(async () => snapshot(2, "new")), mutate: vi.fn() };
@@ -113,31 +111,35 @@ describe("PlanApiRuntime", () => {
       connections: [conn("http://one:8743"), conn("http://two:8743")],
       clients: { "http://one:8743": one, "http://two:8743": two },
     });
+    plan.store.save.mockRejectedValueOnce(new Error("write failed")).mockResolvedValueOnce({ configured: true });
     const initial = plan.runtime.initialize();
     await Promise.resolve();
-    const changed = plan.runtime.saveConnection({
+    const input = {
       mode: "local", baseUrl: "http://two:8743", sshTarget: "", localPort: 8743,
       remotePort: 8743, desktopToken: "x",
-    });
+    };
+    const failed = plan.runtime.saveConnection(input);
     old.resolve(snapshot(1, "old"));
-    await Promise.all([initial, changed]);
+    await initial;
+    await expect(failed).rejects.toThrow("write failed");
+    await plan.runtime.saveConnection(input);
     expect(plan.cache.save.mock.calls.at(-1)?.[0]).toMatchObject({ todos: [{ id: "new" }] });
+    await expect(plan.runtime.getSnapshotEnvelope()).resolves.toMatchObject({ status: { mode: "online" } });
   });
 
   it("reuses a stable manual key until confirmation and then creates a new key", async () => {
     const client = {
       snapshot: vi.fn()
         .mockResolvedValueOnce(snapshot(1))
-        .mockRejectedValueOnce(new PlanApiError("offline"))
         .mockResolvedValueOnce(snapshot(2))
         .mockResolvedValueOnce(snapshot(3))
         .mockResolvedValueOnce(snapshot(4)),
-      mutate: vi.fn(async () => undefined),
+      mutate: vi.fn().mockRejectedValueOnce(new PlanApiError("response_invalid")).mockResolvedValue(undefined),
     };
     const plan = setup({ clients: { "http://one:8743": client } });
     await plan.runtime.initialize();
 
-    await expect(plan.runtime.execute(batch())).rejects.toMatchObject({ code: "offline" });
+    await expect(plan.runtime.execute(batch())).rejects.toMatchObject({ code: "response_invalid" });
     const first = client.mutate.mock.calls[0][0].idempotencyKey;
     await plan.runtime.refresh();
     await plan.runtime.execute(batch(true));
@@ -171,7 +173,7 @@ describe("PlanApiRuntime", () => {
     expect(reconnect.schedule).toHaveBeenCalledOnce();
   });
 
-  it("does not retry auth or cache failures and isolates an initial throwing listener", async () => {
+  it("does not retry auth/cache failures, isolates listeners, and names unconfigured state", async () => {
     const reconnect = { schedule: vi.fn(), cancel: vi.fn() };
     const auth = { snapshot: vi.fn(async () => { throw new PlanApiError("auth_failed"); }), mutate: vi.fn() };
     const plan = setup({ clients: { "http://one:8743": auth }, reconnect });
@@ -186,35 +188,33 @@ describe("PlanApiRuntime", () => {
     });
     await disk.runtime.initialize();
     expect(reconnect.schedule).not.toHaveBeenCalled();
+
+    const unconfigured = setup({ connections: [null] });
+    await unconfigured.runtime.initialize();
+    await expect(unconfigured.runtime.getSnapshotEnvelope()).resolves.toMatchObject({
+      status: { message: "数据服务尚未配置" },
+    });
   });
 
   it("invalidates an in-flight mutation immediately on shutdown without cache pollution", async () => {
     const mutationStarted = deferred<void>();
-    const snapshotStarted = deferred<void>();
-    const late = deferred<any>();
-    let calls = 0;
+    const pendingMutation = deferred<void>();
     const client = {
-      snapshot: vi.fn(async () => {
-        calls += 1;
-        if (calls === 1) return snapshot(1);
-        snapshotStarted.resolve();
-        return late.promise;
-      }),
-      mutate: vi.fn(async () => { mutationStarted.resolve(); }),
+      snapshot: vi.fn(async () => snapshot(1)),
+      mutate: vi.fn(() => { mutationStarted.resolve(); return pendingMutation.promise; }),
     };
     const plan = setup({ clients: { "http://one:8743": client } });
     await plan.runtime.initialize();
 
     const execution = plan.runtime.execute(batch());
     await mutationStarted.promise;
-    await snapshotStarted.promise;
     const closing = plan.runtime.shutdown();
-    late.resolve(snapshot(2));
+    pendingMutation.resolve();
     await expect(execution).rejects.toMatchObject({ code: "offline" });
     await closing;
 
     expect(plan.cache.save).toHaveBeenCalledTimes(1);
-    expect(client.snapshot).toHaveBeenCalledTimes(2);
+    expect(client.snapshot).toHaveBeenCalledOnce();
     await expect(plan.runtime.getSnapshotEnvelope()).resolves.toMatchObject({ status: { canMutate: false } });
   });
 });

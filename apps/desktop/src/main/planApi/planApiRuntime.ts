@@ -28,20 +28,20 @@ const emptyIndex = () => PlanApiVersionIndex.fromSnapshot({ serverRevision: 0, t
 const status = (mode: PlanApiRuntimeStatus["mode"], canMutate: boolean, message: string,
   cacheAvailable: boolean, serverRevision?: number, lastSyncedAt?: string): PlanApiRuntimeStatus => ({
   mode, canMutate, message, cacheAvailable,
-  ...(serverRevision === undefined ? {} : { serverRevision }),
-  ...(lastSyncedAt ? { lastSyncedAt } : {}),
+  ...(serverRevision === undefined ? {} : { serverRevision }), ...(lastSyncedAt ? { lastSyncedAt } : {}),
 });
 const retryable = (error: unknown) => error instanceof PlanApiError
   && (error.code === "offline" || (error.code === "http_error" && (error.status ?? 0) >= 500));
 const noWriteRetry = (error: unknown) => error instanceof PlanApiError
-  && (["auth_failed", "validation_failed", "version_conflict", "response_invalid"].includes(error.code)
+  && (["auth_failed", "validation_failed", "version_conflict"].includes(error.code)
     || (error.code === "http_error" && (error.status ?? 500) < 500));
 const errorMessages: Record<PlanApiError["code"], string> = {
   auth_failed: "数据服务认证失败，请检查连接令牌", response_invalid: "数据服务响应无效，请检查服务版本",
   validation_failed: "请求数据无效，请检查后重试", version_conflict: "数据已更新，请刷新后重试",
   offline: "数据服务离线，正在显示最近缓存", http_error: "数据服务请求失败，请稍后重试",
 };
-const errorMessage = (error: unknown) => error instanceof PlanApiError ? errorMessages[error.code] : "本地缓存不可用，请检查磁盘后重试";
+const errorMessage = (error: unknown) => error instanceof PlanApiError ? errorMessages[error.code]
+  : error instanceof Error && error.message === "unconfigured" ? "数据服务尚未配置" : "本地缓存不可用，请检查磁盘后重试";
 function stableJson(value: unknown): string {
   if (value === null || typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
   if (typeof value === "number") return Number.isFinite(value) ? JSON.stringify(value) : "null";
