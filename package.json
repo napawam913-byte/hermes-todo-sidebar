@@ -1,6 +1,6 @@
 {
   "name": "hermes-todo-sidebar",
-  "version": "0.1.2",
+  "version": "0.2.0-test.1",
   "private": true,
   "author": "napawam913-byte",
   "description": "单机 Windows 待办桌宠，支持今日待办、周期计划与本地文件持久化。",
@@ -15,15 +15,15 @@
     "build:renderer": "vite build --config apps/desktop/vite.config.ts",
     "build": "npm run typecheck && npm run build:main && npm run build:renderer",
     "dist:win": "npm run build && electron-builder --win nsis portable",
+    "dist:win:compatible": "npm run build && electron-builder --win --dir && node scripts/create-compatible-portable.mjs",
     "test": "vitest run --config apps/desktop/vite.config.ts",
     "check:source-lines": "node scripts/check-source-lines.mjs"
   },
-  "dependencies": {},
   "devDependencies": {
-    "@vitejs/plugin-react": "^5.0.0",
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
     "electron": "^43.1.0",
     "electron-builder": "^26.15.3",
     "jsdom": "^26.1.0",
@@ -69,7 +69,7 @@
           ]
         }
       ],
-      "icon": "build/icon.png"
+      "icon": "build/icon.ico"
     },
     "nsis": {
       "artifactName": "${productName}-${version}-${arch}-setup.${ext}",
