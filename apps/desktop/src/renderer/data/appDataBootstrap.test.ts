@@ -19,6 +19,13 @@ const offlineStatus: PlanApiRuntimeStatus = {
   serverRevision: 7
 };
 
+function readSource(todo: unknown): unknown {
+  if (typeof todo !== "object" || todo === null || !("source" in todo)) {
+    return undefined;
+  }
+  return (todo as { source?: unknown }).source;
+}
+
 function desktopBridge(
   loadState: PlanApiRendererBridge["loadState"]
 ): PlanApiRendererBridge {
@@ -74,7 +81,7 @@ describe("bootstrapAppData", () => {
     const result = await bootstrapAppData({ bridge });
 
     expect(result.initialTodos[0].source).toEqual(source);
-    expect(result.todoRepository.loadTodos()[0].source).toEqual(source);
+    expect(readSource(result.todoRepository.loadTodos()[0])).toEqual(source);
   });
 
   it("falls back to manual for a malformed raw source", async () => {
