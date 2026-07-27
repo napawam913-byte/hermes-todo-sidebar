@@ -33,7 +33,7 @@ export interface ElectronRepositories {
   retryPending(): void;
 }
 
-export interface RepositoryWriteState { pending: boolean; error?: string; }
+export type RepositoryWriteState = Readonly<{ pending: boolean; error?: string; }>;
 export interface RepositoryWriteController {
   getWriteState(): RepositoryWriteState;
   onWriteStateChanged(listener: (state: RepositoryWriteState) => void): () => void;
@@ -47,11 +47,11 @@ export function createElectronRepositories(
   let desiredSnapshot = clone(serverSnapshot);
   let tail = Promise.resolve();
   let retryRequired = false;
-  let writeState: RepositoryWriteState = { pending: false };
+  let writeState: RepositoryWriteState = Object.freeze({ pending: false });
   const listeners = new Set<(state: RepositoryWriteState) => void>();
   const publish = (state: RepositoryWriteState) => {
-    writeState = state;
-    listeners.forEach((listener) => listener({ ...state }));
+    writeState = Object.freeze({ ...state });
+    listeners.forEach((listener) => listener(writeState));
   };
   const schedule = () => {
     publish({ pending: true });
@@ -87,9 +87,9 @@ export function createElectronRepositories(
       loadPlans: () => structuredClone(serverSnapshot.cyclePlans),
       savePlans: (cyclePlans) => save({ cyclePlans })
     },
-    getWriteState: () => ({ ...writeState }),
+    getWriteState: () => writeState,
     onWriteStateChanged: (listener) => {
-      listeners.add(listener); listener({ ...writeState });
+      listeners.add(listener); listener(writeState);
       return () => listeners.delete(listener);
     },
     retryPending: () => { if (retryRequired) { retryRequired = false; schedule(); } }

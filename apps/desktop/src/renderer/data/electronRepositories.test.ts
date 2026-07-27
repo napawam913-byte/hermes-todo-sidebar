@@ -10,6 +10,11 @@ function bridge(): DesktopDataBridge {
 async function flush() { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); }
 
 describe("createElectronRepositories", () => {
+  it("keeps a stable write-state snapshot until the state changes", () => {
+    const repositories = createElectronRepositories({ bridge: bridge(), todos: [], cyclePlans: [] });
+    expect(repositories.getWriteState()).toBe(repositories.getWriteState());
+  });
+
   it("loads startup data and submits todo create, update, status, and delete mutations", async () => {
     const current = [...structuredClone(mockTodos), { ...mockTodos[0], id: "deleted" }];
     current[2].status = "completed";
