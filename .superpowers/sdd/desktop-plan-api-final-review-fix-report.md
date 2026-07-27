@@ -205,3 +205,54 @@ the 220-line limit while preserving readable, single-purpose responsibilities.
   passed immediately afterward. No out-of-scope Python change was made.
 - The passing Python run still reports the existing Starlette `httpx` deprecation
   warning.
+
+## Backup Collision Safety Follow-Up
+
+The earlier classification of the backup collision as transient is superseded by this
+follow-up. Independent validation reproduced the failure, and a frozen-clock regression
+confirmed the root cause: the timestamp was used as a unique identifier even though
+Windows can return the same clock value for consecutive calls, while `Path.replace()`
+silently overwrote the existing destination.
+
+### TDD Evidence
+
+RED:
+
+- Added a frozen-clock same-timestamp test that changes `server_revision` between two
+  backups and verifies both paths and database contents remain distinct.
+- Added a same-timestamp retention test that creates three backups with `keep=2` and
+  requires the first collision sequence to be pruned.
+- Command:
+  `C:\tmp\hermes-plan-api-python311\python.exe -m pytest services\plan-api\tests\test_backup.py -q -p no:cacheprovider`
+- Result: 2 failed, 2 passed. Consecutive calls returned the same path and the oldest
+  colliding backup could not be pruned independently.
+
+GREEN:
+
+- Backup creation now writes to a unique temporary file and publishes the complete
+  SQLite file with `os.link`, which atomically fails rather than overwriting an existing
+  destination.
+- Same-timestamp collisions use monotonically increasing numeric suffixes. Concurrent
+  publication that claims the same suffix retries the next suffix.
+- Retention sorting compares timestamp, fractional time, and numeric collision sequence,
+  preserving newest-backup semantics for both legacy names and collision-safe names.
+
+### Files And Line Limits
+
+- `services/plan-api/src/plan_api/backup.py`: 78 lines.
+- `services/plan-api/tests/test_backup.py`: 108 lines.
+- No TypeScript or other source file was changed in this follow-up.
+
+### Verification
+
+- Focused backup command run 1: PASS, 4 tests.
+- Focused backup command run 2: PASS, 4 tests.
+- Focused backup command run 3: PASS, 4 tests.
+- Full command:
+  `C:\tmp\hermes-plan-api-python311\python.exe -m pytest services\plan-api\tests -q -p no:cacheprovider`
+- Full result: PASS, 211 tests, with the existing Starlette/httpx deprecation warning.
+
+### Remaining Concern
+
+- The backup collision blocker is resolved. The only remaining observation is the
+  existing Starlette `httpx` deprecation warning, which is outside this fix scope.
