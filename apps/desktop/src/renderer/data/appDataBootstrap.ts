@@ -4,6 +4,7 @@
  */
 import type { CyclePlan, DataSource, Todo } from "../../shared/appDomainTypes";
 import type { AppMutationBatch } from "../../shared/appMutationTypes";
+import type { CyclePlanRepository } from "../features/cyclePlans/cyclePlanRepository";
 import type {
   PlanApiConnectionInput,
   PlanApiConnectionTestResult,
@@ -20,12 +21,17 @@ import {
 import { mockCyclePlans } from "../features/cyclePlans/mockCyclePlans";
 import { createLocalTodoRepository, normalizeTodos } from "../features/todos/localTodoRepository";
 import { mockTodos } from "../features/todos/mockTodos";
+import type { TodoRepository } from "../features/todos/todoRepository";
 import {
   createBrowserMutationGateway,
   createElectronMutationGateway,
   loadBrowserMutationSnapshot,
   type AppMutationGateway
 } from "./appMutationGateway";
+import {
+  createElectronRepositories,
+  type RepositoryWriteController
+} from "./electronRepositories";
 
 export interface PlanApiRendererBridge {
   loadState(): Promise<PlanApiSnapshotEnvelope>;
@@ -46,6 +52,9 @@ export interface AppDataBootstrapResult {
   initialDataStatus: PlanApiRuntimeStatus;
   mutationGateway: AppMutationGateway;
   planApiBridge: PlanApiRendererBridge | null;
+  todoRepository: TodoRepository;
+  cyclePlanRepository: CyclePlanRepository;
+  writeController: RepositoryWriteController | null;
   startExpanded: boolean;
 }
 
@@ -74,12 +83,23 @@ async function bootstrapElectron(
 ): Promise<AppDataBootstrapResult> {
   const snapshot = await bridge.loadState();
   const tracked = createTrackedBridge(bridge, snapshot.status);
+  const initialTodos = normalizeMutationTodos(snapshot.todos);
+  const initialCyclePlans = normalizeCyclePlans(snapshot.cyclePlans);
+  const mutationGateway = createElectronMutationGateway(tracked.bridge, tracked.readStatus);
+  const repositories = createElectronRepositories({
+    bridge: { loadState: tracked.bridge.loadState, executeMutations: mutationGateway.execute },
+    todos: initialTodos,
+    cyclePlans: initialCyclePlans
+  });
   return {
-    initialTodos: normalizeMutationTodos(snapshot.todos),
-    initialCyclePlans: normalizeCyclePlans(snapshot.cyclePlans),
+    initialTodos,
+    initialCyclePlans,
     initialDataStatus: snapshot.status,
-    mutationGateway: createElectronMutationGateway(tracked.bridge, tracked.readStatus),
+    mutationGateway,
     planApiBridge: tracked.bridge,
+    todoRepository: repositories.todoRepository,
+    cyclePlanRepository: repositories.cyclePlanRepository,
+    writeController: repositories,
     startExpanded: false
   };
 }
@@ -103,15 +123,26 @@ function bootstrapBrowser(storage: StorageLike | undefined): AppDataBootstrapRes
       storage
     }),
     planApiBridge: null,
+    todoRepository,
+    cyclePlanRepository: planRepository,
+    writeController: null,
     startExpanded: true
   };
 }
 
 /** 兼容旧 renderer Todo：统一网关要求持久化来源，缺失时迁移为 manual。 */
 function normalizeMutationTodos(value: unknown): Todo[] {
+  const sources = new Map<string, DataSource>();
+  if (Array.isArray(value)) {
+    for (const candidate of value) {
+      if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) continue;
+      const record = candidate as Record<string, unknown>;
+      if (typeof record.id === "string") sources.set(record.id, normalizeSource(record.source));
+    }
+  }
   return normalizeTodos(value).map((todo) => ({
     ...todo,
-    source: normalizeSource((todo as { source?: unknown }).source)
+    source: sources.get(todo.id) ?? { type: "manual" }
   }));
 }
 
@@ -122,6 +153,10 @@ function normalizeSource(value: unknown): DataSource {
   const source = value as Record<string, unknown>;
   const type = source.type;
   if (type !== "manual" && type !== "ai_draft" && type !== "hermes" && type !== "feishu") {
+    return { type: "manual" };
+  }
+  if (("proposalId" in source && typeof source.proposalId !== "string")
+    || ("externalId" in source && typeof source.externalId !== "string")) {
     return { type: "manual" };
   }
   return {

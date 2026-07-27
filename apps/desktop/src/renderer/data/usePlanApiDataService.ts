@@ -60,9 +60,11 @@ export function usePlanApiDataService(
       setConfig(next);
       if (!next.configured) {
         setMigration(null);
+        setError(null);
         return;
       }
       setMigration(await bridge.inspectMigration());
+      setError(null);
     } catch (cause) {
       setError(errorMessage(cause));
     }
@@ -75,6 +77,7 @@ export function usePlanApiDataService(
     }
     try {
       setMigration(await bridge.inspectMigration());
+      setError(null);
     } catch (cause) {
       setError(errorMessage(cause));
     }

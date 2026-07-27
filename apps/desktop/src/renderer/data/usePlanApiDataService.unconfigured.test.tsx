@@ -80,4 +80,69 @@ describe("usePlanApiDataService unconfigured startup", () => {
     expect(readController().error).toBeNull();
     await act(async () => root.unmount());
   });
+
+  it("clears stale refresh errors after config and migration recover", async () => {
+    (globalThis as typeof globalThis & {
+      IS_REACT_ACT_ENVIRONMENT?: boolean;
+    }).IS_REACT_ACT_ENVIRONMENT = true;
+    const configured = {
+      ...config,
+      configured: true,
+      tokenConfigured: true,
+    };
+    const getConfig = vi.fn(async () => configured);
+    const inspectMigration = vi.fn(async () => ({ status: "pending" as const }));
+    const onSnapshot = vi.fn();
+    const bridge = {
+      loadState: vi.fn(),
+      executeMutations: vi.fn(),
+      onSnapshotChanged: vi.fn(() => () => undefined),
+      getConfig,
+      testConnection: vi.fn(),
+      saveConnection: vi.fn(),
+      inspectMigration,
+      migrateLegacyState: vi.fn(),
+      keepRemoteData: vi.fn(),
+      onStatusChanged: vi.fn(() => () => undefined),
+    } satisfies PlanApiRendererBridge;
+    let controller: PlanApiDataServiceController | null = null;
+    const root = createRoot(document.createElement("div"));
+    const readController = () => {
+      if (!controller) throw new Error("controller 尚未挂载");
+      return controller;
+    };
+
+    function Probe() {
+      controller = usePlanApiDataService({
+        bridge,
+        initialStatus: status,
+        onSnapshot,
+      });
+      return null;
+    }
+
+    await act(async () => {
+      root.render(<Probe />);
+    });
+    getConfig.mockRejectedValueOnce(new Error("config offline"));
+    await act(async () => {
+      await readController().refreshConfig();
+    });
+    expect(readController().error).toBe("config offline");
+    await act(async () => {
+      await readController().refreshConfig();
+    });
+    expect(readController().error).toBeNull();
+
+    inspectMigration.mockRejectedValueOnce(new Error("inspect offline"));
+    await act(async () => {
+      await readController().refreshMigration();
+    });
+    expect(readController().error).toBe("inspect offline");
+    await act(async () => {
+      await readController().refreshMigration();
+    });
+    expect(readController().error).toBeNull();
+    await act(async () => root.unmount());
+  });
 });

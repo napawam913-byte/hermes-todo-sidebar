@@ -55,7 +55,41 @@ describe("bootstrapAppData", () => {
     expect(result.initialDataStatus).toEqual(offlineStatus);
     expect(result.mutationGateway.canMutate()).toBe(false);
     expect(result.planApiBridge).not.toBeNull();
+    expect(result.todoRepository.loadTodos()).toEqual(result.initialTodos);
+    expect(result.cyclePlanRepository.loadPlans()).toEqual(result.initialCyclePlans);
+    expect(result.writeController).not.toBeNull();
     expect(result.startExpanded).toBe(false);
+  });
+
+  it.each([
+    ["hermes", { type: "hermes", externalId: "hermes-entry-7" }],
+    ["ai_draft", { type: "ai_draft", proposalId: "proposal-9" }]
+  ] as const)("round-trips a valid %s source from the raw snapshot", async (_label, source) => {
+    const bridge = desktopBridge(vi.fn(async () => ({
+      todos: [{ ...mockTodos[0], source }],
+      cyclePlans: [],
+      status: offlineStatus
+    })));
+
+    const result = await bootstrapAppData({ bridge });
+
+    expect(result.initialTodos[0].source).toEqual(source);
+    expect(result.todoRepository.loadTodos()[0].source).toEqual(source);
+  });
+
+  it("falls back to manual for a malformed raw source", async () => {
+    const bridge = desktopBridge(vi.fn(async () => ({
+      todos: [{
+        ...mockTodos[0],
+        source: { type: "hermes", externalId: 42 }
+      }],
+      cyclePlans: [],
+      status: offlineStatus
+    })));
+
+    const result = await bootstrapAppData({ bridge });
+
+    expect(result.initialTodos[0].source).toEqual({ type: "manual" });
   });
 
   it("does not disguise an Electron startup failure as empty data", async () => {
@@ -87,6 +121,9 @@ describe("bootstrapAppData", () => {
     });
     expect(result.mutationGateway.canMutate()).toBe(true);
     expect(result.planApiBridge).toBeNull();
+    expect(result.todoRepository).toBeDefined();
+    expect(result.cyclePlanRepository).toBeDefined();
+    expect(result.writeController).toBeNull();
     expect(result.startExpanded).toBe(true);
 
     const saved = await result.mutationGateway.execute({
