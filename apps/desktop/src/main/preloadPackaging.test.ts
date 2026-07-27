@@ -16,4 +16,12 @@ describe("preload packaging", () => {
     const mainSource = readFileSync(path.join(mainDirectory, "main.ts"), "utf8");
     expect(mainSource).toContain('../preload/preload.cjs');
   });
+
+
+  it("exposes only Plan API state and connection channels", () => {
+    const source = readFileSync(path.join(sourceDirectory, "preload", "preload.cts"), "utf8");
+    expect(source).toContain('"plan-api:execute-mutations"');
+    expect(source).not.toContain("replaceTodos");
+    expect(source).not.toContain("replaceCyclePlans");
+  });
 });

@@ -8,11 +8,10 @@ import { mockTodos } from "../features/todos/mockTodos";
 import { createElectronRepositories, type DesktopDataBridge } from "./electronRepositories";
 
 describe("createElectronRepositories", () => {
-  it("loads the startup snapshot and forwards later saves", () => {
+  it("loads the startup snapshot without a legacy replacement channel", () => {
     const bridge: DesktopDataBridge = {
       loadState: vi.fn(),
-      replaceTodos: vi.fn(async () => undefined),
-      replaceCyclePlans: vi.fn(async () => undefined)
+      executeMutations: vi.fn(async () => ({ todos: [], cyclePlans: [] }))
     };
     const repositories = createElectronRepositories({
       bridge,
@@ -25,7 +24,5 @@ describe("createElectronRepositories", () => {
 
     repositories.todoRepository.saveTodos(mockTodos.slice(0, 1));
     repositories.cyclePlanRepository.savePlans(mockCyclePlans.slice(0, 1));
-    expect(bridge.replaceTodos).toHaveBeenCalledWith(mockTodos.slice(0, 1));
-    expect(bridge.replaceCyclePlans).toHaveBeenCalledWith(mockCyclePlans.slice(0, 1));
   });
 });

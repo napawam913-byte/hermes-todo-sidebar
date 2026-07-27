@@ -7,17 +7,32 @@ import type {
   PetDragPointerSample,
   PetDragStartSample
 } from "../shared/petDragContract.js";
+import type { AppMutationBatch } from "../shared/appMutationTypes.js";
+import type { PlanApiConnectionInput, PlanApiSnapshotEnvelope } from "../shared/planApiBridgeContract.js";
+
+function subscribe(channel: string, callback: (payload: unknown) => void) {
+  const listener = (_event: unknown, payload: unknown) => callback(payload);
+  ipcRenderer.on(channel, listener);
+  return () => ipcRenderer.removeListener(channel, listener);
+}
+
 
 contextBridge.exposeInMainWorld("hermesAppData", {
-  loadState: () => ipcRenderer.invoke("data:load-state"),
-  replaceTodos: (todos: unknown[]) => ipcRenderer.invoke("data:replace-todos", todos),
-  replaceCyclePlans: (cyclePlans: unknown[]) =>
-    ipcRenderer.invoke("data:replace-cycle-plans", cyclePlans),
-  onReloadRequested: (callback: () => void) => {
-    const listener = () => callback();
-    ipcRenderer.on("data:reload-requested", listener);
-    return () => ipcRenderer.removeListener("data:reload-requested", listener);
-  }
+  loadState: () => ipcRenderer.invoke("plan-api:load-state"),
+  executeMutations: (batch: AppMutationBatch) =>
+    ipcRenderer.invoke("plan-api:execute-mutations", batch),
+  onSnapshotChanged: (callback: (snapshot: PlanApiSnapshotEnvelope) => void) =>
+    subscribe("plan-api:snapshot-changed", (payload) => callback(payload as PlanApiSnapshotEnvelope))
+});
+
+contextBridge.exposeInMainWorld("hermesPlanApi", {
+  getConfig: () => ipcRenderer.invoke("plan-api:get-config"),
+  testConnection: (input: PlanApiConnectionInput) => ipcRenderer.invoke("plan-api:test-connection", input),
+  saveConnection: (input: PlanApiConnectionInput) => ipcRenderer.invoke("plan-api:save-connection", input),
+  migrateLegacyState: () => ipcRenderer.invoke("plan-api:migrate"),
+  keepRemoteData: () => ipcRenderer.invoke("plan-api:keep-remote"),
+  onStatusChanged: (callback: (status: PlanApiSnapshotEnvelope["status"]) => void) =>
+    subscribe("plan-api:status-changed", (payload) => callback(payload as PlanApiSnapshotEnvelope["status"]))
 });
 
 contextBridge.exposeInMainWorld("hermesSidebar", {

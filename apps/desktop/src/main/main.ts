@@ -14,13 +14,14 @@ import {
   Tray,
   type MenuItemConstructorOptions
 } from "electron";
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { configureLaunchAtLogin, ensureSingleInstance } from "./lifecycle/appLifecycle.js";
 import { createDataTransferActions } from "./lifecycle/dataTransferController.js";
 import { getRuntimeChannel, getTestUserDataPath } from "./lifecycle/runtimeChannel.js";
 import { createTrayMenuTemplate } from "./lifecycle/trayController.js";
+import { registerPlanApiRuntime, type RegisteredPlanApiRuntime } from "./planApi/planApiBootstrap.js";
 import { createPetScreenPort, createPetWindowPort } from "./pet/petElectronPorts.js";
 import { registerPetIpc } from "./pet/petIpc.js";
 import { PetPositionFileStore } from "./pet/petPositionFileStore.js";
@@ -28,7 +29,6 @@ import { PetWindowController } from "./pet/petWindowController.js";
 import { DESKTOP_PET_HEIGHT, DESKTOP_PET_WIDTH } from "./sidebarBounds.js";
 import { AppStateFileStore } from "./storage/appStateFileStore.js";
 import { AppStateService } from "./storage/appStateService.js";
-import { registerStorageIpc } from "./storage/storageIpc.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = !app.isPackaged;
@@ -40,6 +40,7 @@ if (runtimeChannel === "test") {
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let petController: PetWindowController | null = null;
+let planApiRuntime: RegisteredPlanApiRuntime | null = null;
 let isQuitting = false;
 
 function showSidebar() {
@@ -87,14 +88,13 @@ function createMainWindow() {
   else void mainWindow.loadFile(path.join(__dirname, "../../dist/renderer/index.html"));
 }
 
-async function createTray(appStateService: AppStateService, dataDirectory: string) {
+async function createTray(runtime: RegisteredPlanApiRuntime, dataDirectory: string) {
   const today = new Date().toISOString().slice(0, 10);
   const dataActions = createDataTransferActions({
     dataDirectory,
     defaultExportPath: path.join(app.getPath("documents"), `hermes-todo-backup-${today}.json`),
     openPath: (target) => shell.openPath(target),
-    exportState: (target) => appStateService.exportTo(target),
-    importState: (target) => appStateService.importFrom(target),
+    exportState: async (target) => writeFile(target, `${JSON.stringify(await runtime.getStoredSnapshot(), null, 2)}\n`, "utf8"),
     requestExportPath: async (defaultPath) => {
       const result = await dialog.showSaveDialog({
         title: "导出待办数据",
@@ -103,28 +103,26 @@ async function createTray(appStateService: AppStateService, dataDirectory: strin
       });
       return result.canceled ? undefined : result.filePath;
     },
-    requestImportPath: async () => {
+    /* requestImportPath: async () => { return undefined;
       const result = await dialog.showOpenDialog({
         title: "导入待办数据",
         properties: ["openFile"],
         filters: [{ name: "JSON 数据", extensions: ["json"] }]
       });
       return result.canceled ? undefined : result.filePaths[0];
-    },
+    */
     showError: async (message) => {
       await dialog.showMessageBox({ type: "error", title: "Hermes 待办桌宠", message });
     },
     showSuccess: async (message) => {
       await dialog.showMessageBox({ type: "info", title: "Hermes 待办桌宠", message });
     },
-    reloadRenderer: () => mainWindow?.webContents.send("data:reload-requested")
   });
   const menu = createTrayMenuTemplate({
     show: showSidebar,
     hide: () => mainWindow?.hide(),
     openDataDirectory: dataActions.openDataDirectory,
     exportData: dataActions.exportData,
-    importData: dataActions.importData,
     quit: () => {
       isQuitting = true;
       app.quit();
@@ -150,8 +148,13 @@ async function bootstrap() {
   await mkdir(dataDirectory, { recursive: true });
   const appStateService = new AppStateService(new AppStateFileStore({ dataDirectory }));
   await appStateService.initialize();
-  registerStorageIpc(ipcMain, appStateService);
   createMainWindow();
+  planApiRuntime = registerPlanApiRuntime({
+    ipc: ipcMain, userDataDirectory: app.getPath("userData"), dataDirectory,
+    legacyStateService: appStateService,
+    publish: (channel, payload) => mainWindow?.webContents.send(channel, payload),
+  });
+  await planApiRuntime.initialize();
   if (!mainWindow) throw new Error("桌宠窗口创建失败");
   petController = new PetWindowController({
     window: createPetWindowPort(mainWindow),
@@ -160,7 +163,7 @@ async function bootstrap() {
   });
   registerPetIpc(ipcMain, petController);
   await petController.initialize();
-  await createTray(appStateService, dataDirectory);
+  await createTray(planApiRuntime, dataDirectory);
   const recoverDisplayLayout = () => void petController?.recoverDisplayLayout();
   screen.on("display-added", recoverDisplayLayout);
   screen.on("display-removed", recoverDisplayLayout);
@@ -178,6 +181,7 @@ if (ensureSingleInstance(app)) {
 
 app.on("before-quit", () => {
   isQuitting = true;
+  void planApiRuntime?.shutdown();
 });
 app.on("window-all-closed", () => {
   // Windows 正式版保持托盘进程存活，仅托盘“退出”结束应用。

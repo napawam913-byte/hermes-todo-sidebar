@@ -20,8 +20,7 @@ describe("bootstrapAppData", () => {
         settings: { launchAtLogin: true },
         updatedAt: "2026-07-12T10:00:00.000Z"
       })),
-      replaceTodos: vi.fn(async () => undefined),
-      replaceCyclePlans: vi.fn(async () => undefined)
+      executeMutations: vi.fn(async () => ({ todos: [], cyclePlans: [] }))
     } satisfies DesktopDataBridge;
 
     const result = await bootstrapAppData({ bridge });
@@ -30,6 +29,12 @@ describe("bootstrapAppData", () => {
     expect(result.initialTodos[0].date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(result.initialCyclePlans).toEqual([mockCyclePlans[0]]);
     expect(result.startExpanded).toBe(false);
+    await result.mutationGateway.execute({
+      source: { type: "manual" },
+      summary: "测试",
+      operations: []
+    });
+    expect(bridge.executeMutations).toHaveBeenCalledOnce();
   });
 
   it("keeps mock fallback only for browser preview", async () => {
@@ -38,5 +43,8 @@ describe("bootstrapAppData", () => {
     expect(result.initialTodos).toEqual(mockTodos);
     expect(result.initialCyclePlans).toEqual(mockCyclePlans);
     expect(result.startExpanded).toBe(true);
+    await expect(result.mutationGateway.execute({
+      source: { type: "manual" }, summary: "空批次", operations: []
+    })).resolves.toMatchObject({ todos: mockTodos, cyclePlans: mockCyclePlans });
   });
 });

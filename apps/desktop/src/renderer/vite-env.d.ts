@@ -11,9 +11,26 @@ interface DesktopAppState {
 interface Window {
   hermesAppData?: {
     loadState: () => Promise<DesktopAppState>;
-    replaceTodos: (todos: unknown[]) => Promise<DesktopAppState>;
-    replaceCyclePlans: (cyclePlans: unknown[]) => Promise<DesktopAppState>;
-    onReloadRequested: (callback: () => void) => () => void;
+    executeMutations: (
+      batch: import("../shared/appMutationTypes").AppMutationBatch
+    ) => Promise<DesktopAppState>;
+    onSnapshotChanged: (
+      callback: (snapshot: import("../shared/planApiBridgeContract").PlanApiSnapshotEnvelope) => void
+    ) => () => void;
+  };
+  hermesPlanApi?: {
+    getConfig: () => Promise<import("../shared/planApiBridgeContract").PlanApiPublicConfig>;
+    testConnection: (
+      input: import("../shared/planApiBridgeContract").PlanApiConnectionInput
+    ) => Promise<import("../shared/planApiBridgeContract").PlanApiConnectionTestResult>;
+    saveConnection: (
+      input: import("../shared/planApiBridgeContract").PlanApiConnectionInput
+    ) => Promise<import("../shared/planApiBridgeContract").PlanApiPublicConfig>;
+    migrateLegacyState: () => Promise<unknown>;
+    keepRemoteData: () => Promise<unknown>;
+    onStatusChanged: (
+      callback: (status: import("../shared/planApiBridgeContract").PlanApiRuntimeStatus) => void
+    ) => () => void;
   };
   hermesSidebar?: {
     onCollapseRequested: (callback: () => void) => () => void;

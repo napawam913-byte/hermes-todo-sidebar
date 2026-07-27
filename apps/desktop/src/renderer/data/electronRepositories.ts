@@ -6,6 +6,7 @@ import type { CyclePlanRepository } from "../features/cyclePlans/cyclePlanReposi
 import type { CyclePlan } from "../features/cyclePlans/cyclePlanTypes";
 import type { TodoRepository } from "../features/todos/todoRepository";
 import type { Todo } from "../features/todos/types";
+import type { AppMutationBatch } from "../../shared/appMutationTypes";
 
 export interface DesktopStateSnapshot {
   todos: unknown[];
@@ -14,8 +15,7 @@ export interface DesktopStateSnapshot {
 
 export interface DesktopDataBridge {
   loadState(): Promise<DesktopStateSnapshot>;
-  replaceTodos(todos: unknown[]): Promise<unknown>;
-  replaceCyclePlans(cyclePlans: unknown[]): Promise<unknown>;
+  executeMutations(batch: AppMutationBatch): Promise<DesktopStateSnapshot>;
 }
 
 interface ElectronRepositoryOptions {
@@ -38,15 +38,11 @@ export function createElectronRepositories(
   return {
     todoRepository: {
       loadTodos: () => structuredClone(initialTodos),
-      saveTodos: (todos) => {
-        void options.bridge.replaceTodos(todos).catch(() => undefined);
-      }
+      saveTodos: () => undefined
     },
     cyclePlanRepository: {
       loadPlans: () => structuredClone(initialCyclePlans),
-      savePlans: (plans) => {
-        void options.bridge.replaceCyclePlans(plans).catch(() => undefined);
-      }
+      savePlans: () => undefined
     }
   };
 }
