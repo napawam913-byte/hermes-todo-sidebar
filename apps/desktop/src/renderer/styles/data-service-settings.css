@@ -1,0 +1,162 @@
+/**
+ * 模块用途：定义数据服务配置表单、公开状态和迁移操作的紧凑布局。
+ * 模块边界：不修改设置控制台外壳或模型连接表单。
+ */
+.data-service-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.data-service-form {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-4);
+}
+
+.data-service-form fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.data-service-form legend,
+.data-service-form label {
+  color: var(--ui-text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.data-service-form label {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.data-service-form input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-sm);
+  background: var(--ui-control);
+  color: var(--ui-text);
+  font: inherit;
+  font-size: 13px;
+  padding: 0 var(--space-3);
+}
+
+.data-service-form input:focus-visible,
+.data-service-mode button:focus-visible,
+.data-service-actions button:focus-visible,
+.data-service-migration button:focus-visible {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 2px;
+}
+
+.data-service-form small {
+  color: var(--ui-text-tertiary);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.data-service-mode {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px;
+  margin-top: 6px;
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--ui-control);
+}
+
+.data-service-mode button,
+.data-service-actions button,
+.data-service-migration button {
+  min-width: 0;
+  min-height: 34px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ui-text-secondary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.data-service-mode button.is-active {
+  background: var(--ui-surface-solid);
+  color: var(--ui-text);
+  box-shadow: var(--ui-shadow-control);
+}
+
+.data-service-ssh-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 0;
+  gap: var(--space-3);
+}
+
+.data-service-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.data-service-actions button:first-child {
+  border: 1px solid var(--ui-border);
+  background: var(--ui-control);
+}
+
+.data-service-actions button:last-child,
+.data-service-migration button:first-of-type {
+  background: var(--ui-accent);
+  color: var(--ui-accent-contrast);
+}
+
+.data-service-actions button:disabled,
+.data-service-migration button:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+.data-service-test-result,
+.data-service-confirm {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.data-service-test-result.is-success { color: var(--ui-success); }
+.data-service-test-result.is-failure { color: var(--ui-danger); }
+
+.data-service-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--ui-border);
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.data-service-facts div { min-width: 0; }
+.data-service-facts dt { color: var(--ui-text-tertiary); font-size: 10px; }
+.data-service-facts dd { margin: 3px 0 0; color: var(--ui-text); font-size: 12px; overflow-wrap: anywhere; }
+
+.data-service-migration { display: grid; gap: var(--space-3); }
+.data-service-migration h3 { font-size: 14px; }
+.data-service-migration p { color: var(--ui-text-secondary); font-size: 12px; line-height: 1.5; }
+.data-service-migration.is-failure h3 { color: var(--ui-danger); }
+.data-service-migration.is-success h3 { color: var(--ui-success); }
+.data-service-migration button { justify-self: start; padding: 0 var(--space-3); border: 1px solid var(--ui-border); background: var(--ui-control); }
+.data-service-migration button + button { margin-left: var(--space-2); }
+.data-service-confirm { color: var(--ui-danger-text); }
+.data-service-preview > p { color: var(--ui-text-secondary); font-size: 12px; }
+
+@container settings (max-width: 359px) {
+  .data-service-ssh-fields,
+  .data-service-facts { grid-template-columns: 1fr; }
+}

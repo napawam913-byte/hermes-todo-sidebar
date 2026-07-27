@@ -13,6 +13,8 @@
 @import "./pet-drag.css";
 @import "./detail-page.css";
 @import "./appearance-settings.css";
+@import "./settings-shell.css";
+@import "./data-service-settings.css";
 @import "./todo-panel.css";
 @import "./todo-detail.css";
 @import "./todo-state.css";

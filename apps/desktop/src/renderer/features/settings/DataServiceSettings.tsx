@@ -1,0 +1,159 @@
+/**
+ * 模块用途：提供 Plan API 数据服务配置、连接测试与首次迁移操作界面。
+ * 模块边界：只调用传入控制器，不访问 preload，也不持久化明文 Token。
+ */
+import { useEffect, useState, type FormEvent } from "react";
+import type {
+  PlanApiConnectionInput,
+  PlanApiConnectionMode,
+  PlanApiConnectionTestResult
+} from "../../../shared/planApiBridgeContract";
+import type { PlanApiDataServiceController } from "../../data/usePlanApiDataService";
+import { getDataServiceStatus, getMigrationPresentation } from "./dataServicePresentation";
+
+interface DataServiceSettingsProps {
+  dataService?: PlanApiDataServiceController;
+}
+
+interface ConnectionDraft extends PlanApiConnectionInput {}
+
+const defaults: ConnectionDraft = {
+  mode: "local", baseUrl: "http://127.0.0.1:8743", sshTarget: "",
+  localPort: 8743, remotePort: 8743, desktopToken: ""
+};
+
+export function DataServiceSettings({ dataService }: DataServiceSettingsProps) {
+  const [draft, setDraft] = useState<ConnectionDraft>(() => fromConfig(dataService));
+  const [testResult, setTestResult] = useState<PlanApiConnectionTestResult | null>(null);
+  const [confirming, setConfirming] = useState<"migrate" | "keep" | null>(null);
+
+  useEffect(() => {
+    if (!dataService?.config) return;
+    setDraft(fromConfig(dataService));
+  }, [dataService?.config]);
+
+  const controller = dataService;
+  if (!controller) return <PreviewState />;
+  const activeController: PlanApiDataServiceController = controller;
+  const status = getDataServiceStatus({
+    status: controller.status,
+    configured: Boolean(controller.config?.configured),
+    testResult
+  });
+  const complete = draft.mode === "local"
+    ? Boolean(draft.baseUrl.trim())
+    : Boolean(draft.sshTarget.trim() && draft.localPort && draft.remotePort);
+  const tokenReady = Boolean(draft.desktopToken.trim() || activeController.config?.tokenConfigured);
+
+  function update<K extends keyof ConnectionDraft>(field: K, value: ConnectionDraft[K]) {
+    setDraft((current) => ({ ...current, [field]: value }));
+    setTestResult(null);
+    setConfirming(null);
+  }
+
+  async function testConnection() {
+    const result = await activeController.testConnection(draft);
+    setTestResult(result);
+  }
+
+  async function saveConnection(event: FormEvent) {
+    event.preventDefault();
+    if (!complete || !tokenReady) return;
+    if (await activeController.saveConnection(draft)) {
+      setDraft((current) => ({ ...current, desktopToken: "" }));
+      setTestResult(null);
+    }
+  }
+
+  return (
+    <section className="settings-section data-service-settings">
+      <header className="settings-section-header data-service-header">
+        <div><h2>数据服务</h2><p>配置 Plan API 的本地直连或云端 SSH。</p></div>
+        <span className={`settings-status-pill is-${status.tone}`}><i aria-hidden="true" />{status.label}</span>
+      </header>
+      <div className="settings-section-divider" />
+      {controller.error ? <div className="settings-inline-error" role="alert">{controller.error}</div> : null}
+      <form className="data-service-form" onSubmit={(event) => void saveConnection(event)}>
+        <fieldset disabled={controller.busy}>
+          <legend>连接模式</legend>
+          <div className="data-service-mode" role="group" aria-label="连接模式">
+            {(["local", "ssh"] as const).map((mode) => (
+              <button
+                aria-pressed={draft.mode === mode}
+                className={draft.mode === mode ? "is-active" : undefined}
+                key={mode}
+                onClick={() => update("mode", mode)}
+                type="button"
+              >{mode === "local" ? "本地直连" : "云端 SSH"}</button>
+            ))}
+          </div>
+        </fieldset>
+        {draft.mode === "local" ? (
+          <label>Base URL<input name="baseUrl" value={draft.baseUrl} onChange={(event) => update("baseUrl", event.target.value)} /></label>
+        ) : (
+          <div className="data-service-ssh-fields">
+            <label>SSH 目标<input name="sshTarget" value={draft.sshTarget} onChange={(event) => update("sshTarget", event.target.value)} /></label>
+            <label>本地端口<input min="1" name="localPort" type="number" value={draft.localPort} onChange={(event) => update("localPort", Number(event.target.value))} /></label>
+            <label>远端端口<input min="1" name="remotePort" type="number" value={draft.remotePort} onChange={(event) => update("remotePort", Number(event.target.value))} /></label>
+          </div>
+        )}
+        <label>Desktop Token
+          <input name="desktopToken" placeholder={controller.config?.tokenHint || "输入 Token"} type="password" value={draft.desktopToken} onChange={(event) => update("desktopToken", event.target.value)} />
+          {controller.config?.tokenConfigured ? <small>已配置：{controller.config.tokenHint}</small> : null}
+        </label>
+        {testResult ? <p className={`data-service-test-result is-${testResult.ok ? "success" : "failure"}`} role="status">{testResult.message}</p> : null}
+        <div className="data-service-actions">
+          <button disabled={controller.busy || !complete || !tokenReady} onClick={() => void testConnection()} type="button">测试连接</button>
+          <button disabled={controller.busy || !complete || !tokenReady} type="submit">保存连接</button>
+        </div>
+      </form>
+      <ServiceFacts dataService={controller} />
+      <MigrationArea dataService={controller} confirming={confirming} onConfirming={setConfirming} />
+    </section>
+  );
+}
+
+function ServiceFacts({ dataService }: { dataService: PlanApiDataServiceController }) {
+  const { config, status } = dataService;
+  return <dl className="data-service-facts">
+    <div><dt>连接模式</dt><dd>{config?.mode === "ssh" ? "云端 SSH" : "本地直连"}</dd></div>
+    {status.serverRevision !== undefined ? <div><dt>服务版本</dt><dd>#{status.serverRevision}</dd></div> : null}
+    {status.lastSyncedAt ? <div><dt>最近同步</dt><dd>{new Date(status.lastSyncedAt).toLocaleString()}</dd></div> : null}
+  </dl>;
+}
+
+function MigrationArea({ dataService, confirming, onConfirming }: {
+  dataService: PlanApiDataServiceController;
+  confirming: "migrate" | "keep" | null;
+  onConfirming(value: "migrate" | "keep" | null): void;
+}) {
+  if (!dataService.migration) return null;
+  const view = getMigrationPresentation(dataService.migration);
+  const disabled = dataService.busy || view.busy;
+  const execute = async (action: "migrate" | "keep") => {
+    if (confirming !== action) return onConfirming(action);
+    const completed = action === "migrate"
+      ? await dataService.migrateLegacyState()
+      : await dataService.keepRemoteData();
+    if (completed) onConfirming(null);
+  };
+  return <section className={`data-service-migration is-${view.tone}`}>
+    <h3>{view.title}</h3><p>{view.detail}</p>
+    {view.action ? <button disabled={disabled} onClick={() => void execute("migrate")} type="button">{confirming === "migrate" ? "再次确认迁移" : view.action}</button> : null}
+    {view.canKeepRemote ? <button disabled={disabled} onClick={() => void execute("keep")} type="button">{confirming === "keep" ? "再次确认保留" : "保留云端数据"}</button> : null}
+    {confirming ? <p className="data-service-confirm" role="alert">此操作会保留备份并改变数据来源，请再次确认。</p> : null}
+  </section>;
+}
+
+function PreviewState() {
+  return <section className="settings-section data-service-settings data-service-preview">
+    <header className="settings-section-header"><div><h2>数据服务</h2><p>浏览器预览 / 桌面连接尚未接入</p></div><span className="settings-status-pill"><i aria-hidden="true" />只读</span></header>
+    <div className="settings-section-divider" /><p>桌面连接接入后可在此配置和测试数据服务。</p>
+  </section>;
+}
+
+function fromConfig(dataService?: PlanApiDataServiceController): ConnectionDraft {
+  const config = dataService?.config;
+  if (!config) return defaults;
+  return { mode: config.mode as PlanApiConnectionMode, baseUrl: config.baseUrl, sshTarget: config.sshTarget, localPort: config.localPort, remotePort: config.remotePort, desktopToken: "" };
+}
