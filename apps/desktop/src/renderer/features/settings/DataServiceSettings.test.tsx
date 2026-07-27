@@ -46,9 +46,11 @@ describe("DataServiceSettings", () => {
     expect(html).not.toContain("数据管理");
   });
 
-  it("switches fields, tests without saving, invalidates the result, and clears token after save", async () => {
+  it("clears a submitted token while save is pending and keeps non-secret drafts after failure", async () => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-    const dataService = controller();
+    let finishSave: (saved: boolean) => void = () => { throw new Error("保存尚未开始"); };
+    const saveConnection = vi.fn((_input) => new Promise<boolean>((resolve) => { finishSave = resolve; }));
+    const dataService = controller({ saveConnection });
     const container = document.createElement("div");
     document.body.append(container);
     const root = createRoot(container);
@@ -93,11 +95,14 @@ describe("DataServiceSettings", () => {
       baseUrl: "http://127.0.0.1:9000", desktopToken: "top-secret"
     }));
     expect(container.querySelector<HTMLInputElement>('input[name="desktopToken"]')?.value).toBe("");
+    expect(container.querySelector<HTMLInputElement>('input[name="baseUrl"]')?.value).toBe("http://127.0.0.1:9000");
     await act(async () => {
-      findButton("保存连接")?.click();
+      finishSave(false);
       await Promise.resolve();
     });
-    expect(dataService.saveConnection).toHaveBeenLastCalledWith(expect.objectContaining({ desktopToken: "" }));
+    expect(container.querySelector<HTMLInputElement>('input[name="desktopToken"]')?.value).toBe("");
+    expect(container.querySelector<HTMLInputElement>('input[name="baseUrl"]')?.value).toBe("http://127.0.0.1:9000");
+    expect(dataService.saveConnection).toHaveBeenCalledOnce();
     await act(async () => { findButton("确认迁移")?.click(); });
     expect(dataService.migrateLegacyState).not.toHaveBeenCalled();
     expect(container.textContent).toContain("再次确认迁移");

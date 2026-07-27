@@ -74,10 +74,6 @@ export function registerPlanApiRuntime(options: PlanApiBootstrapOptions): Regist
   }, undefined, { isPackaged: () => options.isPackaged, get: (name) => process.env[name] });
   const tunnel = new PlanApiSshTunnel();
   const client = (baseUrl: string, token: string) => new PlanApiClient({ baseUrl, token });
-  const runtime = new PlanApiRuntime({
-    connectionStore: connections, cache: new PlanApiSnapshotCache(options.dataDirectory), legacyStateService: options.legacyStateService, createClient: client, tunnel: tunnelPort(tunnel),
-    connectionTester: new PlanApiConnectionTester({ resolveConnection: (input) => connections.resolveConnection(input), reservePort: reservePlanApiTestPort, createTunnel: () => tunnelPort(new PlanApiSshTunnel()), createClient: client }),
-  });
   const resolveMigrationService = async () => {
     const connection = await connections.resolveConnection();
     if (!connection) throw new Error("Plan API is not configured");
@@ -88,6 +84,11 @@ export function registerPlanApiRuntime(options: PlanApiBootstrapOptions): Regist
       fileStore: new PlanApiMigrationFileStore(options.dataDirectory),
     });
   };
+  const runtime = new PlanApiRuntime({
+    connectionStore: connections, cache: new PlanApiSnapshotCache(options.dataDirectory), legacyStateService: options.legacyStateService, createClient: client, tunnel: tunnelPort(tunnel),
+    migrationInspector: { inspect: async () => (await resolveMigrationService()).inspect() },
+    connectionTester: new PlanApiConnectionTester({ resolveConnection: (input) => connections.resolveConnection(input), reservePort: reservePlanApiTestPort, createTunnel: () => tunnelPort(new PlanApiSshTunnel()), createClient: client }),
+  });
   const port = {
     ...createPlanApiSnapshotPort(runtime), getConfig: () => connections.getPublicConfig(),
     testConnection: (input: PlanApiConnectionInput) => runtime.testConnection(input), saveConnection: (input: PlanApiConnectionInput) => runtime.saveConnection(input),

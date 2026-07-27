@@ -24,8 +24,10 @@ export function migrationCommitIsVerified(
     task.entries.map((entry) => [entry.id, task.id] as const)));
   if (result.changedTaskIds.some((id) => !tasks.has(id))
     || result.changedEntryIds.some((id) => !result.changedTaskIds.includes(entryTaskIds.get(id) ?? ""))) return false;
-  return multiset(result.changedTaskIds.map((id) => project(tasks.get(id)!)))
-    === multiset(expected.map((operation) => project(operation.draft)));
+  const actual = result.changedTaskIds.map((id) => project(tasks.get(id)!));
+  const desired = expected.map((operation) => project(operation.draft));
+  return actual.every(isDefined) && desired.every(isDefined)
+    && multiset(actual) === multiset(desired);
 }
 
 function isTaskCreate(
@@ -40,7 +42,9 @@ function hasDuplicates(values: string[]): boolean {
 
 function project(
   task: PlanApiTaskView | Extract<PlanApiMutationBatch["operations"][number], { type: "task.create" }>["draft"],
-): string {
+): string | undefined {
+  const entries = task.entries.map(entryProjection);
+  if (!entries.every(isDefined)) return undefined;
   return stableJson({
     kind: task.kind,
     status: task.status,
@@ -49,11 +53,13 @@ function project(
     schedule_rule: task.schedule_rule,
     generated_through_date: task.generated_through_date,
     rule_revision: task.rule_revision,
-    entries: task.entries.map(entryProjection).sort(compareStable),
+    entries: entries.sort(compareStable),
   });
 }
 
 function entryProjection(entry: PlanApiTaskEntryDraft | PlanApiTaskView["entries"][number]) {
+  const completedAt = normalizeCompletedAt(entry.completed_at);
+  if (completedAt === undefined) return undefined;
   return {
     scheduled_date: entry.scheduled_date,
     status: entry.status,
@@ -62,8 +68,38 @@ function entryProjection(entry: PlanApiTaskEntryDraft | PlanApiTaskView["entries
     slot_key: entry.slot_key,
     is_overridden: entry.is_overridden,
     generation_revision: entry.generation_revision,
-    completed_at: entry.completed_at,
+    completed_at: completedAt,
   };
+}
+
+function normalizeCompletedAt(value: string | null): string | null | undefined {
+  if (value === null) return null;
+  const parts = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})$/.exec(value);
+  if (!parts) return undefined;
+  const year = Number(parts[1]);
+  const month = Number(parts[2]);
+  const day = Number(parts[3]);
+  const hour = Number(parts[4]);
+  const minute = Number(parts[5]);
+  const second = Number(parts[6]);
+  const probe = new Date(0);
+  probe.setUTCFullYear(year, month - 1, day);
+  probe.setUTCHours(hour, minute, second, 0);
+  if (probe.getUTCFullYear() !== year || probe.getUTCMonth() !== month - 1
+    || probe.getUTCDate() !== day || probe.getUTCHours() !== hour
+    || probe.getUTCMinutes() !== minute || probe.getUTCSeconds() !== second) return undefined;
+  const zone = parts[8]!;
+  const zoneHour = zone === "Z" ? 0 : Number(zone.slice(1, 3));
+  const zoneMinute = zone === "Z" ? 0 : Number(zone.slice(4, 6));
+  if (zoneHour > 14 || zoneMinute > 59 || (zoneHour === 14 && zoneMinute !== 0)) return undefined;
+  const sign = zone.startsWith("-") ? -1 : 1;
+  const offset = sign * (zoneHour * 60 + zoneMinute) * 60_000;
+  const fraction = (parts[7] ?? "").replace(/0+$/, "");
+  return `${probe.getTime() - offset}:${fraction}`;
+}
+
+function isDefined<T>(value: T | undefined): value is T {
+  return value !== undefined;
 }
 
 function multiset(values: string[]): string {

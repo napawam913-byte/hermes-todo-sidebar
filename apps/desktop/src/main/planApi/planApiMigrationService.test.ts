@@ -105,6 +105,29 @@ describe("PlanApiMigrationService", () => {
     await expect(plan.service.migrate()).resolves.toMatchObject({ status: "completed" });
   });
 
+  it("compares migrated completion timestamps by instant instead of ISO spelling", async () => {
+    const plan = setup({
+      state: legacy([todo({ status: "completed", completedAt: time })], []),
+      after: (batch) => {
+        const snapshot = snapshotFor(batch);
+        snapshot.tasks[0]!.entries[0]!.completed_at = "2026-07-25T08:00:00+08:00";
+        return snapshot;
+      },
+    });
+
+    await expect(plan.service.migrate()).resolves.toMatchObject({ status: "completed" });
+  });
+
+  it("rejects matching but invalid migrated completion timestamps", async () => {
+    const plan = setup({
+      state: legacy([todo({ status: "completed", completedAt: "not-a-date" })], []),
+    });
+
+    await expect(plan.service.migrate()).rejects.toMatchObject({
+      code: "migration_verification_failed",
+    });
+  });
+
   it("blocks unsafe starts, backs up before skipping, and serializes concurrent work", async () => {
     const busy = setup({ initial: { serverRevision: 9, tasks: [{ id: "remote", entries: [] }] } });
     await expect(busy.service.migrate()).resolves.toEqual({ status: "blocked", reason: "remote_not_empty" });

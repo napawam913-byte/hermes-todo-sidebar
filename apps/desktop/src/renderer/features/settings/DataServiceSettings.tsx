@@ -70,10 +70,9 @@ export function DataServiceSettings({ dataService }: DataServiceSettingsProps) {
   async function saveConnection(event: FormEvent) {
     event.preventDefault();
     if (!complete || !tokenReady) return;
-    if (await activeController.saveConnection(draft)) {
-      setDraft((current) => ({ ...current, desktopToken: "" }));
-      setTestResult(null);
-    }
+    const payload = { ...draft };
+    setDraft((current) => ({ ...current, desktopToken: "" }));
+    if (await activeController.saveConnection(payload)) setTestResult(null);
   }
 
   return (

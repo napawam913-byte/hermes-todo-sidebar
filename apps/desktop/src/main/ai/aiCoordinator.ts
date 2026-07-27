@@ -126,9 +126,9 @@ export class AiCoordinator {
       code: "validation_failed",
       message: "提案不存在、已执行或已过期"
     };
-    this.pending.delete(proposalId);
     try {
       const state = await this.options.executor.execute(proposal);
+      this.pending.delete(proposalId);
       return {
         status: "success",
         summary: proposal.summary,

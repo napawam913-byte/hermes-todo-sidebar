@@ -69,7 +69,7 @@ function setup(options: {
     connectionStore: store,
     cache,
     legacyStateService: legacy,
-    createClient,
+    createClient, migrationInspector: { inspect: vi.fn(async () => ({ status: "blocked" as const, reason: "legacy_empty" as const })) },
     reconnectPorts: options.reconnect,
   });
   return { runtime, cache, store, legacy, createClient };
@@ -97,6 +97,7 @@ describe("PlanApiRuntime", () => {
       cache: plan.cache,
       legacyStateService: plan.legacy,
       createClient: plan.createClient,
+      migrationInspector: { inspect: vi.fn(async () => ({ status: "blocked", reason: "legacy_empty" })) },
       tunnel,
     });
     await online.initialize();
@@ -172,7 +173,6 @@ describe("PlanApiRuntime", () => {
     expect(client.mutate).toHaveBeenCalledOnce();
     expect(reconnect.schedule).toHaveBeenCalledOnce();
   });
-
   it("does not retry auth/cache failures, isolates listeners, and names unconfigured state", async () => {
     const reconnect = { schedule: vi.fn(), cancel: vi.fn() };
     const auth = { snapshot: vi.fn(async () => { throw new PlanApiError("auth_failed"); }), mutate: vi.fn() };

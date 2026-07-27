@@ -94,7 +94,10 @@ describe("AiCoordinator", () => {
     await expect(coordinator.execute("proposal_1")).resolves.toMatchObject({ status: "failed" });
   });
 
-  it("reports Plan API offline failures as persistence failures", async () => {
+  it("retains the same proposal after failure and removes it only after success", async () => {
+    const execute = vi.fn()
+      .mockRejectedValueOnce(new PlanApiError("offline"))
+      .mockResolvedValueOnce({ todos: [{ id: "todo_ai" }], cyclePlans: [] });
     const coordinator = new AiCoordinator({
       configStore: {
         getPublicConfig: async () => ({ configured: true, baseUrl: "url", model: "m", maskedApiKey: "***" }),
@@ -102,11 +105,7 @@ describe("AiCoordinator", () => {
         getCredentials: async () => ({ baseUrl: "url", model: "m", apiKey: "secret" })
       },
       proposalService: { generate: async () => ({ status: "proposal", proposal }) },
-      executor: {
-        execute: async () => {
-          throw new PlanApiError("offline");
-        }
-      },
+      executor: { execute },
       connectionClient: { testConnection: async () => undefined }
     });
 
@@ -115,6 +114,13 @@ describe("AiCoordinator", () => {
       status: "failed",
       code: "persistence_failed",
       message: "数据服务暂时不可用，请稍后重试"
+    });
+    await expect(coordinator.execute("proposal_1")).resolves.toMatchObject({ status: "success" });
+    expect(execute).toHaveBeenNthCalledWith(1, proposal);
+    expect(execute).toHaveBeenNthCalledWith(2, proposal);
+    await expect(coordinator.execute("proposal_1")).resolves.toMatchObject({
+      status: "failed",
+      code: "validation_failed"
     });
   });
 

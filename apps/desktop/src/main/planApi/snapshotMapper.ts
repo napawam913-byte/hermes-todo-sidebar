@@ -20,10 +20,7 @@ export function mapPlanApiSnapshot(snapshot: PlanApiSnapshot): PlanApiSnapshotMa
 }
 
 function mapDailyTask(task: PlanApiTaskView): Todo[] {
-  if (task.entries.some((entry) => entry.status === "skipped")) {
-    throw new Error("Skipped daily entry cannot be mapped to Todo");
-  }
-  return task.entries.map(mapTodo);
+  return task.entries.filter((entry) => entry.status !== "skipped").map(mapTodo);
 }
 
 function mapTodo(entry: PlanApiTaskEntryView): Todo {

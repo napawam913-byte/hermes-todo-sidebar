@@ -107,6 +107,15 @@ describe("createPlanApiMigrationPort", () => {
   });
 });
 
+describe("production Plan API migration wiring", () => {
+  it("injects the production migration inspector into the runtime", () => {
+    const source = readFileSync(path.resolve(mainDirectory, "planApiBootstrap.ts"), "utf8");
+
+    expect(source).toContain("migrationInspector:");
+    expect(source).toContain("(await resolveMigrationService()).inspect()");
+  });
+});
+
 describe("main process Plan API ordering", () => {
   it("initializes Plan API before adapting and registering AI ports", () => {
     const source = readFileSync(path.resolve(mainDirectory, "../main.ts"), "utf8");

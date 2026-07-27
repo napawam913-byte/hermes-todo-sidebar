@@ -71,10 +71,28 @@ describe("mapPlanApiSnapshot", () => {
     })]);
   });
 
-  it("rejects skipped daily entries instead of representing them as pending todos", () => {
+  it("filters skipped daily entries while preserving pending entries and version indexes", () => {
+    const snapshot = snapshotFixture();
+    const pending = { ...snapshot.tasks[0]!.entries[0]!, id: "entry_pending", status: "pending" as const };
+    const skipped = { ...snapshot.tasks[0]!.entries[0]!, id: "entry_skipped", status: "skipped" as const };
+    snapshot.tasks[0]!.entries = [pending, skipped];
+
+    const result = mapPlanApiSnapshot(snapshot);
+
+    expect(result.todos.map((todo) => todo.id)).toEqual(["entry_pending"]);
+    expect(result.versionIndex.requireEntry("entry_skipped")).toMatchObject({
+      id: "entry_skipped",
+      taskId: "task_daily",
+    });
+  });
+
+  it("maps an all-skipped daily task to no ordinary todos without losing its version index", () => {
     const snapshot = snapshotFixture();
     snapshot.tasks[0]!.entries[0]!.status = "skipped";
 
-    expect(() => mapPlanApiSnapshot(snapshot)).toThrow("Skipped daily entry cannot be mapped to Todo");
+    const result = mapPlanApiSnapshot(snapshot);
+
+    expect(result.todos).toEqual([]);
+    expect(result.versionIndex.requireEntry("entry_daily")).toMatchObject({ version: 3 });
   });
 });
