@@ -10,6 +10,7 @@ import { PetActivityProvider } from "./features/sidebar/PetActivityContext";
 import "./styles/global.css";
 import "./styles/ai-onboarding.css";
 import "./styles/responsive-panel.css";
+import "./styles/data-service-banner.css";
 
 async function startApplication() {
   const appData = await bootstrapAppData();

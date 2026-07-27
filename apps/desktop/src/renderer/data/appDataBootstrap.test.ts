@@ -8,6 +8,7 @@ import { mockCyclePlans } from "../features/cyclePlans/mockCyclePlans";
 import { mockTodos } from "../features/todos/mockTodos";
 import {
   bootstrapAppData,
+  normalizeAppSnapshot,
   type PlanApiRendererBridge
 } from "./appDataBootstrap";
 
@@ -18,13 +19,6 @@ const offlineStatus: PlanApiRuntimeStatus = {
   cacheAvailable: true,
   serverRevision: 7
 };
-
-function readSource(todo: unknown): unknown {
-  if (typeof todo !== "object" || todo === null || !("source" in todo)) {
-    return undefined;
-  }
-  return (todo as { source?: unknown }).source;
-}
 
 function desktopBridge(
   loadState: PlanApiRendererBridge["loadState"]
@@ -62,9 +56,6 @@ describe("bootstrapAppData", () => {
     expect(result.initialDataStatus).toEqual(offlineStatus);
     expect(result.mutationGateway.canMutate()).toBe(false);
     expect(result.planApiBridge).not.toBeNull();
-    expect(result.todoRepository.loadTodos()).toEqual(result.initialTodos);
-    expect(result.cyclePlanRepository.loadPlans()).toEqual(result.initialCyclePlans);
-    expect(result.writeController).not.toBeNull();
     expect(result.startExpanded).toBe(false);
   });
 
@@ -81,7 +72,30 @@ describe("bootstrapAppData", () => {
     const result = await bootstrapAppData({ bridge });
 
     expect(result.initialTodos[0].source).toEqual(source);
-    expect(readSource(result.todoRepository.loadTodos()[0])).toEqual(source);
+  });
+
+  it("preserves todo, plan and entry sources during snapshot hydration", () => {
+    const plan = {
+      ...mockCyclePlans[0],
+      source: { type: "feishu", externalId: "plan-external" },
+      entries: [{
+        ...mockCyclePlans[0].entries[0],
+        source: { type: "ai_draft", proposalId: "proposal-entry" }
+      }]
+    };
+    const normalized = normalizeAppSnapshot(
+      [{
+        ...mockTodos[0],
+        source: { type: "hermes", externalId: "todo-external" }
+      }],
+      [plan]
+    );
+
+    expect(normalized.todos[0].source).toEqual({
+      type: "hermes", externalId: "todo-external"
+    });
+    expect(normalized.cyclePlans[0].source).toEqual(plan.source);
+    expect(normalized.cyclePlans[0].entries[0].source).toEqual(plan.entries[0].source);
   });
 
   it("falls back to manual for a malformed raw source", async () => {
@@ -107,6 +121,26 @@ describe("bootstrapAppData", () => {
     await expect(bootstrapAppData({ bridge })).rejects.toThrow("缓存损坏");
   });
 
+  it("updates the Electron gateway guard after the controller subscribes", async () => {
+    let emitStatus: (status: PlanApiRuntimeStatus) => void = () => undefined;
+    const bridge = desktopBridge(vi.fn(async () => ({
+      todos: mockTodos,
+      cyclePlans: mockCyclePlans,
+      status: offlineStatus
+    })));
+    bridge.onStatusChanged = (listener) => {
+      emitStatus = listener;
+      return () => undefined;
+    };
+    const result = await bootstrapAppData({ bridge });
+    const release = result.planApiBridge?.onStatusChanged(() => undefined);
+
+    expect(result.mutationGateway.canMutate()).toBe(false);
+    emitStatus({ ...offlineStatus, mode: "online", canMutate: true });
+    expect(result.mutationGateway.canMutate()).toBe(true);
+    release?.();
+  });
+
   it("keeps browser preview mutable and persists same-shape mutations", async () => {
     const values = new Map<string, string>();
     const storage = {
@@ -128,9 +162,6 @@ describe("bootstrapAppData", () => {
     });
     expect(result.mutationGateway.canMutate()).toBe(true);
     expect(result.planApiBridge).toBeNull();
-    expect(result.todoRepository).toBeDefined();
-    expect(result.cyclePlanRepository).toBeDefined();
-    expect(result.writeController).toBeNull();
     expect(result.startExpanded).toBe(true);
 
     const saved = await result.mutationGateway.execute({

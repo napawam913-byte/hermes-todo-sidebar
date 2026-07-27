@@ -13,12 +13,15 @@ import { getProposalDomains } from "./aiProposalDomains";
 import type { AiPlannerController } from "./useAiPlanner";
 
 interface AiPlannerViewProps {
+  canExecute: boolean;
   planner: AiPlannerController;
   onClose(): void;
   onNavigate(destination: "today" | "cycle"): void;
 }
 
-export function AiPlannerView({ planner, onClose, onNavigate }: AiPlannerViewProps) {
+export function AiPlannerView(
+  { canExecute, planner, onClose, onNavigate }: AiPlannerViewProps
+) {
   const proposalCount = planner.proposal?.operations.length ?? 0;
   const domains = planner.proposal
     ? getProposalDomains(planner.proposal.operations)
@@ -67,6 +70,7 @@ export function AiPlannerView({ planner, onClose, onNavigate }: AiPlannerViewPro
         {planner.screen === "proposal" && planner.proposal ? (
           <AiProposalPanel
             busy={planner.busy}
+            canExecute={canExecute}
             conversation={planner.conversation}
             phase={planner.proposalPhase ?? "pending"}
             proposal={planner.proposal}

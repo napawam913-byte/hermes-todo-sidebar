@@ -28,4 +28,28 @@ describe("周期计划详情操作", () => {
     expect(html).toContain("跳过条目");
     expect(html).toContain("删除条目");
   });
+
+  it("disables every write action while keeping the detail back action available", () => {
+    const html = renderToStaticMarkup(
+      <CyclePlanDrawer
+        busy
+        plan={mockCyclePlans[0]}
+        todayKey="2026-07-10"
+        onClose={() => undefined}
+        onAiAdjust={() => undefined}
+        onMutate={async () => true}
+      />
+    );
+
+    const buttons = [...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)];
+    for (const label of [
+      "AI 调整", "暂停计划", "归档计划", "删除计划",
+      "完成条目", "跳过条目", "删除条目"
+    ]) {
+      const button = buttons.find((match) => match[2].includes(label));
+      expect(button?.[1]).toContain('disabled=""');
+    }
+    const back = buttons.find((match) => match[1].includes("返回周期计划列表"));
+    expect(back?.[1]).not.toContain("disabled");
+  });
 });

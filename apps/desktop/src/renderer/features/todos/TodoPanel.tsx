@@ -7,21 +7,15 @@ import type { ManualMutationHandler } from "../../data/manualMutation";
 import type { PlanApiDataServiceController } from "../../data/usePlanApiDataService";
 import { AiPlannerView } from "../ai/AiPlannerView";
 import { AiContextSwitchConfirm } from "../ai/AiContextSwitchConfirm";
-import {
-  isSameAiLaunchContext,
-  type AiPlannerLaunchContext
-} from "../ai/aiPlannerLaunchContext";
+import { isSameAiLaunchContext, type AiPlannerLaunchContext } from "../ai/aiPlannerLaunchContext";
 import { useAiPlanner } from "../ai/useAiPlanner";
 import { SettingsPanel } from "../settings/SettingsPanel";
 import type { CharacterPack } from "../sidebar/characterPack";
 import { CyclePlanView } from "../cyclePlans/CyclePlanView";
 import type { CyclePlan } from "../cyclePlans/cyclePlanTypes";
 import { usePetActivity } from "../sidebar/PetActivityContext";
-import {
-  createPanelSessionState,
-  getPanelMode,
-  reducePanelSessionState
-} from "../sidebar/panelSessionState";
+import { createPanelSessionState, getPanelMode, reducePanelSessionState } from "../sidebar/panelSessionState";
+import { DataServiceBanner } from "./DataServiceBanner";
 import { TodayTodoView } from "./TodayTodoView";
 import { TodoPanelHeader } from "./TodoPanelHeader";
 import { TopModeTabs } from "./TopModeTabs";
@@ -32,10 +26,12 @@ interface TodoPanelProps {
   characters: CharacterPack[];
   todos: Todo[];
   cyclePlans: CyclePlan[];
-  dataService?: PlanApiDataServiceController;
+  dataService: PlanApiDataServiceController;
+  browserPreview: boolean;
   collapseVersion: number;
   mutationBusy: boolean;
   mutationError: string | null;
+  readOnly: boolean;
   todayKey: string;
   onAiStateApplied(state: { todos: unknown[]; cyclePlans: unknown[] }): void;
   onCharacterChange(characterId: string): void;
@@ -101,9 +97,7 @@ export function TodoPanel(props: TodoPanelProps) {
     planner.consumeResumeConfig();
   }, [planner.resumeConfigRequested]);
 
-  useEffect(() => {
-    setPendingAiContext(null);
-  }, [session.interactionResetVersion]);
+  useEffect(() => setPendingAiContext(null), [session.interactionResetVersion]);
 
   return (
     <div className="todo-panel">
@@ -120,6 +114,12 @@ export function TodoPanel(props: TodoPanelProps) {
         </div>
       ) : null}
 
+      <DataServiceBanner
+        browserPreview={props.browserPreview}
+        status={props.dataService.status}
+        onOpenDataSettings={openDataSettings}
+      />
+
       {session.surface !== "settings" ? (
         <TopModeTabs
           activeMode={activeMode}
@@ -131,15 +131,14 @@ export function TodoPanel(props: TodoPanelProps) {
         <SettingsPanel
           characterId={props.characterId}
           characters={props.characters}
-          dataService={props.dataService}
+          dataService={props.browserPreview ? undefined : props.dataService}
           panelOpacity={props.panelOpacity}
           planner={planner}
           section={session.settingsSection}
           onCharacterChange={props.onCharacterChange}
           onPanelOpacityChange={props.onPanelOpacityChange}
           onSectionChange={(section) => dispatchSession({
-            type: "settings.section-selected",
-            section
+            type: "settings.section-selected", section
           })}
         />
       </section>
@@ -147,6 +146,7 @@ export function TodoPanel(props: TodoPanelProps) {
       <section className="panel-surface" hidden={session.surface !== "today"}>
         <TodayTodoView
           busy={props.mutationBusy}
+          readOnly={props.readOnly}
           todos={props.todos}
           cyclePlans={props.cyclePlans}
           dateKey={props.todayKey}
@@ -159,6 +159,7 @@ export function TodoPanel(props: TodoPanelProps) {
         <div className="cycle-panel-surface" hidden={pendingAiContext !== null}>
           <CyclePlanView
             busy={props.mutationBusy}
+            readOnly={props.readOnly}
             interactionResetVersion={session.interactionResetVersion}
             plans={props.cyclePlans}
             todayKey={props.todayKey}
@@ -181,6 +182,7 @@ export function TodoPanel(props: TodoPanelProps) {
 
       <section className="panel-surface" hidden={session.surface !== "ai"}>
         <AiPlannerView
+          canExecute={!props.readOnly}
           planner={planner}
           onClose={() => dispatchSession({ type: "mode.selected", mode: "cycle" })}
           onNavigate={(mode) => dispatchSession({ type: "mode.selected", mode })}
@@ -188,6 +190,11 @@ export function TodoPanel(props: TodoPanelProps) {
       </section>
     </div>
   );
+
+  function openDataSettings() {
+    dispatchSession({ type: "settings.opened" });
+    dispatchSession({ type: "settings.section-selected", section: "data" });
+  }
 
   function openAiContext(context: AiPlannerLaunchContext) {
     if (isSameAiLaunchContext(planner.launchContext, context)) {

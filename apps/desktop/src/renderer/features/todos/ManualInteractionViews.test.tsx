@@ -4,6 +4,8 @@
  */
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { mockCyclePlans } from "../cyclePlans/mockCyclePlans";
+import { TodayTodoView } from "./TodayTodoView";
 import { mockTodos } from "./mockTodos";
 import { TodoActionMenu } from "./TodoActionMenu";
 import { TodoEditorDrawer } from "./TodoEditorDrawer";
@@ -47,5 +49,29 @@ describe("普通待办交互视图", () => {
     expect(html).toContain("恢复待办");
     expect(html).toContain("编辑待办");
     expect(html).toContain("永久删除");
+  });
+
+  it("disables write controls in read-only mode but keeps detail browsing available", () => {
+    const html = renderToStaticMarkup(
+      <TodayTodoView
+        busy={false}
+        cyclePlans={mockCyclePlans}
+        dateKey={mockTodos[0].date}
+        interactionResetVersion={0}
+        readOnly
+        todos={mockTodos}
+        onMutate={async () => true}
+      />
+    );
+
+    expect(html).toMatch(/<input[^>]*disabled=""/);
+    expect(html).toMatch(
+      /<button[^>]*disabled=""[^>]*>[\s\S]*?<span class="sr-only">标记完成<\/span><\/button>/
+    );
+    expect(html).toMatch(
+      /<button[^>]*disabled=""[^>]*>[\s\S]*?<span class="sr-only">更多操作<\/span><\/button>/
+    );
+    expect(html).toMatch(/<button[^>]*aria-label="查看[^"]+详情"[^>]*>/);
+    expect(html).not.toMatch(/<button[^>]*aria-label="查看[^"]+详情"[^>]*disabled=""/);
   });
 });

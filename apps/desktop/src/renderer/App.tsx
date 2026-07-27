@@ -3,18 +3,20 @@
  * 模块边界：只管理前端原型状态，不直接访问 Electron 主进程实现细节。
  */
 import { useCallback, useMemo, useState } from "react";
-import type { AppDataBootstrapResult } from "./data/appDataBootstrap";
+import {
+  normalizeAppSnapshot,
+  type AppDataBootstrapResult
+} from "./data/appDataBootstrap";
+import { OFFLINE_MUTATION_MESSAGE } from "./data/appMutationGateway";
 import type { ManualMutationHandler } from "./data/manualMutation";
 import { useAppMutationStore } from "./data/useAppMutationStore";
 import { usePlanApiDataService } from "./data/usePlanApiDataService";
 import { useAppearanceSettings } from "./features/appearance/useAppearanceSettings";
-import { normalizeCyclePlans } from "./features/cyclePlans/localCyclePlanRepository";
 import { usePetActivity } from "./features/sidebar/PetActivityContext";
 import { usePetReminderSignals } from "./features/sidebar/usePetReminderSignals";
 import { SidebarShell } from "./features/sidebar/SidebarShell";
 import { characterRegistry } from "./features/sidebar/builtInCharacterRegistry";
 import { shouldCelebrateOperations } from "./features/sidebar/petVisualState";
-import { normalizeTodos } from "./features/todos/localTodoRepository";
 import { TodoPanel } from "./features/todos/TodoPanel";
 import { buildTodayItems } from "./features/todos/todayItems";
 import { useLocalDateKey } from "./features/todos/useLocalDateKey";
@@ -40,10 +42,7 @@ export function App({ appData }: AppProps) {
     }
   });
   const hydrateExternalSnapshot = useCallback((todos: unknown[], cyclePlans: unknown[]) => {
-    mutation.hydrate({
-      todos: normalizeTodos(todos),
-      cyclePlans: normalizeCyclePlans(cyclePlans)
-    });
+    mutation.hydrate(normalizeAppSnapshot(todos, cyclePlans));
   }, [mutation.hydrate]);
   const dataService = usePlanApiDataService({
     bridge: appData.planApiBridge,
@@ -67,6 +66,10 @@ export function App({ appData }: AppProps) {
 
   const handleManualMutation = useCallback<ManualMutationHandler>(
     async (summary, operations) => {
+      if (!dataService.status.canMutate) {
+        mutation.reportError(OFFLINE_MUTATION_MESSAGE);
+        return false;
+      }
       const finishWorking = beginWorking();
       try {
         const saved = await mutation.execute({ source: { type: "manual" }, summary, operations });
@@ -77,7 +80,10 @@ export function App({ appData }: AppProps) {
         finishWorking();
       }
     },
-    [beginWorking, celebrate, fail, mutation.execute]
+    [
+      beginWorking, celebrate, dataService.status.canMutate, fail,
+      mutation.execute, mutation.reportError
+    ]
   );
 
   function handleExpandedChange(nextExpanded: boolean) {
@@ -88,10 +94,7 @@ export function App({ appData }: AppProps) {
   }
 
   function handleAiStateApplied(state: { todos: unknown[]; cyclePlans: unknown[] }) {
-    mutation.hydrate({
-      todos: normalizeTodos(state.todos),
-      cyclePlans: normalizeCyclePlans(state.cyclePlans)
-    });
+    hydrateExternalSnapshot(state.todos, state.cyclePlans);
     celebrate();
   }
 
@@ -104,6 +107,7 @@ export function App({ appData }: AppProps) {
       onExpandedChange={handleExpandedChange}
     >
       <TodoPanel
+        browserPreview={appData.planApiBridge === null}
         characterId={characterPack.manifest.id}
         characters={characters}
         collapseVersion={collapseVersion}
@@ -111,6 +115,7 @@ export function App({ appData }: AppProps) {
         dataService={dataService}
         mutationBusy={mutation.busy}
         mutationError={mutation.error}
+        readOnly={!dataService.status.canMutate}
         todayKey={todayKey}
         todos={todos}
         onAiStateApplied={handleAiStateApplied}

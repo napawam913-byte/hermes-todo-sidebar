@@ -27,6 +27,7 @@ interface TodayTodoViewProps {
   dateKey: string;
   interactionResetVersion: number;
   busy: boolean;
+  readOnly: boolean;
   onMutate: ManualMutationHandler;
 }
 
@@ -40,12 +41,13 @@ export function TodayTodoView(props: TodayTodoViewProps) {
   );
   const selectedItem = findItem(items, selectedItemKey);
   const actionItem = findItem(items, actionItemKey);
+  const writeBusy = props.busy || props.readOnly;
 
   useEffect(() => setActionItemKey(null), [props.interactionResetVersion]);
 
   const master = (
     <TodayTodoListPane
-      busy={props.busy}
+      busy={writeBusy}
       items={items}
       selectedItemKey={selectedItemKey}
       onAdd={(title) => props.onMutate("新增今日待办", [buildCreateTodoOperation(title, props.dateKey)])}
@@ -61,7 +63,7 @@ export function TodayTodoView(props: TodayTodoViewProps) {
     if (editingTodo) {
       return (
         <TodoEditorDrawer
-          busy={props.busy}
+          busy={writeBusy}
           interactionResetVersion={props.interactionResetVersion}
           todo={editingTodo}
           onClose={() => setEditingTodo(null)}
@@ -73,7 +75,7 @@ export function TodayTodoView(props: TodayTodoViewProps) {
     if (actionItem) {
       return (
         <TodoActionMenu
-          busy={props.busy}
+          busy={writeBusy}
           item={actionItem}
           onClose={() => setActionItemKey(null)}
           onComplete={() => mutateItemStatus(actionItem, "complete", props.onMutate)}

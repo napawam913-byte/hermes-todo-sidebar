@@ -6,8 +6,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { AiExecutionPanel } from "./AiExecutionPanel";
 import { AiFlowNav } from "./AiFlowNav";
+import { AiProposalPanel } from "./AiProposalPanel";
 
 const noop = () => undefined;
+const proposal = { schemaVersion: 1 as const, proposalId: "proposal-1", summary: "新增计划", operations: [] };
 
 describe("AI Flow 视图", () => {
   it("显示对话与提案数量二级导航", () => {
@@ -76,5 +78,24 @@ describe("AI Flow 视图", () => {
     expect(html).toContain("整批已回滚");
     expect(html).toContain("刷新并重新生成");
     expect(html).toContain("返回对话");
+  });
+
+  it("blocks proposal execution while offline but keeps discard available", () => {
+    const html = renderToStaticMarkup(
+      <AiProposalPanel
+        busy={false}
+        canExecute={false}
+        conversation={[]}
+        phase="pending"
+        proposal={proposal}
+        onCancel={noop}
+        onConfirm={noop}
+        onReturnToConversation={noop}
+      />
+    );
+
+    expect(html).toContain("数据服务离线，提案暂不能写入");
+    expect(html).toMatch(/<button[^>]*>[^<]*<span>放弃草稿<\/span><\/button>/);
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>[^<]*<span>确认执行 0 项<\/span>/);
   });
 });

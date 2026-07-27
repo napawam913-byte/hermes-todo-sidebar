@@ -1,0 +1,87 @@
+/**
+ * 模块用途：定义数据服务状态横幅的紧凑、非卡片式布局。
+ * 模块边界：不控制业务页面高度，也不读取连接配置。
+ */
+.data-service-banner {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 var(--space-4) var(--space-2);
+  padding: 8px 10px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-sm);
+  color: var(--ui-text);
+  background: var(--ui-control);
+}
+
+.data-service-banner > svg {
+  color: var(--ui-accent);
+}
+
+.data-service-banner > div {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.data-service-banner strong {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.data-service-banner span {
+  color: var(--ui-text-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.data-service-banner button {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-sm);
+  color: var(--ui-text);
+  background: var(--ui-surface);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.data-service-banner button:hover {
+  background: var(--ui-control-hover);
+}
+
+.data-service-banner button:focus-visible {
+  outline: 3px solid var(--ui-focus-ring);
+  outline-offset: 1px;
+}
+
+.data-service-banner.is-warning {
+  border-color: rgb(255 159 10 / 0.32);
+  background: var(--ui-warning-soft);
+}
+
+.data-service-banner.is-warning > svg {
+  color: var(--ui-warning-text);
+}
+
+.data-service-banner.is-danger {
+  border-color: rgb(255 59 48 / 0.32);
+  background: var(--ui-danger-soft);
+}
+
+.data-service-banner.is-danger > svg {
+  color: var(--ui-danger-text);
+}
+
+@media (max-width: 719px) {
+  .data-service-banner {
+    grid-template-columns: auto minmax(0, 1fr);
+    margin-inline: var(--space-3);
+  }
+  .data-service-banner button {
+    grid-column: 2;
+    justify-self: start;
+  }
+}

@@ -6,6 +6,7 @@ import type { AiProposalPhase } from "./aiPlannerState";
 
 interface AiProposalPanelProps {
   busy: boolean;
+  canExecute: boolean;
   conversation: AiConversationTurn[];
   phase: AiProposalPhase;
   proposal: AiMutationProposal;
@@ -36,8 +37,21 @@ export function AiProposalPanel(props: AiProposalPanelProps) {
       </section>
       {props.phase === "pending" ? (
         <footer className="ai-confirm-bar">
-          <div><strong>确认后一次写入 {props.proposal.operations.length} 项变更</strong>{deleteCount ? <span>含永久删除，执行后不可恢复</span> : null}</div>
-          <div><QuietButton disabled={props.busy} onClick={props.onCancel}>放弃草稿</QuietButton><PrimaryButton disabled={props.busy} onClick={props.onConfirm}>{props.busy ? "执行中" : `确认执行 ${props.proposal.operations.length} 项`}</PrimaryButton></div>
+          <div>
+            <strong>确认后一次写入 {props.proposal.operations.length} 项变更</strong>
+            {!props.canExecute
+              ? <span>数据服务离线，提案暂不能写入</span>
+              : deleteCount ? <span>含永久删除，执行后不可恢复</span> : null}
+          </div>
+          <div>
+            <QuietButton disabled={props.busy} onClick={props.onCancel}>放弃草稿</QuietButton>
+            <PrimaryButton
+              disabled={props.busy || !props.canExecute}
+              onClick={props.onConfirm}
+            >
+              {props.busy ? "执行中" : `确认执行 ${props.proposal.operations.length} 项`}
+            </PrimaryButton>
+          </div>
         </footer>
       ) : (
         <footer className="ai-confirm-bar is-readonly">

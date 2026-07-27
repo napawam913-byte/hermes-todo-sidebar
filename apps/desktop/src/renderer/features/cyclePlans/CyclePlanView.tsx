@@ -12,6 +12,7 @@ import type { CyclePlan } from "./cyclePlanTypes";
 
 interface CyclePlanViewProps {
   busy: boolean;
+  readOnly: boolean;
   interactionResetVersion: number;
   plans: CyclePlan[];
   todayKey: string;
@@ -25,9 +26,10 @@ export function CyclePlanView(props: CyclePlanViewProps) {
     () => props.plans.find((plan) => plan.id === selectedPlanId),
     [props.plans, selectedPlanId]
   );
+  const writeBusy = props.busy || props.readOnly;
   const master = (
     <CyclePlanListPane
-      busy={props.busy}
+      busy={writeBusy}
       plans={props.plans}
       selectedPlanId={selectedPlanId}
       todayKey={props.todayKey}
@@ -37,7 +39,7 @@ export function CyclePlanView(props: CyclePlanViewProps) {
   );
   const detail = selectedPlan ? (
     <CyclePlanDrawer
-      busy={props.busy}
+      busy={writeBusy}
       interactionResetVersion={props.interactionResetVersion}
       key={selectedPlan.id}
       plan={selectedPlan}

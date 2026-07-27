@@ -38,10 +38,15 @@ export function useAppMutationStore(options: UseAppMutationStoreOptions) {
     dispatch({ type: "snapshot.hydrated", snapshot });
   }, []);
 
+  const reportError = useCallback((message: string) => {
+    dispatch({ type: "mutation.failed", message });
+  }, []);
+
   return {
     ...state,
     clearError: () => dispatch({ type: "error.cleared" }),
     execute,
-    hydrate
+    hydrate,
+    reportError
   };
 }
