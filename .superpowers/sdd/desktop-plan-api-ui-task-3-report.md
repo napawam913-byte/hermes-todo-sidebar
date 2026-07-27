@@ -14,6 +14,7 @@
 修改：
 
 - `apps/desktop/src/renderer/App.tsx`
+- `apps/desktop/src/renderer/App.test.tsx`
 - `apps/desktop/src/renderer/main.tsx`
 - `apps/desktop/src/renderer/data/appDataBootstrap.ts`
 - `apps/desktop/src/renderer/data/appDataBootstrap.test.ts`
@@ -52,11 +53,22 @@
 
 ## 验证
 
+### Dirty 工作树参考结果
+
 - Focused tests：40 个测试文件、113 个测试通过。
 - Full `npm test`：130 个测试文件、465 个测试通过。
+- 该结果包含未跟踪的 `apps/desktop/src/main/windowsPackaging.test.ts`，只作为 dirty 工作树参考，不作为 Task 3 clean 验收计数。
+- Dirty `npm run typecheck`、`npm run build` 和 `git diff --check` 均通过。
+
+### Clean HEAD 权威结果
+
+- Clean worktree：`C:\tmp\hermes-task3-clean-ff5b8cc`
+- HEAD：`e631bc18ba068686f1a98f82ba00d17766cff8f8`
+- Full `npm test`：129 个测试文件、463 个测试通过；不包含未跟踪的 `windowsPackaging.test.ts`。
 - `npm run typecheck`：通过。
 - `npm run build`：通过；主进程 TypeScript 与 renderer Vite 均成功，Vite 转换 1686 个模块。
-- `git diff --check`：退出码 0；仅报告既有工作树的 LF/CRLF 转换提示。
+- `git diff --check`：通过，无输出。
+- 验证前后 `git status --short`：均为空。
 - 旧引用检查：`electronRepositories`、`electronMutationDiff`、`writeController`、`RepositoryWriteNotice` 均无运行时引用。
 - `main.tsx` 不包含 `window.location.reload`。
 
@@ -65,6 +77,7 @@
 | 文件 | 行数 |
 | --- | ---: |
 | `App.tsx` | 130 |
+| `App.test.tsx` | 85 |
 | `main.tsx` | 26 |
 | `appDataBootstrap.ts` | 194 |
 | `appDataBootstrap.test.ts` | 178 |
@@ -90,6 +103,7 @@
 
 - 快照启动与事件更新共用 `normalizeAppSnapshot`，直接测试 Todo、周期计划和周期条目 source 保留。
 - 直接测试快照 hydrate 后 `TodoPanel`、AI 页面和输入框不重挂载。
+- `App.test.tsx` 已按收口后的 `AppDataBootstrapResult` 构造测试数据，并继续断言会话不重挂载。
 - 直接测试状态事件令 UI 无 reload 切换只读/可写，且 tracked gateway 同步更新第二道防御。
 - 今日与周期浏览入口保持可用；周期详情所有写动作在只读状态 disabled。
 - AI 普通对话路径未增加只读限制；仅提案确认 disabled，放弃草稿仍可用。
@@ -97,6 +111,7 @@
 
 ## Concerns
 
-- 工作树在本任务开始前已有大量白名单外 dirty；提交后这些改动仍会保留，因此 `git status --short` 不会为空。
+- 主工作树在本任务开始前已有大量白名单外 dirty；提交后这些改动仍会保留，因此主工作树 `git status --short` 不会为空。
 - Windows 行尾策略会输出 LF 转 CRLF 提示，但 `git diff --check` 无 whitespace error。
-- 提交信息为 `feat: enforce plan api read only mode`。本报告属于同一提交，提交内容无法可靠自引用最终 SHA；最终 SHA 在提交后通过 `git log -1 --format=%H` 获取并在任务回复中报告。
+- Task 3 提交：`ff5b8cc3d2fa7e4cfaec4bbcd6407776c1b7706b`，`feat: enforce plan api read only mode`。
+- Fix Round 1：`e631bc18ba068686f1a98f82ba00d17766cff8f8`，`test: align app bootstrap contract`。
