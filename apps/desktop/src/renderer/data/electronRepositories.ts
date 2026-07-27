@@ -34,6 +34,11 @@ export interface ElectronRepositories {
 }
 
 export interface RepositoryWriteState { pending: boolean; error?: string; }
+export interface RepositoryWriteController {
+  getWriteState(): RepositoryWriteState;
+  onWriteStateChanged(listener: (state: RepositoryWriteState) => void): () => void;
+  retryPending(): void;
+}
 
 export function createElectronRepositories(
   options: ElectronRepositoryOptions

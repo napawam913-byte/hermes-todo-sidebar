@@ -30,6 +30,7 @@ describe("bootstrapAppData", () => {
     expect(result.initialCyclePlans).toEqual([mockCyclePlans[0]]);
     expect(result.startExpanded).toBe(false);
     expect(result.todoRepository.loadTodos()).toEqual(result.initialTodos);
+    expect(result.writeController).not.toBeNull();
   });
 
   it("keeps mock fallback only for browser preview", async () => {
@@ -38,5 +39,6 @@ describe("bootstrapAppData", () => {
     expect(result.initialTodos).toEqual(mockTodos);
     expect(result.initialCyclePlans).toEqual(mockCyclePlans);
     expect(result.startExpanded).toBe(true);
+    expect(result.writeController).toBeNull();
   });
 });

@@ -84,4 +84,32 @@ describe("createElectronRepositories", () => {
     expect(repositories.todoRepository.loadTodos()).toEqual(next);
     expect(repositories.getWriteState()).toEqual({ pending: false });
   });
+
+  it("keeps the newest intent after an in-flight failure until explicit retry", async () => {
+    const current = structuredClone(mockTodos);
+    const first = [{ ...current[0], title: "first" }, ...current.slice(1)];
+    const latest = [{ ...current[0], title: "latest" }, ...current.slice(1)];
+    let rejectFirst: ((reason?: unknown) => void) | undefined;
+    const port: DesktopDataBridge = {
+      loadState: vi.fn(),
+      executeMutations: vi.fn()
+        .mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectFirst = reject; }))
+        .mockResolvedValueOnce({ todos: latest, cyclePlans: [] })
+    };
+    const repositories = createElectronRepositories({ bridge: port, todos: current, cyclePlans: [] });
+
+    repositories.todoRepository.saveTodos(first);
+    await flush();
+    repositories.todoRepository.saveTodos(latest);
+    rejectFirst?.(new Error("offline"));
+    await flush();
+    expect(port.executeMutations).toHaveBeenCalledOnce();
+    expect(repositories.getWriteState()).toEqual({ pending: false, error: "offline" });
+
+    repositories.retryPending();
+    await flush();
+    expect(port.executeMutations).toHaveBeenCalledTimes(2);
+    expect((port.executeMutations as ReturnType<typeof vi.fn>).mock.calls[1][0].operations[0].patch.title).toBe("latest");
+    expect(repositories.getWriteState()).toEqual({ pending: false });
+  });
 });

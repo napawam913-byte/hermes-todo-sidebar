@@ -14,7 +14,7 @@ import { createLocalTodoRepository, normalizeTodos } from "../features/todos/loc
 import { mockTodos } from "../features/todos/mockTodos";
 import type { TodoRepository } from "../features/todos/todoRepository";
 import type { Todo } from "../features/todos/types";
-import { createElectronRepositories, type DesktopDataBridge } from "./electronRepositories";
+import { createElectronRepositories, type DesktopDataBridge, type RepositoryWriteController } from "./electronRepositories";
 
 export interface AppDataBootstrapResult {
   todoRepository: TodoRepository;
@@ -22,6 +22,7 @@ export interface AppDataBootstrapResult {
   initialTodos: Todo[];
   initialCyclePlans: CyclePlan[];
   startExpanded: boolean;
+  writeController: RepositoryWriteController | null;
 }
 
 interface BootstrapOptions {
@@ -46,6 +47,7 @@ export async function bootstrapAppData(
       ...repositories,
       initialTodos,
       initialCyclePlans,
+      writeController: repositories,
       startExpanded: false
     };
   }
@@ -60,6 +62,7 @@ export async function bootstrapAppData(
     cyclePlanRepository,
     initialTodos: persistedTodos.length > 0 ? persistedTodos : mockTodos,
     initialCyclePlans: persistedPlans.length > 0 ? persistedPlans : mockCyclePlans,
+    writeController: null,
     startExpanded: true
   };
 }
