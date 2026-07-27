@@ -29,6 +29,7 @@ describe("AI 安排响应式布局", () => {
     expect(globalCss).toContain('@import "./ai-execution.css"');
     expect(globalCss).toContain('@import "./ai-composer.css"');
     expect(rendererEntry).toContain('import "./styles/ai-onboarding.css"');
+    expect(rendererEntry).toContain('import "./styles/responsive-panel.css"');
     expect(proposalCss).toContain("minmax(0, 36fr) minmax(0, 64fr)");
     expect(`${plannerCss}\n${proposalCss}`).toContain("@media (max-width: 719px)");
     expect(`${plannerCss}\n${proposalCss}`).not.toContain("width: 360px");

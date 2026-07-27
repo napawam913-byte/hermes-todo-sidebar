@@ -153,4 +153,36 @@ describe("parseModelMutationProposal", () => {
       }]
     })).toThrow(/50/);
   });
+
+  it("bounds content blocks while preserving unknown legal JSON data", () => {
+    const proposal = (contentBlocks: unknown[]) => ({
+      schemaVersion: 1,
+      summary: "内容块边界",
+      operations: [{
+        type: "cyclePlan.entry.create",
+        planId: "plan_1",
+        draft: { date: "2026-07-16", title: "训练", contentSummary: "摘要", contentBlocks }
+      }]
+    });
+    const block = (data: Record<string, unknown>) => ({
+      kind: "unknown.block",
+      title: "未知内容",
+      format: "json",
+      data
+    });
+    expect(parseModelMutationProposal(proposal([block({ nested: [true, { value: "kept" }] })])))
+      .toMatchObject({ operations: [{ draft: { contentBlocks: [{ data: { nested: [true, { value: "kept" }] } }] } }] });
+    expect(() => parseModelMutationProposal(proposal(Array.from({ length: 21 }, () => block({}))))).toThrow(/contentBlocks/);
+    expect(() => parseModelMutationProposal(proposal([block({ text: "x".repeat(10001) })]))).toThrow(/字符串/);
+    expect(() => parseModelMutationProposal(proposal([block({ values: Array.from({ length: 80 }, () => "x".repeat(700)) })]))).toThrow(/大小/);
+    expect(() => parseModelMutationProposal(proposal([block({ items: Array.from({ length: 501 }, () => 0) })]))).toThrow(/节点/);
+    let deep: Record<string, unknown> = {};
+    let cursor = deep;
+    for (let index = 0; index < 12; index += 1) {
+      const next: Record<string, unknown> = {};
+      cursor.next = next;
+      cursor = next;
+    }
+    expect(() => parseModelMutationProposal(proposal([block(deep)]))).toThrow(/深度/);
+  });
 });

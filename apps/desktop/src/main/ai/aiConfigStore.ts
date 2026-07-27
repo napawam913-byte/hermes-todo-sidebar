@@ -86,9 +86,17 @@ function normalizeInput(input: AiConfigInput): AiModelCredentials {
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
     throw new Error("Base URL 仅支持 HTTP 或 HTTPS");
   }
+  if (parsed.protocol === "http:" && !isLoopbackHost(parsed.hostname)) {
+    throw new Error("非本地模型接口必须使用 HTTPS");
+  }
   if (!model) throw new Error("模型名称不能为空");
   if (!apiKey) throw new Error("API Key 不能为空");
   return { baseUrl, model, apiKey };
+}
+
+function isLoopbackHost(hostname: string): boolean {
+  return hostname === "localhost" || hostname === "127.0.0.1"
+    || hostname === "[::1]" || hostname === "::1";
 }
 
 function maskApiKey(apiKey: string): string {

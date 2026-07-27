@@ -111,4 +111,18 @@ describe("AiConfigStore", () => {
       .rejects.toThrow(/安全存储/);
     expect(ports.readStored()).toBeNull();
   });
+
+  it("only permits HTTP model endpoints on loopback hosts", async () => {
+    const ports = createPorts();
+    const store = new AiConfigStore(ports.persistence, ports.protector);
+
+    await expect(store.save({ baseUrl: "http://api.example.com/v1", model: "model", apiKey: "sk-key" }))
+      .rejects.toThrow(/HTTPS/);
+    await expect(store.save({ baseUrl: "http://localhost:8000/v1", model: "model", apiKey: "sk-key" }))
+      .resolves.toMatchObject({ baseUrl: "http://localhost:8000/v1" });
+    await expect(store.save({ baseUrl: "http://127.0.0.1:8000/v1", model: "model", apiKey: "sk-key" }))
+      .resolves.toMatchObject({ baseUrl: "http://127.0.0.1:8000/v1" });
+    await expect(store.save({ baseUrl: "http://[::1]:8000/v1", model: "model", apiKey: "sk-key" }))
+      .resolves.toMatchObject({ baseUrl: "http://[::1]:8000/v1" });
+  });
 });

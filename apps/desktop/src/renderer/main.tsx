@@ -9,9 +9,9 @@ import { bootstrapAppData } from "./data/appDataBootstrap";
 import { PetActivityProvider } from "./features/sidebar/PetActivityContext";
 import "./styles/global.css";
 import "./styles/ai-onboarding.css";
+import "./styles/responsive-panel.css";
 
 async function startApplication() {
-  window.hermesAppData?.onSnapshotChanged(() => window.location.reload());
   const appData = await bootstrapAppData();
   ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <React.StrictMode>

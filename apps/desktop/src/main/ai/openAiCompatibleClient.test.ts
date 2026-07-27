@@ -80,4 +80,20 @@ describe("OpenAiCompatibleClient", () => {
     await expect(client.testConnection(credentials))
       .rejects.not.toThrow(/sk-super-secret/);
   });
+
+  it("rejects an oversized declared response before JSON parsing", async () => {
+    const response = new Response("{}", {
+      headers: { "Content-Length": "524289" }
+    });
+    const client = new OpenAiCompatibleClient(vi.fn().mockResolvedValue(response));
+
+    await expect(client.testConnection(credentials)).rejects.toThrow(/响应过大/);
+  });
+
+  it("rejects an oversized actual response before JSON parsing", async () => {
+    const response = new Response("x".repeat(524289));
+    const client = new OpenAiCompatibleClient(vi.fn().mockResolvedValue(response));
+
+    await expect(client.testConnection(credentials)).rejects.toThrow(/响应过大/);
+  });
 });

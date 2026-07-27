@@ -5,6 +5,8 @@
 import type { AiModelCredentials } from "./aiConfigTypes.js";
 import { AI_MUTATION_RESPONSE_SCHEMA } from "./aiMutationJsonSchema.js";
 
+export const MAX_MODEL_RESPONSE_BYTES = 512 * 1024;
+
 export interface ModelMessage {
   role: "system" | "user" | "assistant";
   content: string;
@@ -99,9 +101,21 @@ export class OpenAiCompatibleClient {
     } catch (error) {
       throw toModelNetworkError(error);
     }
-    const parsed: unknown = await response.json().catch(() => null);
+    const parsed = await readResponseJson(response);
     return { response, body: parsed };
   }
+}
+
+async function readResponseJson(response: Response): Promise<unknown> {
+  const declaredLength = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_MODEL_RESPONSE_BYTES) {
+    throw new Error("模型响应过大");
+  }
+  const text = await response.text();
+  if (new TextEncoder().encode(text).byteLength > MAX_MODEL_RESPONSE_BYTES) {
+    throw new Error("模型响应过大");
+  }
+  try { return JSON.parse(text); } catch { return null; }
 }
 
 function parseAssistantContent(value: unknown): string {

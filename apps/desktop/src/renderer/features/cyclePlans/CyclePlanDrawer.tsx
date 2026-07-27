@@ -29,8 +29,10 @@ interface CyclePlanDrawerProps {
 export function CyclePlanDrawer(props: CyclePlanDrawerProps) {
   const { onClose, onAiAdjust, plan, todayKey } = props;
   const [confirmPlanDelete, setConfirmPlanDelete] = useState(false);
+  const [confirmEntryDelete, setConfirmEntryDelete] = useState(false);
   useEffect(() => {
     setConfirmPlanDelete(false);
+    setConfirmEntryDelete(false);
   }, [props.interactionResetVersion]);
   const sortedEntries = useMemo(
     () => [...plan.entries].sort((left, right) => left.date.localeCompare(right.date)),
@@ -84,7 +86,7 @@ export function CyclePlanDrawer(props: CyclePlanDrawerProps) {
             active={entry.id === selectedEntry?.id}
             entry={entry}
             key={entry.id}
-            onSelect={() => setSelectedEntryId(entry.id)}
+            onSelect={() => { setSelectedEntryId(entry.id); setConfirmEntryDelete(false); }}
           />
         ))}
       </div>
@@ -109,10 +111,16 @@ export function CyclePlanDrawer(props: CyclePlanDrawerProps) {
             <QuietButton disabled={props.busy} icon={<SkipForward size={15} />} onClick={() => void runEntry("skip")}>
               跳过条目
             </QuietButton>
-            <QuietButton className="is-danger" disabled={props.busy} icon={<Trash2 size={15} />} onClick={() => void runEntry("delete")}>
-              删除条目
+            <QuietButton
+              className="is-danger"
+              disabled={props.busy}
+              icon={<Trash2 size={15} />}
+              onClick={() => confirmEntryDelete ? void deleteEntry() : setConfirmEntryDelete(true)}
+            >
+              {confirmEntryDelete ? "确认永久删除条目" : "删除条目"}
             </QuietButton>
           </div>
+          {confirmEntryDelete ? <div className="danger-confirm" role="alert">永久删除此条目后不可恢复，请再次确认。</div> : null}
         </div>
       ) : null}
     </DetailPageShell>
@@ -131,5 +139,9 @@ export function CyclePlanDrawer(props: CyclePlanDrawerProps) {
   async function runEntry(action: "complete" | "reopen" | "skip" | "delete") {
     if (!selectedEntry) return;
     await props.onMutate(`更新条目：${selectedEntry.title}`, [buildEntryStatusOperation(selectedEntry, action)]);
+  }
+
+  async function deleteEntry() {
+    await runEntry("delete");
   }
 }

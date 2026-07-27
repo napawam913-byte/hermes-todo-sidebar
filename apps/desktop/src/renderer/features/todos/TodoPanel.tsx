@@ -4,6 +4,7 @@
  */
 import { useEffect, useReducer, useRef, useState } from "react";
 import type { ManualMutationHandler } from "../../data/manualMutation";
+import type { PlanApiDataServiceController } from "../../data/usePlanApiDataService";
 import { AiPlannerView } from "../ai/AiPlannerView";
 import { AiContextSwitchConfirm } from "../ai/AiContextSwitchConfirm";
 import {
@@ -31,6 +32,7 @@ interface TodoPanelProps {
   characters: CharacterPack[];
   todos: Todo[];
   cyclePlans: CyclePlan[];
+  dataService?: PlanApiDataServiceController;
   collapseVersion: number;
   mutationBusy: boolean;
   mutationError: string | null;
@@ -129,6 +131,7 @@ export function TodoPanel(props: TodoPanelProps) {
         <SettingsPanel
           characterId={props.characterId}
           characters={props.characters}
+          dataService={props.dataService}
           panelOpacity={props.panelOpacity}
           planner={planner}
           section={session.settingsSection}

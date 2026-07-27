@@ -6,6 +6,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { AppDataBootstrapResult } from "./data/appDataBootstrap";
 import type { ManualMutationHandler } from "./data/manualMutation";
 import { useAppMutationStore } from "./data/useAppMutationStore";
+import { usePlanApiDataService } from "./data/usePlanApiDataService";
 import { useAppearanceSettings } from "./features/appearance/useAppearanceSettings";
 import { normalizeCyclePlans } from "./features/cyclePlans/localCyclePlanRepository";
 import { usePetActivity } from "./features/sidebar/PetActivityContext";
@@ -37,6 +38,17 @@ export function App({ appData }: AppProps) {
       todos: appData.initialTodos,
       cyclePlans: appData.initialCyclePlans
     }
+  });
+  const hydrateExternalSnapshot = useCallback((todos: unknown[], cyclePlans: unknown[]) => {
+    mutation.hydrate({
+      todos: normalizeTodos(todos),
+      cyclePlans: normalizeCyclePlans(cyclePlans)
+    });
+  }, [mutation.hydrate]);
+  const dataService = usePlanApiDataService({
+    bridge: appData.planApiBridge,
+    initialStatus: appData.initialDataStatus,
+    onSnapshot: hydrateExternalSnapshot
   });
   const { todos, cyclePlans } = mutation.snapshot;
 
@@ -96,6 +108,7 @@ export function App({ appData }: AppProps) {
         characters={characters}
         collapseVersion={collapseVersion}
         cyclePlans={cyclePlans}
+        dataService={dataService}
         mutationBusy={mutation.busy}
         mutationError={mutation.error}
         todayKey={todayKey}

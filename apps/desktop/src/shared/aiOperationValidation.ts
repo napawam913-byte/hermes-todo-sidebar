@@ -4,9 +4,9 @@
  */
 import type {
   AiMutationOperation,
-  ContentBlockDraft,
   CyclePlanEntryCreateDraft
 } from "./aiMutationTypes.js";
+import { parseContentBlocks } from "./aiContentBlockValidation.js";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -148,22 +148,6 @@ function parseEntryPatch(value: unknown) {
       ? undefined
       : parseContentBlocks(patch.contentBlocks)
   };
-}
-
-function parseContentBlocks(value: unknown): ContentBlockDraft[] {
-  if (!Array.isArray(value)) throw new Error("contentBlocks 必须是数组");
-  return value.map((item) => {
-    const block = asRecord(item, "内容块必须是对象");
-    exactKeys(block, ["kind", "title", "format", "data"]);
-    const format = block.format;
-    if (format !== "json" && format !== "markdown") throw new Error("内容块格式无效");
-    return {
-      kind: readText(block.kind, "内容块 kind"),
-      title: readText(block.title, "内容块标题"),
-      format,
-      data: asRecord(block.data, "contentBlocks.data 必须是对象")
-    };
-  });
 }
 
 export function asRecord(value: unknown, message: string): JsonRecord {
