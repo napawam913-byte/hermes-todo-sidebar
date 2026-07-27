@@ -114,7 +114,7 @@
 .data-service-actions button:last-child,
 .data-service-migration button:first-of-type {
   background: var(--ui-accent);
-  color: var(--ui-accent-contrast);
+  color: var(--ui-text-on-accent);
 }
 
 .data-service-actions button:disabled,

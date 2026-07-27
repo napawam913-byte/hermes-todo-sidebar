@@ -86,3 +86,36 @@ Commit hash: `HEAD` (the finalized hash is reported in the task response).
 - The local `testing` lock remains active after an edit until the outstanding request resolves, preventing duplicate test or save submissions.
 - Test facts expose only the draft mode and returned revision; no Base URL, SSH target, or Token is surfaced.
 - Fix scope is limited to the original Task 2 whitelist and this report; no historical dirty changes were staged.
+
+## Fix Round 2
+
+### RED
+
+- `npm test -- apps/desktop/src/renderer/styles/neutralGlassTokens.test.ts apps/desktop/src/renderer/styles/settingsLayout.test.ts`
+  - Failed as expected: `neutralGlassTokens.test.ts` reported `--ui-accent-contrast` as the only referenced-but-undeclared UI token.
+
+### Changes
+
+- Replaced the undeclared `--ui-accent-contrast` reference in `data-service-settings.css` with the existing semantic Neutral Glass token `--ui-text-on-accent`.
+- Added no token declarations and changed no historical dirty files.
+
+### Verification
+
+- `npm test -- apps/desktop/src/renderer/styles/neutralGlassTokens.test.ts apps/desktop/src/renderer/styles/settingsLayout.test.ts`
+  - Passed: 2 files, 12 tests.
+- `npm test -- apps/desktop/src/renderer/features/settings apps/desktop/src/renderer/features/sidebar/panelSessionState.test.ts apps/desktop/src/renderer/styles/settingsLayout.test.ts`
+  - Passed: 7 files, 18 tests.
+- `npm run typecheck`
+  - Passed.
+- `git diff --check`
+  - Passed; existing working-tree CRLF warnings only.
+
+### Line Counts
+
+- `data-service-settings.css`: 160
+
+### Self-Review
+
+- The accent action foreground now uses the repository's declared semantic token.
+- No duplicate or alias token was introduced.
+- Fix Round 2 modifies only `data-service-settings.css` and this Task 2 report.
