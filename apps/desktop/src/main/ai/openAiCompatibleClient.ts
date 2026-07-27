@@ -111,11 +111,30 @@ async function readResponseJson(response: Response): Promise<unknown> {
   if (Number.isFinite(declaredLength) && declaredLength > MAX_MODEL_RESPONSE_BYTES) {
     throw new Error("模型响应过大");
   }
-  const text = await response.text();
-  if (new TextEncoder().encode(text).byteLength > MAX_MODEL_RESPONSE_BYTES) {
-    throw new Error("模型响应过大");
-  }
+  const text = await readResponseText(response.body);
   try { return JSON.parse(text); } catch { return null; }
+}
+
+async function readResponseText(body: ReadableStream<Uint8Array> | null): Promise<string> {
+  if (!body) return "";
+  const decoder = new TextDecoder();
+  const reader = body.getReader();
+  let totalBytes = 0;
+  let text = "";
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) return text + decoder.decode();
+      totalBytes += value.byteLength;
+      if (totalBytes > MAX_MODEL_RESPONSE_BYTES) {
+        try { await reader.cancel(); } catch { /* Preserve the size error. */ }
+        throw new Error("模型响应过大");
+      }
+      text += decoder.decode(value, { stream: true });
+    }
+  } finally {
+    reader.releaseLock();
+  }
 }
 
 function parseAssistantContent(value: unknown): string {

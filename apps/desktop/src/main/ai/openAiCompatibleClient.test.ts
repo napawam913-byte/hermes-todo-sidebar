@@ -18,6 +18,29 @@ function assistantResponse(content: string): Response {
   }), { status: 200 });
 }
 
+function chunkedResponse(chunks: Uint8Array[]) {
+  let pulls = 0;
+  const stream = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      pulls += 1;
+      const chunk = chunks.shift();
+      if (chunk) controller.enqueue(chunk);
+      else controller.close();
+    }
+  }, { highWaterMark: 0 });
+  const nativeReader = stream.getReader();
+  const reader = {
+    read: vi.fn(() => nativeReader.read()),
+    cancel: vi.fn((reason?: unknown) => nativeReader.cancel(reason)),
+    releaseLock: vi.fn(() => nativeReader.releaseLock())
+  };
+  return {
+    pulls: () => pulls,
+    reader,
+    response: { ok: true, status: 200, headers: new Headers(), body: { getReader: () => reader } } as unknown as Response
+  };
+}
+
 describe("OpenAiCompatibleClient", () => {
   it("returns ordinary assistant text without forcing response_format", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
@@ -95,5 +118,25 @@ describe("OpenAiCompatibleClient", () => {
     const client = new OpenAiCompatibleClient(vi.fn().mockResolvedValue(response));
 
     await expect(client.testConnection(credentials)).rejects.toThrow(/响应过大/);
+  });
+
+  it("cancels an oversized chunked response before reading the next chunk", async () => {
+    const stream = chunkedResponse([
+      new Uint8Array(524289),
+      new TextEncoder().encode('{"choices":[]}')
+    ]);
+    const client = new OpenAiCompatibleClient(vi.fn().mockResolvedValue(stream.response));
+
+    await expect(client.testConnection(credentials)).rejects.toThrow(/响应过大/);
+    expect(stream.reader.cancel).toHaveBeenCalledOnce();
+    expect(stream.reader.read).toHaveBeenCalledTimes(1);
+    expect(stream.pulls()).toBe(1);
+  });
+
+  it("treats a successful response without a body as an invalid assistant response", async () => {
+    const client = new OpenAiCompatibleClient(vi.fn().mockResolvedValue(new Response(null)));
+
+    await expect(client.requestAssistant(credentials, [{ role: "user", content: "测试" }], requestMetadata))
+      .rejects.toThrow(/响应格式/);
   });
 });

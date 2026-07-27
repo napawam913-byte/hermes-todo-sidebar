@@ -9,6 +9,8 @@ import type { AppDataBootstrapResult, PlanApiRendererBridge } from "./data/appDa
 import { mockCyclePlans } from "./features/cyclePlans/mockCyclePlans";
 import { mockTodos } from "./features/todos/mockTodos";
 
+const todoPanelProbe = vi.hoisted(() => ({ mounts: 0 }));
+
 vi.mock("./features/appearance/useAppearanceSettings", () => ({
   useAppearanceSettings: () => ({ characterId: "penguin-todo", panelOpacity: 86, setCharacterId: vi.fn(), setPanelOpacity: vi.fn() })
 }));
@@ -17,11 +19,15 @@ vi.mock("./features/sidebar/PetActivityContext", () => ({
 }));
 vi.mock("./features/sidebar/usePetReminderSignals", () => ({ usePetReminderSignals: () => undefined }));
 vi.mock("./features/sidebar/SidebarShell", () => ({ SidebarShell: ({ children }: { children: unknown }) => <>{children}</> }));
-vi.mock("./features/todos/TodoPanel", () => ({
-  TodoPanel: ({ todos, cyclePlans, dataService }: { todos: { id: string }[]; cyclePlans: { id: string }[]; dataService?: unknown }) => (
-    <output data-cycles={cyclePlans.map((plan) => plan.id).join(",")} data-service={String(Boolean(dataService))} data-todos={todos.map((todo) => todo.id).join(",")} />
-  )
-}));
+vi.mock("./features/todos/TodoPanel", async () => {
+  const { useState } = await import("react");
+  return {
+    TodoPanel: ({ todos, cyclePlans, dataService }: { todos: { id: string }[]; cyclePlans: { id: string }[]; dataService?: unknown }) => {
+      const [session] = useState(() => `session-${++todoPanelProbe.mounts}`);
+      return <output data-cycles={cyclePlans.map((plan) => plan.id).join(",")} data-service={String(Boolean(dataService))} data-session={session} data-todos={todos.map((todo) => todo.id).join(",")} />;
+    }
+  };
+});
 
 import { App } from "./App";
 
@@ -63,13 +69,20 @@ describe("App external snapshot lifecycle", () => {
     };
     const container = document.createElement("div");
     const root = createRoot(container);
+    todoPanelProbe.mounts = 0;
     await act(async () => { root.render(<App appData={appData} />); });
+    const initialSession = container.querySelector("output")?.dataset.session;
     await act(async () => { fake.emit({ todos: [{ ...mockTodos[0], id: "todo_remote" }], cyclePlans: [{ ...mockCyclePlans[0], id: "plan_remote" }], status }); });
     const output = container.querySelector("output");
     expect(output?.dataset.todos).toBe("todo_remote");
     expect(output?.dataset.cycles).toBe("plan_remote");
     expect(output?.dataset.service).toBe("true");
+    expect(output?.dataset.session).toBe(initialSession);
+    expect(todoPanelProbe.mounts).toBe(1);
     const reloadExpression = ["window", "location", "reload"].join(".");
     expect(readFileSync("apps/desktop/src/renderer/main.tsx", "utf8")).not.toContain(reloadExpression);
+    const appSource = readFileSync("apps/desktop/src/renderer/App.tsx", "utf8");
+    expect(appSource).toContain("usePlanApiDataService");
+    expect(appSource).toContain("dataService={dataService}");
   });
 });

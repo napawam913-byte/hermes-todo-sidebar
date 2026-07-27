@@ -136,12 +136,12 @@ export function CyclePlanDrawer(props: CyclePlanDrawerProps) {
     if (await props.onMutate(`永久删除${plan.title}`, [buildDeletePlanOperation(plan)])) onClose();
   }
 
-  async function runEntry(action: "complete" | "reopen" | "skip" | "delete") {
-    if (!selectedEntry) return;
-    await props.onMutate(`更新条目：${selectedEntry.title}`, [buildEntryStatusOperation(selectedEntry, action)]);
+  async function runEntry(action: "complete" | "reopen" | "skip" | "delete"): Promise<boolean> {
+    if (!selectedEntry) return false;
+    return props.onMutate(`更新条目：${selectedEntry.title}`, [buildEntryStatusOperation(selectedEntry, action)]);
   }
 
   async function deleteEntry() {
-    await runEntry("delete");
+    if (await runEntry("delete")) setConfirmEntryDelete(false);
   }
 }

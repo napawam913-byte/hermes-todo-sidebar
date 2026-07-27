@@ -39,6 +39,11 @@ export class AiConfigStore {
   }
 
   async getCredentials(): Promise<AiModelCredentials | null> {
+    const stored = await this.readStoredCredentials();
+    return stored ? normalizeInput(stored) : null;
+  }
+
+  private async readStoredCredentials(): Promise<AiModelCredentials | null> {
     const stored = await this.persistence.load();
     if (!stored) return null;
     if (!this.protector.isAvailable()) throw new Error("系统安全存储当前不可用");
@@ -69,7 +74,7 @@ export class AiConfigStore {
   }
 
   async resolveCredentials(input: AiConfigInput): Promise<AiModelCredentials> {
-    const existing = input.apiKey.trim() ? null : await this.getCredentials();
+    const existing = input.apiKey.trim() ? null : await this.readStoredCredentials();
     return normalizeInput({
       ...input,
       apiKey: input.apiKey.trim() || existing?.apiKey || ""

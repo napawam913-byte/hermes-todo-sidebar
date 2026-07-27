@@ -125,4 +125,32 @@ describe("AiConfigStore", () => {
     await expect(store.save({ baseUrl: "http://[::1]:8000/v1", model: "model", apiKey: "sk-key" }))
       .resolves.toMatchObject({ baseUrl: "http://[::1]:8000/v1" });
   });
+
+  it("rejects stored remote HTTP credentials before exposing them", async () => {
+    const ports = createPorts({
+      schemaVersion: 1,
+      baseUrl: "http://api.example.com/v1",
+      model: "legacy-model",
+      apiKeyCiphertext: Buffer.from("encrypted:sk-legacy-key").toString("base64"),
+      updatedAt: "2026-07-20T00:00:00.000Z"
+    });
+    const store = new AiConfigStore(ports.persistence, ports.protector);
+
+    await expect(store.getCredentials()).rejects.toThrow(/HTTPS/);
+  });
+
+  it("migrates an old remote HTTP config to HTTPS while retaining its encrypted key", async () => {
+    const ports = createPorts({
+      schemaVersion: 1,
+      baseUrl: "http://api.example.com/v1",
+      model: "legacy-model",
+      apiKeyCiphertext: Buffer.from("encrypted:sk-legacy-key").toString("base64"),
+      updatedAt: "2026-07-20T00:00:00.000Z"
+    });
+    const store = new AiConfigStore(ports.persistence, ports.protector);
+
+    await expect(store.save({ baseUrl: "https://api.example.com/v1", model: "new-model", apiKey: "" }))
+      .resolves.toMatchObject({ baseUrl: "https://api.example.com/v1", model: "new-model" });
+    await expect(store.getCredentials()).resolves.toMatchObject({ apiKey: "sk-legacy-key" });
+  });
 });
