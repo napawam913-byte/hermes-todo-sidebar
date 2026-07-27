@@ -7,7 +7,7 @@ import type {
   AiGenerateRequest,
   AiGenerateResult
 } from "../../shared/aiMutationTypes.js";
-import type { AppStateService } from "../storage/appStateService.js";
+import type { AiSnapshotPort } from "./aiDataPorts.js";
 import type { AiModelCredentials } from "./aiConfigTypes.js";
 import { assertProposalMatchesGenerationContext } from "./aiGenerationPolicy.js";
 import { buildAiMessages } from "./aiPrompt.js";
@@ -28,7 +28,7 @@ interface ModelClient {
 }
 
 interface AiProposalServiceOptions {
-  stateService: AppStateService;
+  snapshotPort: AiSnapshotPort;
   credentials: CredentialProvider;
   modelClient: ModelClient;
   idFactory?: () => string;
@@ -46,7 +46,7 @@ export class AiProposalService {
     if (!message) throw new Error("请输入需要 AI 安排的内容");
     const credentials = await this.options.credentials.getCredentials();
     if (!credentials) throw new Error("请先配置模型接口");
-    const state = this.options.stateService.getSnapshot();
+    const state = await this.options.snapshotPort.getSnapshot();
     const content = await this.options.modelClient.requestAssistant(
       credentials,
       buildAiMessages(state, { ...request, message }, new Date(), credentials.model),

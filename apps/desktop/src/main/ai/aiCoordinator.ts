@@ -136,7 +136,7 @@ export class AiCoordinator {
         state: { todos: state.todos, cyclePlans: state.cyclePlans }
       };
     } catch (error) {
-      const failure = toAiExecutionError(error, "validation_failed");
+      const failure = toAiExecutionError(error, "persistence_failed");
       return {
         status: "failed",
         code: failure.code,

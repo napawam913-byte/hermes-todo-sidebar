@@ -4,6 +4,7 @@
  */
 import { describe, expect, it, vi } from "vitest";
 import type { AiMutationProposal } from "../../shared/aiMutationTypes.js";
+import { PlanApiError } from "../planApi/planApiErrors.js";
 import { AiCoordinator } from "./aiCoordinator.js";
 
 const proposal: AiMutationProposal = {
@@ -91,6 +92,30 @@ describe("AiCoordinator", () => {
     await coordinator.generate({ message: "新增训练", conversation: [] });
     expect(coordinator.discard("proposal_1")).toBe(true);
     await expect(coordinator.execute("proposal_1")).resolves.toMatchObject({ status: "failed" });
+  });
+
+  it("reports Plan API offline failures as persistence failures", async () => {
+    const coordinator = new AiCoordinator({
+      configStore: {
+        getPublicConfig: async () => ({ configured: true, baseUrl: "url", model: "m", maskedApiKey: "***" }),
+        save: async () => ({ configured: true, baseUrl: "url", model: "m", maskedApiKey: "***" }),
+        getCredentials: async () => ({ baseUrl: "url", model: "m", apiKey: "secret" })
+      },
+      proposalService: { generate: async () => ({ status: "proposal", proposal }) },
+      executor: {
+        execute: async () => {
+          throw new PlanApiError("offline");
+        }
+      },
+      connectionClient: { testConnection: async () => undefined }
+    });
+
+    await coordinator.generate({ message: "新增训练", conversation: [] });
+    await expect(coordinator.execute("proposal_1")).resolves.toEqual({
+      status: "failed",
+      code: "persistence_failed",
+      message: "数据服务暂时不可用，请稍后重试"
+    });
   });
 
   it("tests the current form credentials without saving them", async () => {

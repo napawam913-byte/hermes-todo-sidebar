@@ -7,6 +7,7 @@ import type {
   PlanApiSnapshotEnvelope,
 } from "../../shared/planApiBridgeContract.js";
 import type { AppStateService } from "../storage/appStateService.js";
+import type { StoredAppStateV1 } from "../storage/appStateTypes.js";
 import { PlanApiClient } from "./planApiClient.js";
 import { PlanApiConnectionFileStore, PlanApiConnectionStore } from "./planApiConnectionStore.js";
 import { PlanApiConnectionTester, reservePlanApiTestPort } from "./planApiConnectionTester.js";
@@ -19,8 +20,11 @@ import { PlanApiSshTunnel, type SshTunnelConfig } from "./planApiSshTunnel.js";
 
 export interface PlanApiBootstrapOptions { ipc: IpcMain; userDataDirectory: string; dataDirectory: string; isPackaged: boolean; legacyStateService: AppStateService; publish(channel: string, payload: unknown): void; }
 export interface RegisteredPlanApiRuntime {
-  initialize(): Promise<PlanApiSnapshotEnvelope>; shutdown(): Promise<void>; getStoredSnapshot(): Promise<ReturnType<AppStateService["getSnapshot"]>>;
-  execute(batch: AppMutationBatch): Promise<ReturnType<AppStateService["getSnapshot"]>>; refresh(): Promise<PlanApiSnapshotEnvelope>;
+  initialize(): Promise<PlanApiSnapshotEnvelope>;
+  shutdown(): Promise<void>;
+  getStoredSnapshot(): Promise<StoredAppStateV1>;
+  execute(batch: AppMutationBatch): Promise<StoredAppStateV1>;
+  refresh(): Promise<PlanApiSnapshotEnvelope>;
 }
 
 type SnapshotRuntime = Pick<PlanApiRuntime, "getSnapshotEnvelope" | "execute">;

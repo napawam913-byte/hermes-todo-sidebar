@@ -142,8 +142,6 @@ async function bootstrap() {
   await mkdir(dataDirectory, { recursive: true });
   const appStateService = new AppStateService(new AppStateFileStore({ dataDirectory }));
   await appStateService.initialize();
-  registerAiRuntime(ipcMain, appStateService, app.getPath("userData"));
-  createMainWindow();
   planApiRuntime = registerPlanApiRuntime({
     ipc: ipcMain, userDataDirectory: app.getPath("userData"), dataDirectory,
     isPackaged: app.isPackaged,
@@ -151,6 +149,13 @@ async function bootstrap() {
     publish: (channel, payload) => mainWindow?.webContents.send(channel, payload),
   });
   await planApiRuntime.initialize();
+  const runtime = planApiRuntime;
+  registerAiRuntime(ipcMain, {
+    snapshotPort: { getSnapshot: () => runtime.getStoredSnapshot() },
+    mutationPort: { execute: (batch) => runtime.execute(batch) },
+    userDataDirectory: app.getPath("userData")
+  });
+  createMainWindow();
   if (!mainWindow) throw new Error("桌宠窗口创建失败");
   petController = new PetWindowController({
     window: createPetWindowPort(mainWindow),

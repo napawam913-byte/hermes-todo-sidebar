@@ -2,6 +2,9 @@
  * 模块用途：验证 Plan API IPC 数据端口始终返回带运行状态的快照信封。
  * 模块边界：只测试 bootstrap 适配器，不启动 Electron、SSH 或真实 HTTP。
  */
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import type { AppMutationBatch } from "../../shared/appMutationTypes";
 import type {
@@ -20,6 +23,8 @@ vi.mock("electron", () => ({
     decryptString: (value: Buffer) => value.toString()
   }
 }));
+
+const mainDirectory = path.dirname(fileURLToPath(import.meta.url));
 
 const batch: AppMutationBatch = {
   source: { type: "manual" },
@@ -99,5 +104,21 @@ describe("createPlanApiMigrationPort", () => {
 
     await expect(port.migrateLegacyState()).resolves.toEqual(completed);
     expect(refresh).toHaveBeenCalledOnce();
+  });
+});
+
+describe("main process Plan API ordering", () => {
+  it("initializes Plan API before registering AI with its ports", () => {
+    const source = readFileSync(path.resolve(mainDirectory, "../main.ts"), "utf8");
+    const registerRuntime = source.indexOf("planApiRuntime = registerPlanApiRuntime");
+    const initializeRuntime = source.indexOf("await planApiRuntime.initialize()");
+    const registerAi = source.indexOf("registerAiRuntime(ipcMain, {");
+
+    expect(registerRuntime).toBeGreaterThan(-1);
+    expect(initializeRuntime).toBeGreaterThan(registerRuntime);
+    expect(registerAi).toBeGreaterThan(initializeRuntime);
+    expect(source).toContain("snapshotPort:");
+    expect(source).toContain("mutationPort:");
+    expect(source).not.toContain("registerAiRuntime(ipcMain, appStateService");
   });
 });

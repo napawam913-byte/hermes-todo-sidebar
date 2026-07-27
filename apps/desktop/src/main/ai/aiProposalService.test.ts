@@ -3,15 +3,17 @@
  * 模块边界：使用模型与配置替身，不访问网络、safeStorage 或 IPC。
  */
 import { describe, expect, it, vi } from "vitest";
-import { createEmptyAppState } from "../storage/appStateTypes.js";
-import { AppStateService, type AppStatePersistence } from "../storage/appStateService.js";
+import {
+  createEmptyAppState,
+  type StoredAppStateV1
+} from "../storage/appStateTypes.js";
 import { AiProposalService } from "./aiProposalService.js";
 import type { AiGenerationContext } from "../../shared/aiMutationTypes.js";
 
 const updatedAt = "2026-07-14T09:00:00.000Z";
 
-async function createStateService() {
-  const state = {
+function storedState(): StoredAppStateV1 {
+  return {
     ...createEmptyAppState(),
     todos: [{
       id: "todo_1", title: "旧待办", date: "2026-07-14", status: "pending",
@@ -24,15 +26,6 @@ async function createStateService() {
       createdAt: updatedAt, updatedAt, entries: []
     }]
   };
-  const persistence: AppStatePersistence = {
-    load: async () => structuredClone(state),
-    save: async () => undefined,
-    exportTo: async () => undefined,
-    importFrom: async () => structuredClone(state)
-  };
-  const service = new AppStateService(persistence);
-  await service.initialize();
-  return service;
 }
 
 function generateRequest(message: string, context: AiGenerationContext) {
@@ -41,6 +34,7 @@ function generateRequest(message: string, context: AiGenerationContext) {
 
 describe("AiProposalService", () => {
   it("enriches target operations and never puts the API key in model messages", async () => {
+    const getSnapshot = vi.fn(async () => storedState());
     const requestAssistant = vi.fn(async () => JSON.stringify({
       schemaVersion: 1,
       summary: "调整计划",
@@ -53,7 +47,7 @@ describe("AiProposalService", () => {
       ]
     }));
     const service = new AiProposalService({
-      stateService: await createStateService(),
+      snapshotPort: { getSnapshot },
       credentials: { getCredentials: async () => ({
         baseUrl: "https://api.example.com/v1", model: "grok-4.5-test", apiKey: "sk-secret"
       }) },
@@ -84,11 +78,37 @@ describe("AiProposalService", () => {
       sessionId: "session_test",
       requestId: "request_调整我的计划"
     });
+    expect(getSnapshot).toHaveBeenCalledOnce();
+  });
+
+  it("does not call the model when the async snapshot port fails", async () => {
+    const requestAssistant = vi.fn();
+    const service = new AiProposalService({
+      snapshotPort: {
+        getSnapshot: async () => {
+          throw new Error("snapshot unavailable");
+        }
+      },
+      credentials: {
+        getCredentials: async () => ({
+          baseUrl: "https://api.example.com/v1",
+          model: "model",
+          apiKey: "secret"
+        })
+      },
+      modelClient: { requestAssistant }
+    });
+
+    await expect(service.generate(generateRequest(
+      "创建健身计划",
+      { type: "cyclePlan.create" }
+    ))).rejects.toThrow("snapshot unavailable");
+    expect(requestAssistant).not.toHaveBeenCalled();
   });
 
   it("returns ordinary Hermes text as a chat message", async () => {
     const service = new AiProposalService({
-      stateService: await createStateService(),
+      snapshotPort: { getSnapshot: async () => storedState() },
       credentials: { getCredentials: async () => ({ baseUrl: "x", model: "m", apiKey: "k" }) },
       modelClient: { requestAssistant: async () => "新手可以先从每周三练开始。" }
     });
@@ -104,7 +124,7 @@ describe("AiProposalService", () => {
 
   it("rejects non-create operations in cycle plan create mode", async () => {
     const service = new AiProposalService({
-      stateService: await createStateService(),
+      snapshotPort: { getSnapshot: async () => storedState() },
       credentials: { getCredentials: async () => ({ baseUrl: "x", model: "m", apiKey: "k" }) },
       modelClient: { requestAssistant: async () => JSON.stringify({
         schemaVersion: 1,
@@ -124,7 +144,7 @@ describe("AiProposalService", () => {
 
   it("rejects adjustments that target another cycle plan", async () => {
     const service = new AiProposalService({
-      stateService: await createStateService(),
+      snapshotPort: { getSnapshot: async () => storedState() },
       credentials: { getCredentials: async () => ({ baseUrl: "x", model: "m", apiKey: "k" }) },
       modelClient: { requestAssistant: async () => JSON.stringify({
         schemaVersion: 1,
