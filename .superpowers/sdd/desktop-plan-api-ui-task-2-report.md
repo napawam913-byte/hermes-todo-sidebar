@@ -52,3 +52,37 @@ Commit hash: `HEAD` (the finalized hash is reported in the task response).
 ## Concerns
 
 - Task 3 must create and pass the real `PlanApiDataServiceController` through `App` and `TodoPanel`. Until then, this task intentionally renders the explicit read-only browser-preview state.
+
+## Fix Round 1
+
+### Changes
+
+- Added a request-version guard and local test-request lock. Editing a field invalidates an in-flight response, and test/save buttons remain disabled until that request settles.
+- Added public `本次测试模式` and `本次测试版本` facts from the successful current draft, alongside the distinct saved connection facts.
+- Moved model/data status semantics into each sidebar button's accessible name; status dots are now decorative only.
+- Strengthened the 360px compact-tab CSS contract for three equal tracks, zero minimum width, clipping, and no horizontal overflow.
+
+### Verification
+
+- `npm test -- apps/desktop/src/renderer/features/settings apps/desktop/src/renderer/features/sidebar/panelSessionState.test.ts apps/desktop/src/renderer/styles/settingsLayout.test.ts`
+  - Passed: 7 files, 18 tests.
+- `npm run typecheck`
+  - Passed.
+- `git diff --check`
+  - Passed; existing working-tree CRLF warnings only.
+
+### Line Counts
+
+- `DataServiceSettings.tsx`: 177
+- `DataServiceSettings.test.tsx`: 165
+- `SettingsShell.tsx`: 99
+- `SettingsShell.test.tsx`: 70
+- `settings-shell.css`: 218
+- `settingsLayout.test.ts`: 44
+
+### Self-Review
+
+- A stale result can no longer overwrite post-edit state because only the current request version writes `testResult`.
+- The local `testing` lock remains active after an edit until the outstanding request resolves, preventing duplicate test or save submissions.
+- Test facts expose only the draft mode and returned revision; no Base URL, SSH target, or Token is surfaced.
+- Fix scope is limited to the original Task 2 whitelist and this report; no historical dirty changes were staged.

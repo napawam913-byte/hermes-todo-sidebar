@@ -64,7 +64,8 @@ describe("SettingsShell", () => {
     );
 
     expect(html).toMatch(/aria-current="page"[^>]*>数据服务/);
-    expect(html).toContain('aria-label="迁移受阻"');
+    expect(html).toContain('aria-label="数据服务，迁移受阻"');
+    expect(html).not.toContain('<i aria-label=');
     expect(html).toContain("数据服务内容");
     expect(html).not.toContain("127.0.0.1");
   });

@@ -2,7 +2,7 @@
  * 模块用途：提供 Plan API 数据服务配置、连接测试与首次迁移操作界面。
  * 模块边界：只调用传入控制器，不访问 preload，也不持久化明文 Token。
  */
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type {
   PlanApiConnectionInput,
   PlanApiConnectionMode,
@@ -25,7 +25,9 @@ const defaults: ConnectionDraft = {
 export function DataServiceSettings({ dataService }: DataServiceSettingsProps) {
   const [draft, setDraft] = useState<ConnectionDraft>(() => fromConfig(dataService));
   const [testResult, setTestResult] = useState<PlanApiConnectionTestResult | null>(null);
+  const [testing, setTesting] = useState(false);
   const [confirming, setConfirming] = useState<"migrate" | "keep" | null>(null);
+  const testRequestVersion = useRef(0);
 
   useEffect(() => {
     if (!dataService?.config) return;
@@ -44,16 +46,25 @@ export function DataServiceSettings({ dataService }: DataServiceSettingsProps) {
     ? Boolean(draft.baseUrl.trim())
     : Boolean(draft.sshTarget.trim() && draft.localPort && draft.remotePort);
   const tokenReady = Boolean(draft.desktopToken.trim() || activeController.config?.tokenConfigured);
+  const requestBusy = controller.busy || testing;
 
   function update<K extends keyof ConnectionDraft>(field: K, value: ConnectionDraft[K]) {
     setDraft((current) => ({ ...current, [field]: value }));
+    testRequestVersion.current += 1;
     setTestResult(null);
     setConfirming(null);
   }
 
   async function testConnection() {
-    const result = await activeController.testConnection(draft);
-    setTestResult(result);
+    if (testing) return;
+    const requestVersion = ++testRequestVersion.current;
+    setTesting(true);
+    try {
+      const result = await activeController.testConnection(draft);
+      if (requestVersion === testRequestVersion.current) setTestResult(result);
+    } finally {
+      setTesting(false);
+    }
   }
 
   async function saveConnection(event: FormEvent) {
@@ -103,21 +114,26 @@ export function DataServiceSettings({ dataService }: DataServiceSettingsProps) {
         </label>
         {testResult ? <p className={`data-service-test-result is-${testResult.ok ? "success" : "failure"}`} role="status">{testResult.message}</p> : null}
         <div className="data-service-actions">
-          <button disabled={controller.busy || !complete || !tokenReady} onClick={() => void testConnection()} type="button">测试连接</button>
-          <button disabled={controller.busy || !complete || !tokenReady} type="submit">保存连接</button>
+          <button disabled={requestBusy || !complete || !tokenReady} onClick={() => void testConnection()} type="button">测试连接</button>
+          <button disabled={requestBusy || !complete || !tokenReady} type="submit">保存连接</button>
         </div>
       </form>
-      <ServiceFacts dataService={controller} />
+      <ServiceFacts dataService={controller} draft={draft} testResult={testResult} />
       <MigrationArea dataService={controller} confirming={confirming} onConfirming={setConfirming} />
     </section>
   );
 }
 
-function ServiceFacts({ dataService }: { dataService: PlanApiDataServiceController }) {
+function ServiceFacts({ dataService, draft, testResult }: {
+  dataService: PlanApiDataServiceController;
+  draft: ConnectionDraft;
+  testResult: PlanApiConnectionTestResult | null;
+}) {
   const { config, status } = dataService;
   return <dl className="data-service-facts">
-    <div><dt>连接模式</dt><dd>{config?.mode === "ssh" ? "云端 SSH" : "本地直连"}</dd></div>
-    {status.serverRevision !== undefined ? <div><dt>服务版本</dt><dd>#{status.serverRevision}</dd></div> : null}
+    <div><dt>已保存连接模式</dt><dd>{modeLabel(config?.mode ?? "local")}</dd></div>
+    {status.serverRevision !== undefined ? <div><dt>已保存服务版本</dt><dd>#{status.serverRevision}</dd></div> : null}
+    {testResult?.ok ? <><div><dt>本次测试模式</dt><dd>{modeLabel(draft.mode)}</dd></div><div><dt>本次测试版本</dt><dd>#{testResult.serverRevision}</dd></div></> : null}
     {status.lastSyncedAt ? <div><dt>最近同步</dt><dd>{new Date(status.lastSyncedAt).toLocaleString()}</dd></div> : null}
   </dl>;
 }
@@ -156,4 +172,8 @@ function fromConfig(dataService?: PlanApiDataServiceController): ConnectionDraft
   const config = dataService?.config;
   if (!config) return defaults;
   return { mode: config.mode as PlanApiConnectionMode, baseUrl: config.baseUrl, sshTarget: config.sshTarget, localPort: config.localPort, remotePort: config.remotePort, desktopToken: "" };
+}
+
+function modeLabel(mode: PlanApiConnectionMode) {
+  return mode === "ssh" ? "云端 SSH" : "本地直连";
 }

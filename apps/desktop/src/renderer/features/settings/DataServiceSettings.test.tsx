@@ -7,6 +7,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import type { PlanApiConnectionTestResult } from "../../../shared/planApiBridgeContract";
 import type { PlanApiDataServiceController } from "../../data/usePlanApiDataService";
 import { DataServiceSettings } from "./DataServiceSettings";
 
@@ -66,9 +67,18 @@ describe("DataServiceSettings", () => {
     await act(async () => { findButton("云端 SSH")?.click(); });
     expect(container.querySelector('input[name="sshTarget"]')).not.toBeNull();
     expect(container.querySelector('input[name="baseUrl"]')).toBeNull();
+    await setValue("sshTarget", "ops@cloud.example");
+    await act(async () => { findButton("测试连接")?.click(); });
+    expect(dataService.testConnection).toHaveBeenLastCalledWith(expect.objectContaining({ mode: "ssh" }));
+    expect(container.textContent).toContain("已保存连接模式");
+    expect(container.textContent).toContain("本次测试模式");
+    expect(container.textContent).toContain("云端 SSH");
+    expect(container.textContent).toContain("本次测试版本");
+    expect(container.textContent).toContain("#7");
     await act(async () => { findButton("本地直连")?.click(); });
     await act(async () => { findButton("测试连接")?.click(); });
-    expect(dataService.testConnection).toHaveBeenCalledOnce();
+    expect(dataService.testConnection).toHaveBeenCalledTimes(2);
+    expect(dataService.testConnection).toHaveBeenLastCalledWith(expect.objectContaining({ mode: "local" }));
     expect(dataService.saveConnection).not.toHaveBeenCalled();
     expect(container.textContent).toContain("连接成功");
     await setValue("baseUrl", "http://127.0.0.1:9000");
@@ -96,6 +106,38 @@ describe("DataServiceSettings", () => {
       await Promise.resolve();
     });
     expect(dataService.migrateLegacyState).toHaveBeenCalledOnce();
+    await act(async () => { root.unmount(); });
+    container.remove();
+  });
+
+  it("invalidates a delayed test after edits and blocks duplicate requests", async () => {
+    (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    let resolveTest: (result: PlanApiConnectionTestResult) => void = () => { throw new Error("测试尚未开始"); };
+    const delayedTest = vi.fn((_input): Promise<PlanApiConnectionTestResult> => new Promise((resolve) => { resolveTest = resolve; }));
+    const dataService = controller({ testConnection: delayedTest });
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+    await act(async () => { root.render(<DataServiceSettings dataService={dataService} />); });
+    const testButton = () => Array.from(container.querySelectorAll("button")).find((button) => button.textContent === "测试连接");
+    const input = container.querySelector<HTMLInputElement>('input[name="baseUrl"]');
+    if (!input) throw new Error("缺少 Base URL");
+
+    await act(async () => { testButton()?.click(); });
+    expect(testButton()?.disabled).toBe(true);
+    await act(async () => { testButton()?.click(); });
+    expect(dataService.testConnection).toHaveBeenCalledOnce();
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(input, "http://127.0.0.1:9000");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(testButton()?.disabled).toBe(true);
+    await act(async () => { testButton()?.click(); });
+    expect(dataService.testConnection).toHaveBeenCalledOnce();
+    resolveTest({ ok: true, message: "过期成功", apiVersion: 1, serverRevision: 99 });
+    await act(async () => { await Promise.resolve(); });
+    expect(container.textContent).not.toContain("过期成功");
+    expect(container.textContent).not.toContain("#99");
     await act(async () => { root.unmount(); });
     container.remove();
   });

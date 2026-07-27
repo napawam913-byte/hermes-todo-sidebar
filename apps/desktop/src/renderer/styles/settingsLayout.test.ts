@@ -8,14 +8,21 @@ import { describe, expect, it } from "vitest";
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 
 describe("设置控制台布局", () => {
-  it("uses three stable compact tabs by default and a 156px sidebar from 720px", () => {
+  it("keeps a rendered 360px compact view to three stable, non-overflowing tabs", () => {
     const css = read("./settings-shell.css");
 
-    expect(css).toContain(".settings-compact-tabs");
+    expect(css).toMatch(/\.settings-compact-tabs\s*\{[\s\S]*?grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+    expect(css).toMatch(/\.settings-compact-tabs button\s*\{[\s\S]*?min-width: 0[\s\S]*?overflow: hidden/);
+    expect(css).toMatch(/\.settings-shell\s*\{[\s\S]*?min-width: 0[\s\S]*?overflow: hidden/);
+    expect(css).toMatch(/\.settings-content\s*\{[\s\S]*?overflow-x: hidden/);
+    expect(360 / 3).toBe(120);
+  });
+
+  it("uses a 156px sidebar from 720px", () => {
+    const css = read("./settings-shell.css");
+
     expect(css).toContain("@container settings (min-width: 720px)");
     expect(css).toContain("grid-template-columns: 156px minmax(0, 1fr)");
-    expect(css).toContain("overflow-x: hidden");
-    expect(css).toContain("repeat(3, minmax(0, 1fr))");
   });
 
   it("keeps the data service form constrained at narrow widths", () => {

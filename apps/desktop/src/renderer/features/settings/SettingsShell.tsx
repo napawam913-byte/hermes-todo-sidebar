@@ -78,9 +78,11 @@ function renderSidebarItem(
 ) {
   const active = props.activeSection === section.id;
   const Icon = section.icon;
+  const status = section.id === "model" ? props.modelStatus : props.dataStatus;
   return (
     <button
       aria-current={active ? "page" : undefined}
+      aria-label={section.id === "appearance" ? undefined : `${section.label}，${status.label}`}
       className={active ? "settings-nav-item is-active" : "settings-nav-item"}
       key={section.id}
       onClick={() => props.onSectionChange(section.id)}
@@ -90,11 +92,8 @@ function renderSidebarItem(
       <span>{section.label}</span>
       {section.id !== "appearance" ? (
         <i
-          aria-label={section.id === "model" ? props.modelStatus.label : props.dataStatus.label}
-          className={`settings-status-dot is-${section.id === "model"
-            ? props.modelStatus.tone
-            : props.dataStatus.tone}`}
-          title={section.id === "model" ? props.modelStatus.label : props.dataStatus.label}
+          aria-hidden="true"
+          className={`settings-status-dot is-${status.tone}`}
         />
       ) : null}
     </button>
