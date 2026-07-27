@@ -62,11 +62,8 @@ describe("App external snapshot lifecycle", () => {
         execute: async () => ({ todos: mockTodos, cyclePlans: mockCyclePlans, status })
       },
       planApiBridge: fake.port,
-      todoRepository: {} as AppDataBootstrapResult["todoRepository"],
-      cyclePlanRepository: {} as AppDataBootstrapResult["cyclePlanRepository"],
-      writeController: null,
       startExpanded: false
-    };
+    } satisfies AppDataBootstrapResult;
     const container = document.createElement("div");
     const root = createRoot(container);
     todoPanelProbe.mounts = 0;
