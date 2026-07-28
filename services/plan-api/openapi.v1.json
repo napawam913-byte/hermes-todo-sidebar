@@ -461,6 +461,18 @@
       "MutationBatch": {
         "additionalProperties": false,
         "properties": {
+          "expectedServerRevision": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expectedserverrevision"
+          },
           "idempotencyKey": {
             "maxLength": 200,
             "minLength": 1,
@@ -559,6 +571,305 @@
           "serverRevision"
         ],
         "title": "MutationResult",
+        "type": "object"
+      },
+      "ProposalConfirmResult": {
+        "additionalProperties": false,
+        "properties": {
+          "mutation": {
+            "$ref": "#/components/schemas/MutationResult"
+          },
+          "proposal": {
+            "$ref": "#/components/schemas/ProposalView"
+          }
+        },
+        "required": [
+          "proposal",
+          "mutation"
+        ],
+        "title": "ProposalConfirmResult",
+        "type": "object"
+      },
+      "ProposalCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "externalSessionId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Externalsessionid",
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Idempotencykey",
+            "type": "string"
+          },
+          "operations": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "entry.complete": "#/components/schemas/EntryComplete",
+                  "entry.create": "#/components/schemas/EntryCreate",
+                  "entry.delete": "#/components/schemas/EntryDelete",
+                  "entry.reopen": "#/components/schemas/EntryReopen",
+                  "entry.skip": "#/components/schemas/EntrySkip",
+                  "entry.update": "#/components/schemas/EntryUpdate",
+                  "task.create": "#/components/schemas/TaskCreate",
+                  "task.delete": "#/components/schemas/TaskDelete",
+                  "task.setStatus": "#/components/schemas/TaskSetStatus",
+                  "task.update": "#/components/schemas/TaskUpdate"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/TaskCreate"
+                },
+                {
+                  "$ref": "#/components/schemas/TaskUpdate"
+                },
+                {
+                  "$ref": "#/components/schemas/TaskSetStatus"
+                },
+                {
+                  "$ref": "#/components/schemas/TaskDelete"
+                },
+                {
+                  "$ref": "#/components/schemas/EntryCreate"
+                },
+                {
+                  "$ref": "#/components/schemas/EntryUpdate"
+                },
+                {
+                  "$ref": "#/components/schemas/EntryComplete"
+                },
+                {
+                  "$ref": "#/components/schemas/EntryReopen"
+                },
+                {
+                  "$ref": "#/components/schemas/EntrySkip"
+                },
+                {
+                  "$ref": "#/components/schemas/EntryDelete"
+                }
+              ]
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Operations",
+            "type": "array"
+          },
+          "summary": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          },
+          "targetTaskId": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targettaskid"
+          },
+          "targetVersion": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targetversion"
+          }
+        },
+        "required": [
+          "externalSessionId",
+          "idempotencyKey",
+          "summary",
+          "operations"
+        ],
+        "title": "ProposalCreateRequest",
+        "type": "object"
+      },
+      "ProposalStatus": {
+        "enum": [
+          "pending",
+          "applied",
+          "cancelled",
+          "expired",
+          "failed"
+        ],
+        "title": "ProposalStatus",
+        "type": "string"
+      },
+      "ProposalTransitionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "externalSessionId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Externalsessionid",
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Idempotencykey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "externalSessionId",
+          "idempotencyKey"
+        ],
+        "title": "ProposalTransitionRequest",
+        "type": "object"
+      },
+      "ProposalView": {
+        "additionalProperties": false,
+        "properties": {
+          "appliedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Appliedat"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "title": "Expiresat",
+            "type": "string"
+          },
+          "externalSessionId": {
+            "title": "Externalsessionid",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "operations": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "entry.complete": "#/components/schemas/EntryComplete",
+                  "entry.create": "#/components/schemas/EntryCreate",
+                  "entry.delete": "#/components/schemas/EntryDelete",
+                  "entry.reopen": "#/components/schemas/EntryReopen",
+                  "entry.skip": "#/components/schemas/EntrySkip",
+                  "entry.update": "#/components/schemas/EntryUpdate",
+                  "task.create": "#/components/schemas/TaskCreate",
+                  "task.delete": "#/components/schemas/TaskDelete",
+                  "task.setStatus": "#/components/schemas/TaskSetStatus",
+                  "task.update": "#/components/schemas/TaskUpdate"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/TaskCreate"
+                },
+                {
+                  "$ref": "#/components/schemas/TaskUpdate"
+                },
+                {
+                  "$ref": "#/components/schemas/TaskSetStatus"
+                },
+                {
+                  "$ref": "#/components/schemas/TaskDelete"
+                },
+                {
+                  "$ref": "#/components/schemas/EntryCreate"
+                },
+                {
+                  "$ref": "#/components/schemas/EntryUpdate"
+                },
+                {
+                  "$ref": "#/components/schemas/EntryComplete"
+                },
+                {
+                  "$ref": "#/components/schemas/EntryReopen"
+                },
+                {
+                  "$ref": "#/components/schemas/EntrySkip"
+                },
+                {
+                  "$ref": "#/components/schemas/EntryDelete"
+                }
+              ]
+            },
+            "title": "Operations",
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProposalStatus"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "targetTaskId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targettaskid"
+          },
+          "targetVersion": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targetversion"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "externalSessionId",
+          "summary",
+          "operations",
+          "status",
+          "expiresAt",
+          "targetTaskId",
+          "targetVersion",
+          "createdAt",
+          "updatedAt",
+          "appliedAt"
+        ],
+        "title": "ProposalView",
         "type": "object"
       },
       "ScheduleRuleV1": {
@@ -1310,6 +1621,210 @@
           }
         ],
         "summary": "Execute Mutations"
+      }
+    },
+    "/v1/proposals": {
+      "post": {
+        "operationId": "create_proposal_v1_proposals_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposalCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Proposal"
+      }
+    },
+    "/v1/proposals/{proposal_id}": {
+      "get": {
+        "operationId": "get_proposal_v1_proposals__proposal_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "externalSessionId",
+            "required": true,
+            "schema": {
+              "title": "Externalsessionid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Proposal"
+      }
+    },
+    "/v1/proposals/{proposal_id}/cancel": {
+      "post": {
+        "operationId": "cancel_proposal_v1_proposals__proposal_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposalTransitionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cancel Proposal"
+      }
+    },
+    "/v1/proposals/{proposal_id}/confirm": {
+      "post": {
+        "operationId": "confirm_proposal_v1_proposals__proposal_id__confirm_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposalTransitionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalConfirmResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Confirm Proposal"
       }
     },
     "/v1/snapshot": {

@@ -22,12 +22,12 @@ from ..contracts.mutations import (
     TaskSetStatus,
     TaskUpdate,
 )
-from ..contracts.tasks import format_utc
 from ..db.database import Database
 from ..repositories.task_repository import TaskRepository
 from .entry_mutations import EntryMutations
 from .mutation_batch_guards import validate_batch_invariants
 from .mutation_revision_guard import require_expected_revision
+from .mutation_persistence import MutationPersistence
 from .rolling_generator import RollingGenerator
 from .rule_adjustment import RuleAdjustmentService
 from .task_mutations import ChangedIds, TaskMutations
@@ -62,6 +62,9 @@ class MutationExecutor:
         self._entries = EntryMutations(
             clock=self._clock, id_factory=self._id_factory
         )
+        self._persistence = MutationPersistence(
+            clock=self._clock, id_factory=self._id_factory
+        )
 
     def execute(
         self, batch: MutationBatch, actor: Actor | str
@@ -73,37 +76,10 @@ class MutationExecutor:
         if resolved_actor is not Actor.DESKTOP:
             raise MutationError("permission_denied")
         try:
-            request_hash = batch.request_hash()
-            validate_batch_invariants(batch)
             with self._database.transaction() as connection:
-                cached = self._cached(
-                    connection, batch.idempotencyKey, request_hash
+                return self._execute_in_transaction(
+                    connection, batch, resolved_actor, proposal_id=None
                 )
-                if cached is not None:
-                    return cached
-                require_expected_revision(
-                    connection, batch.expectedServerRevision
-                )
-                changed_tasks: set[str] = set()
-                changed_entries: set[str] = set()
-                for operation in batch.operations:
-                    task_ids, entry_ids = self._dispatch(
-                        connection, operation
-                    )
-                    changed_tasks.update(task_ids)
-                    changed_entries.update(entry_ids)
-                revision = self._bump_revision(connection)
-                result = MutationResult(
-                    serverRevision=revision,
-                    changedTaskIds=sorted(changed_tasks),
-                    changedEntryIds=sorted(changed_entries),
-                )
-                self._write_audit(connection, resolved_actor, result)
-                self._save_idempotency(
-                    connection, batch.idempotencyKey,
-                    request_hash, result,
-                )
-                return result
         except MutationError:
             raise
         except ValueError as error:
@@ -114,6 +90,62 @@ class MutationExecutor:
             raise MutationError("persistence_failed") from error
         except Exception as error:
             raise MutationError("persistence_failed") from error
+
+    def execute_proposal(
+        self,
+        connection: sqlite3.Connection,
+        batch: MutationBatch,
+        proposal_id: str,
+    ) -> MutationResult:
+        try:
+            return self._execute_in_transaction(
+                connection, batch, Actor.HERMES, proposal_id=proposal_id
+            )
+        except MutationError:
+            raise
+        except ValueError as error:
+            raise MutationError(
+                "validation_failed", message=str(error)
+            ) from error
+        except Exception as error:
+            raise MutationError("persistence_failed") from error
+
+    def _execute_in_transaction(
+        self,
+        connection: sqlite3.Connection,
+        batch: MutationBatch,
+        actor: Actor,
+        *,
+        proposal_id: str | None,
+    ) -> MutationResult:
+        request_hash = batch.request_hash()
+        validate_batch_invariants(batch)
+        cached = self._persistence.cached(
+            connection, batch.idempotencyKey, request_hash
+        )
+        if cached is not None:
+            return cached
+        require_expected_revision(
+            connection, batch.expectedServerRevision
+        )
+        changed_tasks: set[str] = set()
+        changed_entries: set[str] = set()
+        for operation in batch.operations:
+            task_ids, entry_ids = self._dispatch(connection, operation)
+            changed_tasks.update(task_ids)
+            changed_entries.update(entry_ids)
+        result = MutationResult(
+            serverRevision=self._persistence.bump_revision(connection),
+            changedTaskIds=sorted(changed_tasks),
+            changedEntryIds=sorted(changed_entries),
+        )
+        self._persistence.write_audit(
+            connection, actor, result, proposal_id
+        )
+        self._persistence.save_idempotency(
+            connection, batch.idempotencyKey, request_hash, result
+        )
+        return result
 
     def _dispatch(
         self,
@@ -141,75 +173,3 @@ class MutationExecutor:
         if isinstance(operation, EntryDelete):
             return self._entries.delete(connection, operation)
         raise MutationError("validation_failed")
-
-    def _cached(
-        self, connection: sqlite3.Connection, key: str, request_hash: str
-    ) -> MutationResult | None:
-        row = connection.execute(
-            """
-            SELECT request_hash, response_json
-            FROM idempotency_records WHERE idempotency_key = ?
-            """,
-            (key,),
-        ).fetchone()
-        if row is None:
-            return None
-        if row["request_hash"] != request_hash:
-            raise MutationError("validation_failed")
-        return MutationResult.model_validate_json(row["response_json"])
-
-    def _bump_revision(self, connection: sqlite3.Connection) -> int:
-        connection.execute(
-            """
-            UPDATE app_meta
-            SET server_revision = server_revision + 1, updated_at = ?
-            WHERE id = 1
-            """,
-            (format_utc(self._clock()),),
-        )
-        row = connection.execute(
-            "SELECT server_revision FROM app_meta WHERE id = 1"
-        ).fetchone()
-        return int(row["server_revision"])
-
-    def _write_audit(
-        self,
-        connection: sqlite3.Connection,
-        actor: Actor,
-        result: MutationResult,
-    ) -> None:
-        connection.execute(
-            """
-            INSERT INTO audit_events (
-                id, actor, action, target_type, target_id,
-                proposal_id, result_json, created_at
-            ) VALUES (?, ?, 'mutation.batch', NULL, NULL, NULL, ?, ?)
-            """,
-            (
-                self._id_factory(),
-                actor.value,
-                result.model_dump_json(),
-                format_utc(self._clock()),
-            ),
-        )
-
-    def _save_idempotency(
-        self,
-        connection: sqlite3.Connection,
-        key: str,
-        request_hash: str,
-        result: MutationResult,
-    ) -> None:
-        connection.execute(
-            """
-            INSERT INTO idempotency_records (
-                idempotency_key, request_hash, response_json, created_at
-            ) VALUES (?, ?, ?, ?)
-            """,
-            (
-                key,
-                request_hash,
-                result.model_dump_json(),
-                format_utc(self._clock()),
-            ),
-        )

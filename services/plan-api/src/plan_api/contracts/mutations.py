@@ -28,6 +28,7 @@ class MutationErrorCode(str, Enum):
     VERSION_CONFLICT = "version_conflict"
     VALIDATION_FAILED = "validation_failed"
     PERMISSION_DENIED = "permission_denied"
+    PROPOSAL_EXPIRED = "proposal_expired"
     PERSISTENCE_FAILED = "persistence_failed"
 
 
