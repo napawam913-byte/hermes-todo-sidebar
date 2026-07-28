@@ -7,6 +7,14 @@ import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 
 describe("Windows packaging resources", () => {
+  it("targets the next non-overwriting portable test version", () => {
+    const packageJson = JSON.parse(
+      readFileSync(new URL("../../../../package.json", import.meta.url), "utf8")
+    );
+
+    expect(packageJson.version).toBe("0.2.0-test.2");
+  });
+
   it("uses a checked-in ICO file instead of converting PNG during packaging", () => {
     const packageJson = JSON.parse(
       readFileSync(new URL("../../../../package.json", import.meta.url), "utf8")
