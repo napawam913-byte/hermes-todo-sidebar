@@ -6,6 +6,11 @@ export function isReconnectablePlanApiFailure(error: unknown): boolean {
       || (error.code === "http_error" && (error.status ?? 0) >= 500));
 }
 
+export function requiresMutationReadOnly(error: unknown): boolean {
+  return isReconnectablePlanApiFailure(error)
+    || (error instanceof PlanApiError && error.code === "auth_failed");
+}
+
 export function preventsWriteRetry(error: unknown): boolean {
   return error instanceof PlanApiError
     && (["auth_failed", "validation_failed", "version_conflict"].includes(error.code)

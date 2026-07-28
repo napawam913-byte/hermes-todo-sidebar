@@ -86,6 +86,7 @@ export function AiPlannerView(
             result={planner.result}
             onContinue={planner.openConversation}
             onRegenerate={planner.regenerate}
+            onRetry={planner.executeProposal}
             onViewCycle={() => onNavigate("cycle")}
             onViewToday={() => onNavigate("today")}
           />

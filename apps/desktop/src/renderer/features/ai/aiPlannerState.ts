@@ -43,6 +43,10 @@ export function createAiPlannerState(): AiPlannerState {
   };
 }
 
+export function isRetryableExecutionResult(result: AiExecuteResult): boolean {
+  return result.status === "failed" && result.code === "persistence_failed";
+}
+
 export function reduceAiPlannerState(
   state: AiPlannerState,
   action: AiPlannerAction
@@ -99,6 +103,8 @@ export function reduceAiPlannerState(
     ...state,
     screen: "result",
     result: action.result,
-    proposalPhase: action.result.status === "success" ? "success" : "failed"
+    proposalPhase: action.result.status === "success"
+      ? "success"
+      : isRetryableExecutionResult(action.result) ? "pending" : "failed"
   };
 }

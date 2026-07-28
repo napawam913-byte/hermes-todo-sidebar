@@ -54,6 +54,7 @@ describe("AI Flow 视图", () => {
         }}
         onContinue={noop}
         onRegenerate={noop}
+        onRetry={noop}
         onViewCycle={noop}
         onViewToday={noop}
       />
@@ -71,6 +72,7 @@ describe("AI Flow 视图", () => {
         result={{ status: "failed", code: "version_conflict", message: "数据已变化" }}
         onContinue={noop}
         onRegenerate={noop}
+        onRetry={noop}
         onViewCycle={noop}
         onViewToday={noop}
       />
@@ -78,6 +80,26 @@ describe("AI Flow 视图", () => {
     expect(html).toContain("整批已回滚");
     expect(html).toContain("刷新并重新生成");
     expect(html).toContain("返回对话");
+  });
+
+  it("持久化失败允许用原提案重试且不声称已经回滚", () => {
+    const html = renderToStaticMarkup(
+      <AiExecutionPanel
+        busy={false}
+        domains={{ today: false, cycle: true }}
+        result={{ status: "failed", code: "persistence_failed", message: "连接中断" }}
+        onContinue={noop}
+        onRegenerate={noop}
+        onRetry={noop}
+        onViewCycle={noop}
+        onViewToday={noop}
+      />
+    );
+
+    expect(html).toContain("写入结果待确认");
+    expect(html).toContain("重试执行");
+    expect(html).not.toContain("整批已回滚");
+    expect(html).not.toContain("刷新并重新生成");
   });
 
   it("blocks proposal execution while offline but keeps discard available", () => {

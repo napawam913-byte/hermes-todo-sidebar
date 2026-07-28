@@ -13,6 +13,7 @@ interface AiExecutionPanelProps {
   result: AiExecuteResult;
   onContinue(): void;
   onRegenerate(): void;
+  onRetry(): void;
   onViewCycle(): void;
   onViewToday(): void;
 }
@@ -41,22 +42,36 @@ export function AiExecutionPanel(props: AiExecutionPanelProps) {
     );
   }
 
+  const retryable = props.result.code === "persistence_failed";
   return (
     <section className="ai-execution-panel is-failed">
       <div className="ai-result-title">
         <AlertTriangle size={28} />
-        <div><p>整批已回滚</p><h3>校验失败</h3></div>
+        <div>
+          <p>{retryable ? "写入结果待确认" : "整批已回滚"}</p>
+          <h3>{retryable ? "执行未确认" : "校验失败"}</h3>
+        </div>
       </div>
       <div className="ai-failure-detail">
         <strong>{failureTitle(props.result.code)}</strong>
         <span>{props.result.message}</span>
         {props.result.targetId ? <code>{props.result.targetId}</code> : null}
       </div>
-      <p className="ai-result-summary">刷新最新数据后重新生成提案，避免覆盖刚刚的修改。</p>
+      <p className="ai-result-summary">
+        {retryable
+          ? "使用同一提案重试，服务端会通过幂等键避免重复写入。"
+          : "刷新最新数据后重新生成提案，避免覆盖刚刚的修改。"}
+      </p>
       <div className="ai-result-actions">
-        <PrimaryButton disabled={props.busy} onClick={props.onRegenerate}>
-          {props.busy ? "正在重新生成" : "刷新并重新生成"}
-        </PrimaryButton>
+        {retryable ? (
+          <PrimaryButton disabled={props.busy} onClick={props.onRetry}>
+            {props.busy ? "正在重试" : "重试执行"}
+          </PrimaryButton>
+        ) : (
+          <PrimaryButton disabled={props.busy} onClick={props.onRegenerate}>
+            {props.busy ? "正在重新生成" : "刷新并重新生成"}
+          </PrimaryButton>
+        )}
         <QuietButton disabled={props.busy} onClick={props.onContinue}>返回对话</QuietButton>
       </div>
     </section>
@@ -66,6 +81,6 @@ export function AiExecutionPanel(props: AiExecutionPanelProps) {
 function failureTitle(code: AiExecutionFailureCode): string {
   if (code === "target_missing") return "目标已被删除";
   if (code === "version_conflict") return "目标已经被修改";
-  if (code === "persistence_failed") return "本地数据写入失败";
+  if (code === "persistence_failed") return "数据服务响应未确认";
   return "提案格式或操作无效";
 }

@@ -33,7 +33,7 @@ describe("AI Flow 状态模型", () => {
     expect(replied.screen).toBe("conversation");
   });
 
-  it("执行失败保留只读提案，显式放弃才清空", () => {
+  it("确定性执行失败保留只读提案，显式放弃才清空", () => {
     const withProposal = reduceAiPlannerState(createAiPlannerState(), {
       type: "proposal.generated",
       proposal
@@ -46,6 +46,25 @@ describe("AI Flow 状态模型", () => {
     expect(failed.proposalPhase).toBe("failed");
     expect(failed.proposal).toEqual(proposal);
     expect(reduceAiPlannerState(failed, { type: "proposal.discarded" }).proposal).toBeNull();
+  });
+
+  it("持久化失败保留原提案并允许使用同一 ID 重试", () => {
+    const withProposal = reduceAiPlannerState(createAiPlannerState(), {
+      type: "proposal.generated",
+      proposal
+    });
+    const retryable = reduceAiPlannerState(withProposal, {
+      type: "execution.finished",
+      result: {
+        status: "failed",
+        code: "persistence_failed",
+        message: "数据服务暂时不可用"
+      }
+    });
+
+    expect(retryable.screen).toBe("result");
+    expect(retryable.proposalPhase).toBe("pending");
+    expect(retryable.proposal?.proposalId).toBe("proposal_1");
   });
 
   it("开始另一周期任务流程时清除旧会话和提案", () => {

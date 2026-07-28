@@ -6,7 +6,7 @@ import type { PlanApiConnectionInput, PlanApiConnectionTestResult, PlanApiPublic
 import type { PlanApiMigrationInspection, PlanApiRuntimeStatus, PlanApiSnapshotEnvelope } from "../../shared/planApiBridgeContract.js";
 import type { PlanApiRuntimeConnection } from "./planApiConnectionStore.js";
 import { PlanApiError } from "./planApiErrors.js";
-import { isReconnectablePlanApiFailure, preventsWriteRetry } from "./planApiFailurePolicy.js";
+import { isReconnectablePlanApiFailure, preventsWriteRetry, requiresMutationReadOnly } from "./planApiFailurePolicy.js";
 import { migrationRuntimeStatus } from "./planApiMigrationRuntimeState.js";
 import { stableMutationJson } from "./planApiMutationIdentity.js";
 import { PlanApiReconnectLoop, type PlanApiReconnectPorts } from "./planApiReconnectLoop.js";
@@ -118,10 +118,9 @@ export class PlanApiRuntime {
         return this.getStoredSnapshot();
       } catch (error) {
         if (manual && preventsWriteRetry(error)) this.pendingManual.delete(fingerprint);
-        if (isReconnectablePlanApiFailure(error)) {
-          await this.fallback(error, generation);
-          this.reconnect.notifyOffline();
-        }
+        const reconnectable = isReconnectablePlanApiFailure(error);
+        if (requiresMutationReadOnly(error)) await this.fallback(error, generation);
+        if (reconnectable) this.reconnect.notifyOffline();
         if (error instanceof PlanApiError && error.code === "version_conflict") {
           await this.refreshCaptured(client, connection!, generation, true);
         }
