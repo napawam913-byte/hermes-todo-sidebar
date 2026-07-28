@@ -1,0 +1,6 @@
+name: cycle-plan-tools
+version: "2.0.0"
+description: 通过受限 Plan API 查询周期任务并管理待确认提案
+requires_env:
+  - PLAN_API_BASE_URL
+  - PLAN_HERMES_TOKEN
