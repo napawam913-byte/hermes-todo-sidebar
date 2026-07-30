@@ -75,7 +75,9 @@
 
 ## Hermes/Agent 返回要求
 
-Hermes 创建草稿时使用动作 `cyclePlan.createDraft`，并把完整 v2 `CyclePlan` 放在 `input.plan`。草稿计划使用 `status: "draft"`，草稿条目使用 `status: "candidate"`；桌面端展示建议并等待用户确认，不直接激活。
+当前直连 API 和未来 Hermes 都必须返回 `AiMutationProposal v1`。创建周期任务时使用 `cyclePlan.create`，完整日期条目统一放在 `draft.entries`；调整周期任务时使用 `cyclePlan.adjust` 请求上下文，并且只允许返回目标计划及其条目的操作。
+
+旧动作 `cyclePlan.createDraft` 仅可作为 Agent 适配层的内部输入，不能直接写入本地仓储。适配层必须先把它转换成标准变更提案，再经过严格校验、用户整批确认和原子写入。
 
 ## 内容块扩展规则
 

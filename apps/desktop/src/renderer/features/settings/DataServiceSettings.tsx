@@ -30,6 +30,19 @@ export function DataServiceSettings({ dataService }: DataServiceSettingsProps) {
   const testRequestVersion = useRef(0);
 
   useEffect(() => {
+    if (!dataService
+      || dataService.status.mode !== "migration_blocked"
+      || dataService.migration
+      || dataService.busy) return;
+    void dataService.refreshMigration();
+  }, [
+    dataService?.busy,
+    dataService?.migration,
+    dataService?.refreshMigration,
+    dataService?.status.mode
+  ]);
+
+  useEffect(() => {
     if (!dataService?.config) return;
     setDraft(fromConfig(dataService));
   }, [dataService?.config]);
@@ -60,7 +73,7 @@ export function DataServiceSettings({ dataService }: DataServiceSettingsProps) {
     const requestVersion = ++testRequestVersion.current;
     setTesting(true);
     try {
-      const result = await activeController.testConnection(draft);
+      const result = await activeController.testConnection(connectionPayload(draft));
       if (requestVersion === testRequestVersion.current) setTestResult(result);
     } finally {
       setTesting(false);
@@ -70,9 +83,14 @@ export function DataServiceSettings({ dataService }: DataServiceSettingsProps) {
   async function saveConnection(event: FormEvent) {
     event.preventDefault();
     if (!complete || !tokenReady) return;
-    const payload = { ...draft };
-    setDraft((current) => ({ ...current, desktopToken: "" }));
-    if (await activeController.saveConnection(payload)) setTestResult(null);
+    const payload = connectionPayload(draft);
+    const submittedToken = draft.desktopToken;
+    if (await activeController.saveConnection(payload)) {
+      setDraft((current) => current.desktopToken === submittedToken
+        ? { ...current, desktopToken: "" }
+        : current);
+      setTestResult(null);
+    }
   }
 
   return (
@@ -83,6 +101,7 @@ export function DataServiceSettings({ dataService }: DataServiceSettingsProps) {
       </header>
       <div className="settings-section-divider" />
       {controller.error ? <div className="settings-inline-error" role="alert">{controller.error}</div> : null}
+      <MigrationArea dataService={controller} confirming={confirming} onConfirming={setConfirming} />
       <form className="data-service-form" onSubmit={(event) => void saveConnection(event)}>
         <fieldset disabled={controller.busy}>
           <legend>连接模式</legend>
@@ -118,7 +137,6 @@ export function DataServiceSettings({ dataService }: DataServiceSettingsProps) {
         </div>
       </form>
       <ServiceFacts dataService={controller} draft={draft} testResult={testResult} />
-      <MigrationArea dataService={controller} confirming={confirming} onConfirming={setConfirming} />
     </section>
   );
 }
@@ -171,6 +189,12 @@ function fromConfig(dataService?: PlanApiDataServiceController): ConnectionDraft
   const config = dataService?.config;
   if (!config) return defaults;
   return { mode: config.mode as PlanApiConnectionMode, baseUrl: config.baseUrl, sshTarget: config.sshTarget, localPort: config.localPort, remotePort: config.remotePort, desktopToken: "" };
+}
+
+function connectionPayload(draft: ConnectionDraft): PlanApiConnectionInput {
+  return draft.mode === "ssh"
+    ? { ...draft, baseUrl: `http://127.0.0.1:${draft.localPort}` }
+    : { ...draft };
 }
 
 function modeLabel(mode: PlanApiConnectionMode) {

@@ -30,8 +30,8 @@
 - Modify: `apps/desktop/src/renderer/data/appMutationGateway.ts`
 - Create: `apps/desktop/src/renderer/data/usePlanApiDataService.ts`
 - Create: `apps/desktop/src/renderer/data/usePlanApiDataService.test.tsx`
-- Delete: `apps/desktop/src/renderer/data/electronRepositories.ts`
-- Delete: `apps/desktop/src/renderer/data/electronRepositories.test.ts`
+- Keep temporarily: `apps/desktop/src/renderer/data/electronRepositories.ts`
+- Keep temporarily: `apps/desktop/src/renderer/data/electronRepositories.test.ts`
 
 **Interfaces:**
 - Consumes: `PlanApiSnapshotEnvelope` 和 preload 事件。
@@ -124,16 +124,19 @@ Hook 订阅 `onStatusChanged` 和 `onSnapshotChanged`；收到新快照时调用
 npm test -- apps/desktop/src/renderer/data/appDataBootstrap.test.ts apps/desktop/src/renderer/data/appMutationGateway.test.ts apps/desktop/src/renderer/data/usePlanApiDataService.test.tsx
 ```
 
-Expected: PASS，正式模式不再创建兼容仓储，浏览器预览仍可独立运行。
+Expected: PASS，正式数据服务控制器可用，旧 `App` 在 Task 3 接线前仍可通过
+兼容仓储启动，浏览器预览仍可独立运行。
 
-- [ ] **Step 6: 删除兼容仓储并提交**
+- [ ] **Step 6: 保持可运行过渡并提交**
 
 ```powershell
 git add -- apps/desktop/src/renderer/data/appDataBootstrap.ts apps/desktop/src/renderer/data/appDataBootstrap.test.ts apps/desktop/src/renderer/data/appMutationGateway.ts apps/desktop/src/renderer/data/appMutationGateway.test.ts apps/desktop/src/renderer/data/usePlanApiDataService.ts apps/desktop/src/renderer/data/usePlanApiDataService.test.tsx
-git rm -- apps/desktop/src/renderer/data/electronRepositories.ts apps/desktop/src/renderer/data/electronRepositories.test.ts
 git diff --cached --name-only
 git commit -m "feat: expose plan api state to renderer"
 ```
+
+兼容仓储和 `RepositoryWriteNotice` 必须等 Task 3 把 `App` 切到正式 mutation
+store 后在同一提交中删除，避免中间提交无法启动。
 
 ---
 
@@ -245,6 +248,13 @@ git commit -m "feat: add plan api data service settings"
 - Modify: `apps/desktop/src/renderer/features/cyclePlans/CyclePlanView.tsx`
 - Modify: `apps/desktop/src/renderer/features/ai/AiPlannerView.tsx`
 - Modify: `apps/desktop/src/renderer/features/ai/AiProposalPanel.tsx`
+- Delete: `apps/desktop/src/renderer/data/electronRepositories.ts`
+- Delete: `apps/desktop/src/renderer/data/electronRepositories.test.ts`
+- Delete: `apps/desktop/src/renderer/data/electronMutationDiff.ts`
+- Delete: `apps/desktop/src/renderer/components/RepositoryWriteNotice.tsx`
+- Delete: `apps/desktop/src/renderer/components/RepositoryWriteNotice.test.tsx`
+- Delete: `apps/desktop/src/renderer/components/repositoryWriteNotice.css`
+- Modify: `apps/desktop/src/renderer/main.tsx`
 - Create: `apps/desktop/src/renderer/styles/data-service-banner.css`
 - Modify: `apps/desktop/src/renderer/styles/global.css`
 
@@ -293,6 +303,9 @@ if (!dataService.status.canMutate) {
 
 为避免扩大 `App.tsx`，状态组装放在 Hook；`App` 只传递 `dataService` 和
 `readOnly={!status.canMutate}`。
+
+接线完成后断开并删除 Task 6 的整数组兼容仓储和
+`RepositoryWriteNotice`；`main.tsx` 不再通过 reload 或旧 Notice 响应快照。
 
 - [ ] **Step 4: 禁用全部写入口**
 

@@ -34,7 +34,7 @@ describe("dataServicePresentation", () => {
       title: "发现本地数据", action: "确认迁移", canKeepRemote: false
     });
     expect(getMigrationPresentation({ status: "pending" })).toMatchObject({
-      title: "正在恢复迁移", busy: true
+      title: "迁移尚未完成", action: "继续迁移", busy: false
     });
     expect(getMigrationPresentation({
       status: "completed",

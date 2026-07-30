@@ -93,4 +93,22 @@ describe("registerPlanApiIpc", () => {
     expect(() => test({}, connection())).not.toThrow();
     expect(plan.testConnection).toHaveBeenCalledWith(connection());
   });
+
+  it("derives the SSH loopback URL at the IPC boundary", () => {
+    const handlers = new Map<string, Handler>(); const plan = runtime();
+    registerPlanApiIpc(fakeIpc(handlers), plan);
+    const test = handlers.get("plan-api:test-connection")!;
+    const input = {
+      ...connection(),
+      mode: "ssh",
+      baseUrl: "",
+      sshTarget: "hermes-plan",
+    };
+
+    expect(() => test({}, input)).not.toThrow();
+    expect(plan.testConnection).toHaveBeenCalledWith({
+      ...input,
+      baseUrl: "http://127.0.0.1:8743",
+    });
+  });
 });

@@ -2,6 +2,10 @@
  * 模块用途：渲染单个周期计划日期条目的标题、摘要和 Markdown 编辑字段。
  * 模块边界：只上报字段变更和移除动作，不生成 CyclePlan JSON。
  */
+// [待删除-2026-07-15]
+// 原用途：服务周期任务手动编辑抽屉中的日期条目表单。
+// 替代方案：日期条目由 AI 提案中的 cyclePlan.create.draft.entries 生成。
+// 删除条件：用户确认 0.1.3-test.6 后与旧编辑抽屉一并删除。
 import { Trash2 } from "lucide-react";
 import { IconButton } from "../../components/buttons";
 import type { CyclePlanEntryDraft } from "./cyclePlanDraft";

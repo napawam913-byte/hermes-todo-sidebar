@@ -2,6 +2,10 @@
  * 模块用途：把待办纯函数、仓储和 React 状态连接起来，供桌宠面板使用。
  * 模块边界：只管理前端待办状态，不直接调用 Hermes、飞书或 Windows 通知。
  */
+// [待删除-2026-07-15]
+// 原用途：由 renderer store 直接保存普通待办数组。
+// 替代方案：AppMutationGateway + useAppMutationStore 统一执行操作、校验和原子保存。
+// 删除条件：用户确认 0.1.3-test.4 手动 CRUD 与重启持久化稳定后再请求许可。
 import { useCallback, useState } from "react";
 import { completeTodo, createTodoDraft, snoozeTodo } from "./todoModel";
 import type { Todo, TodoMutationResult } from "./types";
@@ -17,6 +21,7 @@ interface TodoStoreState {
   todos: Todo[];
   addTodo(title: string, remindAt?: Date): TodoMutationResult;
   completeTodo(todo: Todo): TodoMutationResult;
+  hydrateTodos(todos: Todo[]): void;
   snoozeTodo(todo: Todo, minutes: number): TodoMutationResult;
 }
 
@@ -76,10 +81,15 @@ export function useTodoStore(options: UseTodoStoreOptions): TodoStoreState {
     [commitTodos]
   );
 
+  const hydrateTodos = useCallback((nextTodos: Todo[]) => {
+    setTodos(nextTodos);
+  }, []);
+
   return {
     todos,
     addTodo,
     completeTodo: completeExistingTodo,
+    hydrateTodos,
     snoozeTodo: snoozeExistingTodo
   };
 }

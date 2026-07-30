@@ -2,6 +2,10 @@
  * 模块用途：在手动编辑表单草稿与统一 CyclePlan v2 JSON 之间进行纯数据转换。
  * 模块边界：只生成 generic.note Markdown 块并保留未知专业块，不操作 React 或仓储。
  */
+// [待删除-2026-07-15]
+// 原用途：转换周期任务手动编辑草稿，并兼容旧 renderer store。
+// 替代方案：AI 提案合同与 AppMutationGateway 统一生成和保存周期任务。
+// 删除条件：用户确认 0.1.3-test.6，且旧 cyclePlanStore 获准删除后再一并清理。
 import {
   CYCLE_PLAN_SCHEMA_VERSION,
   type CyclePlan,

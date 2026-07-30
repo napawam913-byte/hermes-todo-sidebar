@@ -12,9 +12,10 @@
 @import "./pet-sprite.css";
 @import "./pet-drag.css";
 @import "./detail-page.css";
-@import "./appearance-settings.css";
+@import "./responsive-panel.css";
 @import "./settings-shell.css";
 @import "./data-service-settings.css";
+@import "./appearance-settings.css";
 @import "./todo-panel.css";
 @import "./todo-detail.css";
 @import "./todo-state.css";
@@ -26,6 +27,7 @@
 @import "./ai-planner.css";
 @import "./ai-flow-nav.css";
 @import "./ai-conversation.css";
+@import "./ai-onboarding.css";
 @import "./ai-composer.css";
 @import "./ai-proposal.css";
 @import "./ai-execution.css";

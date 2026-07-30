@@ -56,11 +56,22 @@ function parseConnectionInput(value: unknown): PlanApiConnectionInput {
   const keys = ["mode", "baseUrl", "sshTarget", "localPort", "remotePort", "desktopToken"];
   if (Object.keys(input).length !== keys.length || keys.some((key) => !(key in input))) throw new Error("连接配置字段无效");
   if (input.mode !== "local" && input.mode !== "ssh") throw new Error("连接模式无效");
-  if (typeof input.baseUrl !== "string" || !validUrl(input.baseUrl)) throw new Error("服务地址无效");
+  if (typeof input.baseUrl !== "string") throw new Error("服务地址无效");
   if (typeof input.sshTarget !== "string" || input.mode === "ssh" && !input.sshTarget.trim()) throw new Error("SSH 目标无效");
   if (!port(input.localPort) || !port(input.remotePort)) throw new Error("端口无效");
   if (typeof input.desktopToken !== "string") throw new Error("令牌无效");
-  return { mode: input.mode, baseUrl: input.baseUrl, sshTarget: input.sshTarget, localPort: input.localPort, remotePort: input.remotePort, desktopToken: input.desktopToken };
+  const baseUrl = input.mode === "ssh"
+    ? `http://127.0.0.1:${input.localPort}`
+    : input.baseUrl;
+  if (!validUrl(baseUrl)) throw new Error("服务地址无效");
+  return {
+    mode: input.mode,
+    baseUrl,
+    sshTarget: input.sshTarget,
+    localPort: input.localPort,
+    remotePort: input.remotePort,
+    desktopToken: input.desktopToken,
+  };
 }
 function port(value: unknown): value is number { return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 65535; }
 function validUrl(value: string): boolean {

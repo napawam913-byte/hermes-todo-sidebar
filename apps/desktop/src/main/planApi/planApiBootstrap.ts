@@ -4,6 +4,7 @@ import type { AppMutationBatch } from "../../shared/appMutationTypes.js";
 import type {
   PlanApiConnectionInput,
   PlanApiMigrationInspection,
+  PlanApiPublicConfig,
   PlanApiSnapshotEnvelope,
 } from "../../shared/planApiBridgeContract.js";
 import type { AppStateService } from "../storage/appStateService.js";
@@ -22,6 +23,7 @@ export interface PlanApiBootstrapOptions { ipc: IpcMain; userDataDirectory: stri
 export interface RegisteredPlanApiRuntime {
   initialize(): Promise<PlanApiSnapshotEnvelope>;
   shutdown(): Promise<void>;
+  getPublicConfig(): Promise<PlanApiPublicConfig>;
   getStoredSnapshot(): Promise<StoredAppStateV1>;
   execute(batch: AppMutationBatch): Promise<StoredAppStateV1>;
   refresh(): Promise<PlanApiSnapshotEnvelope>;
@@ -97,7 +99,7 @@ export function registerPlanApiRuntime(options: PlanApiBootstrapOptions): Regist
   };
   const removeIpc = registerPlanApiIpc(options.ipc, port, options.publish);
   return {
-    initialize: () => runtime.initialize(), getStoredSnapshot: () => runtime.getStoredSnapshot(), execute: (batch) => runtime.execute(batch), refresh: () => runtime.refresh(),
+    initialize: () => runtime.initialize(), getPublicConfig: () => connections.getPublicConfig(), getStoredSnapshot: () => runtime.getStoredSnapshot(), execute: (batch) => runtime.execute(batch), refresh: () => runtime.refresh(),
     async shutdown() { removeIpc(); await runtime.shutdown(); },
   };
 }

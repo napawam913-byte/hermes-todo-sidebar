@@ -46,7 +46,7 @@ describe("DataServiceSettings", () => {
     expect(html).not.toContain("数据管理");
   });
 
-  it("clears a submitted token while save is pending and keeps non-secret drafts after failure", async () => {
+  it("keeps a submitted token while save is pending or fails", async () => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     let finishSave: (saved: boolean) => void = () => { throw new Error("保存尚未开始"); };
     const saveConnection = vi.fn((_input) => new Promise<boolean>((resolve) => { finishSave = resolve; }));
@@ -94,13 +94,13 @@ describe("DataServiceSettings", () => {
     expect(dataService.saveConnection).toHaveBeenLastCalledWith(expect.objectContaining({
       baseUrl: "http://127.0.0.1:9000", desktopToken: "top-secret"
     }));
-    expect(container.querySelector<HTMLInputElement>('input[name="desktopToken"]')?.value).toBe("");
+    expect(container.querySelector<HTMLInputElement>('input[name="desktopToken"]')?.value).toBe("top-secret");
     expect(container.querySelector<HTMLInputElement>('input[name="baseUrl"]')?.value).toBe("http://127.0.0.1:9000");
     await act(async () => {
       finishSave(false);
       await Promise.resolve();
     });
-    expect(container.querySelector<HTMLInputElement>('input[name="desktopToken"]')?.value).toBe("");
+    expect(container.querySelector<HTMLInputElement>('input[name="desktopToken"]')?.value).toBe("top-secret");
     expect(container.querySelector<HTMLInputElement>('input[name="baseUrl"]')?.value).toBe("http://127.0.0.1:9000");
     expect(dataService.saveConnection).toHaveBeenCalledOnce();
     await act(async () => { findButton("确认迁移")?.click(); });
@@ -111,6 +111,48 @@ describe("DataServiceSettings", () => {
       await Promise.resolve();
     });
     expect(dataService.migrateLegacyState).toHaveBeenCalledOnce();
+    await act(async () => { root.unmount(); });
+    container.remove();
+  });
+
+  it("derives the SSH loopback URL when the public config has no base URL", async () => {
+    (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    const testConnection = vi.fn(async () => ({
+      ok: true as const, message: "connected", apiVersion: 1 as const, serverRevision: 1
+    }));
+    const dataService = controller({
+      config: {
+        schemaVersion: 1, configured: false, mode: "local", baseUrl: "",
+        sshTarget: "", localPort: 8743, remotePort: 8743,
+        tokenConfigured: false, tokenHint: ""
+      },
+      testConnection
+    });
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+    const setValue = async (name: string, value: string) => {
+      const input = container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
+      if (!input) throw new Error(`missing ${name}`);
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(input, value);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+    };
+
+    await act(async () => { root.render(<DataServiceSettings dataService={dataService} />); });
+    const modeButtons = container.querySelectorAll<HTMLButtonElement>(".data-service-mode button");
+    await act(async () => { modeButtons[1]?.click(); });
+    await setValue("sshTarget", "hermes-plan");
+    await setValue("desktopToken", "desktop-token");
+    const testButton = container.querySelector<HTMLButtonElement>('.data-service-actions button[type="button"]');
+    await act(async () => { testButton?.click(); });
+
+    expect(testConnection).toHaveBeenCalledWith(expect.objectContaining({
+      mode: "ssh",
+      baseUrl: "http://127.0.0.1:8743",
+      localPort: 8743
+    }));
     await act(async () => { root.unmount(); });
     container.remove();
   });
@@ -154,8 +196,8 @@ describe("DataServiceSettings", () => {
     const blocked = renderToStaticMarkup(<DataServiceSettings dataService={controller({ migration: { status: "blocked", reason: "remote_not_empty" } })} />);
     const preview = renderToStaticMarkup(<DataServiceSettings />);
 
-    expect(pending).toContain("正在恢复迁移");
-    expect(pending).not.toContain("确认迁移");
+    expect(pending).toContain("迁移尚未完成");
+    expect(pending).toContain("继续迁移");
     expect(completed).toContain("迁移已完成");
     expect(skipped).toContain("已保留云端数据");
     expect(blocked).toContain("保留云端数据");

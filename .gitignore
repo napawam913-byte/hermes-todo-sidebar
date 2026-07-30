@@ -9,6 +9,7 @@ coverage/
 .env
 .env.*
 !.env.example
+/data/
 
 # 日志与临时文件
 *.log
@@ -16,6 +17,11 @@ coverage/
 *.temp
 .cache/
 .worktrees/
+artifacts/character-runs/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
 
 # 编辑器与系统文件
 .idea/

@@ -12,7 +12,7 @@ describe("Windows packaging resources", () => {
       readFileSync(new URL("../../../../package.json", import.meta.url), "utf8")
     );
 
-    expect(packageJson.version).toBe("0.2.0-test.2");
+    expect(packageJson.version).toBe("0.2.0-test.5");
   });
 
   it("uses a checked-in ICO file instead of converting PNG during packaging", () => {

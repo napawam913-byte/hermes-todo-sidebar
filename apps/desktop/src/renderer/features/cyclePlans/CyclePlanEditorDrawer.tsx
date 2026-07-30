@@ -2,6 +2,10 @@
  * 模块用途：在同一面板详情页中创建或编辑周期计划及其日期条目。
  * 模块边界：只管理表单草稿并返回统一 CyclePlan，不直接访问仓储。
  */
+// [待删除-2026-07-15]
+// 原用途：手动创建和编辑周期任务内容。
+// 替代方案：周期任务统一通过 AI 标准 JSON 提案创建或调整。
+// 删除条件：用户确认 0.1.3-test.6 的 API 创建与调整流程稳定后再请求许可。
 import { Plus, Save, X } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { DetailPageShell } from "../../components/DetailPageShell";
@@ -11,10 +15,11 @@ import { CyclePlanEntryFields } from "./CyclePlanEntryFields";
 import type { CyclePlan } from "./cyclePlanTypes";
 
 interface CyclePlanEditorDrawerProps {
+  busy: boolean;
   dateKey: string;
   plan?: CyclePlan;
   onClose: () => void;
-  onSave: (plan: CyclePlan) => void;
+  onSave: (plan: CyclePlan) => Promise<boolean>;
 }
 
 function createId(): string {
@@ -40,9 +45,10 @@ export function CyclePlanEditorDrawer(props: CyclePlanEditorDrawerProps) {
     }));
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    props.onSave(saveCyclePlanDraft(draft, {
+    if (props.busy) return;
+    await props.onSave(saveCyclePlanDraft(draft, {
       existingPlan: props.plan,
       idFactory: createId,
       now: new Date()
@@ -77,8 +83,10 @@ export function CyclePlanEditorDrawer(props: CyclePlanEditorDrawerProps) {
           ))}
         </div>
         <footer className="cycle-editor-footer">
-          <QuietButton icon={<X size={16} />} onClick={props.onClose}>取消</QuietButton>
-          <PrimaryButton icon={<Save size={16} />} type="submit">保存计划</PrimaryButton>
+          <QuietButton disabled={props.busy} icon={<X size={16} />} onClick={props.onClose}>取消</QuietButton>
+          <PrimaryButton disabled={props.busy} icon={<Save size={16} />} type="submit">
+            {props.busy ? "保存中" : "保存计划"}
+          </PrimaryButton>
         </footer>
       </form>
     </DetailPageShell>

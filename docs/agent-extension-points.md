@@ -1,12 +1,12 @@
 # Agent 扩展点说明
 
-这份文档说明未来 Agent 能力如何接入桌宠待办项目。当前阶段只预留接口和测试，不做真实模型调用。
+这份文档说明未来 Agent 能力如何接入桌宠待办项目。当前 `features/agent` 仍只预留接口；`0.1.3` 的真实模型调用属于独立 AI 提案层，不代表 Hermes Agent 已接入。
 
 ## 设计边界
 
 - 桌面端负责：输入用户意图、整理待办上下文、展示 Agent 建议、等待用户确认。
 - Hermes 负责：Agent 推理、长期任务、飞书机器人、多维表格记录、联网操作。
-- Electron 本地不保存模型密钥，不直接调用飞书。
+- 当前直连测试版会用 Electron `safeStorage` 加密保存模型 API Key；未来切换 Hermes Agent 后，桌面端不再保存模型供应商密钥，也不直接调用飞书。
 - Agent 返回的内容默认只是建议，不直接修改待办。
 
 ## 前端预留模块
@@ -24,7 +24,7 @@
 - `agentContext.ts`：从待办列表提取最小上下文；第一版主要使用标题和状态，后续提醒启用后可补充提醒时间和稍后次数。
 - `agentClient.ts`：定义 `AgentClient` 接口；当前禁用态不联网。
 - `agentActionRegistry.ts`：维护 Agent 可建议动作白名单，以及是否需要用户确认。
-- `cyclePlan.createDraft`：允许 Hermes 返回统一周期计划草稿，但桌面端接收前必须由用户确认。
+- `cyclePlan.createDraft`：早期 Agent 动作预留，当前运行时不使用；未来 Hermes 适配器必须先转换为 `AiMutationProposal v1` 的 `cyclePlan.create`。
 
 ## 主进程预留模块
 
@@ -40,20 +40,19 @@
 
 ## 未来数据流
 
-1. 用户在桌宠面板输入自然语言，例如“帮我安排今天的待办”。
-2. 前端生成 `AgentIntent`。
-3. `agentContext.ts` 从当前待办生成 `AgentContextSnapshot`。
-4. `AgentClient` 把意图和上下文交给 Hermes Agent。
-5. Hermes 返回 `AgentProposal[]`。
-6. 前端展示建议，不直接执行。
-7. 普通建议转换为待办操作；周期计划建议必须符合 v2 数据合同。
-8. 用户确认周期计划草稿后，才允许进入本地计划仓储。
-9. 待办和计划修改继续走本地持久化与 Hermes 同步队列。
+1. 用户从周期任务页发起创建或指定计划调整。
+2. 桌面端整理 `AiGenerationContext` 与当前本地数据快照。
+3. `AgentClient` 把意图和上下文交给 Hermes Agent。
+4. Hermes 返回 `AiMutationProposal v1`，不返回可直接执行的自由工具调用。
+5. 主进程校验创建/调整作用域、JSON Schema 和目标版本。
+6. 前端展示整批建议，不直接执行。
+7. 用户确认后由现有 `AppMutationExecutor` 原子写入本地数据。
+8. 执行后的事件再进入 Hermes 同步队列和飞书记录流程。
 
 ## 安全默认值
 
 - `todo.create`、`todo.complete`、`todo.snooze` 都需要用户确认。
-- `cyclePlan.createDraft` 需要用户确认，且默认只接收 `draft/candidate` 状态。
+- 旧 `cyclePlan.createDraft` 不能直接写入，必须转换成 `cyclePlan.create` 提案并经过预览确认。
 - `plan.today` 只生成计划建议，不修改待办，因此不需要写入确认。
 - 未知动作默认拒绝。
 - 不把 `notes`、`syncStatus`、完整 UI 状态传给 Agent。

@@ -43,7 +43,7 @@ export interface MigrationPresentation {
   detail: string;
   tone: "neutral" | "failure" | "success";
   busy: boolean;
-  action?: "确认迁移";
+  action?: "确认迁移" | "继续迁移";
   canKeepRemote: boolean;
 }
 
@@ -62,10 +62,11 @@ export function getMigrationPresentation(
   }
   if (migration.status === "pending") {
     return {
-      title: "正在恢复迁移",
-      detail: "请等待当前迁移完成后再继续操作。",
+      title: "迁移尚未完成",
+      detail: "上次迁移未完成，可以使用原幂等键安全继续。",
       tone: "neutral",
-      busy: true,
+      busy: false,
+      action: "继续迁移",
       canKeepRemote: false
     };
   }

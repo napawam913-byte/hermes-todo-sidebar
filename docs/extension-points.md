@@ -34,7 +34,18 @@ Hermes 未来直接提交完整计划草稿；桌面端不运行领域专用计�
 - `features/sync/syncQueue.ts`
 - `features/sync/syncTypes.ts`
 
-当前 client 为禁用态，不联网。飞书消息与多维表格应由 Hermes 代理，桌面端不保存模型或飞书密钥。
+当前同步 client 仍为禁用态，不连接 Hermes 或飞书。飞书消息与多维表格以后应由 Hermes 代理，桌面端始终不保存飞书密钥。
+
+## 大模型直连
+
+当前测试版已经提供独立于 Agent 预留层的直连能力：
+
+- `src/main/ai/`：安全配置、OpenAI 兼容客户端、提案校验和原子执行。
+- `src/shared/aiMutationTypes.ts`：renderer 与主进程共用的变更提案合同。
+- `features/ai/`：配置、自然语言对话、提案预览和执行结果 UI。
+- `window.hermesAi`：preload 暴露的最小 IPC 白名单。
+
+直连模式用 Electron `safeStorage` 加密保存 API Key，renderer 只能读取脱敏配置。完整流程见 `docs/ai-direct-model-contract.md`。未来接入 Hermes 时替换模型客户端，保留提案、确认和执行合同。
 
 ## Agent
 
@@ -47,7 +58,7 @@ Hermes 未来直接提交完整计划草稿；桌面端不运行领域专用计�
 - `src/main/agent/agentBridge.ts`
 - `src/main/agent/agentPermissionPolicy.ts`
 
-未来流程固定为：用户意图 → 最小待办上下文 → Hermes 建议 → 用户确认 → 白名单动作 → 本地保存与同步队列。所有写操作默认需要确认。
+未来流程固定为：用户意图 → 待办上下文 → Hermes 变更提案 → 用户确认 → 白名单动作 → 本地原子保存与同步队列。所有写操作默认需要确认。
 
 ## 系统提醒
 

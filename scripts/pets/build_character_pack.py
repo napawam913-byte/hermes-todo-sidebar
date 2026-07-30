@@ -1,4 +1,4 @@
-"""Build a seven-row CharacterPack candidate from approved transparent strips."""
+"""构建 CharacterPack V3 十四行动作候选包，并暂留待删除的 V2 兼容入口。"""
 
 from __future__ import annotations
 
@@ -7,12 +7,21 @@ import json
 from pathlib import Path
 from statistics import median
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
+
+from background_cleanup import to_transparent_rgba
+from character_pack_v3 import (
+    ATLAS_HEIGHT,
+    ATLAS_WIDTH,
+    STATE_SPECS as V3_STATE_SPECS,
+    build_manifest as build_v3_manifest,
+)
 
 FRAME_COUNT = 6
 CELL_WIDTH, CELL_HEIGHT = 192, 208
 RENDER_WIDTH, RENDER_HEIGHT = 88, 96
-TARGET_HEIGHT, MAX_WIDTH, BASELINE = 184, 178, 198
+TARGET_HEIGHT, MAX_WIDTH, BASELINE = 184, 178, 199
+# [待删除-2026-07-21] V2 七行动作表；V3 验收后连同旧构建入口删除。
 STATES = (
     ("idle", 1290, True), ("awaken", 910, False),
     ("drag-down", 600, True), ("drag-up", 600, True),
@@ -27,6 +36,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--name", required=True)
     parser.add_argument("--strips-dir", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
+    parser.add_argument("--mirror-left", action="store_true")
     return parser.parse_args()
 
 
@@ -53,7 +63,11 @@ def split_poses(image: Image.Image) -> list[Image.Image]:
 def normalize_row(source: Path) -> list[Image.Image]:
     if not source.is_file():
         raise ValueError(f"缺少透明动作条：{source.name}")
-    slots = split_poses(Image.open(source).convert("RGBA"))
+    with Image.open(source) as opened:
+        image = to_transparent_rgba(opened)
+    if image.getchannel("A").getextrema()[0] != 0:
+        raise ValueError(f"动作条背景不透明：{source.name}")
+    slots = split_poses(image)
     boxes = [slot.getchannel("A").getbbox() for slot in slots]
     if any(box is None for box in boxes):
         raise ValueError(f"动作条包含空帧：{source.name}")
@@ -75,6 +89,7 @@ def normalize_row(source: Path) -> list[Image.Image]:
     return frames
 
 
+# [待删除-2026-07-21] V2 七行候选包构建器；当前 CLI 已切换到 V3。
 def build_outputs(args: argparse.Namespace, rows: dict[str, list[Image.Image]]) -> None:
     candidate = args.output_dir / "candidate"
     qa = args.output_dir / "qa"
@@ -109,6 +124,7 @@ def checkerboard(size: tuple[int, int]) -> Image.Image:
     return image
 
 
+# [待删除-2026-07-21] V2 Manifest 构建器；仅为旧工具兼容暂留。
 def build_manifest(args: argparse.Namespace) -> dict[str, object]:
     clip = lambda row, duration, loop=True: {
         "row": row, "frames": 6, "durationMs": duration, "loop": loop
@@ -125,11 +141,63 @@ def build_manifest(args: argparse.Namespace) -> dict[str, object]:
     }
 
 
+def build_candidate(
+    character_id: str,
+    display_name: str,
+    strips_dir: Path,
+    output_dir: Path,
+    mirror_left: bool = False,
+) -> Path:
+    """装配十四行图集、缩略图、联系表和逐状态预览。"""
+    rows: dict[str, list[Image.Image]] = {}
+    for state, _, _, _ in V3_STATE_SPECS:
+        source = strips_dir / f"{state}-transparent.png"
+        if state == "drag-left" and mirror_left and not source.is_file():
+            if "drag-right" not in rows:
+                raise ValueError("镜像左行动作前必须先读取右行动作")
+            rows[state] = [ImageOps.mirror(frame) for frame in rows["drag-right"]]
+        else:
+            rows[state] = normalize_row(source)
+
+    candidate = output_dir / "candidate"
+    qa = output_dir / "qa"
+    previews = qa / "previews"
+    candidate.mkdir(parents=True, exist_ok=True)
+    previews.mkdir(parents=True, exist_ok=True)
+    atlas = Image.new("RGBA", (ATLAS_WIDTH, ATLAS_HEIGHT), (0, 0, 0, 0))
+    for row_index, (state, _, duration, loops) in enumerate(V3_STATE_SPECS):
+        frames = rows[state]
+        for column, frame in enumerate(frames):
+            atlas.alpha_composite(frame, (column * CELL_WIDTH, row_index * CELL_HEIGHT))
+        frames[0].save(
+            previews / f"{state}.webp",
+            save_all=True,
+            append_images=frames[1:],
+            duration=max(1, round(duration / FRAME_COUNT)),
+            loop=0 if loops else 1,
+            lossless=True,
+            method=6,
+        )
+    atlas.save(candidate / "atlas.webp", lossless=True, method=6)
+    rows["idle-base"][0].resize((RENDER_WIDTH, RENDER_HEIGHT), Image.Resampling.LANCZOS).save(
+        candidate / "thumbnail.webp", lossless=True, method=6
+    )
+    contact_sheet = checkerboard(atlas.size)
+    contact_sheet.alpha_composite(atlas)
+    contact_sheet.save(qa / "contact-sheet.png", optimize=True)
+    (candidate / "character.json").write_text(
+        json.dumps(build_v3_manifest(character_id, display_name), ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return candidate
+
+
 def main() -> None:
     args = parse_args()
-    rows = {state: normalize_row(args.strips_dir / f"{state}-transparent.png")
-            for state, _, _ in STATES}
-    build_outputs(args, rows); print(args.output_dir / "candidate")
+    candidate = build_candidate(
+        args.id, args.name, args.strips_dir, args.output_dir, args.mirror_left
+    )
+    print(candidate)
 
 
 if __name__ == "__main__":

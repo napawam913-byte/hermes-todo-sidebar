@@ -10,6 +10,7 @@ describe("CyclePlanEditorDrawer", () => {
   it("renders a reusable manual plan form", () => {
     const html = renderToStaticMarkup(
       <CyclePlanEditorDrawer
+        busy={false}
         dateKey="2026-07-12"
         onClose={vi.fn()}
         onSave={vi.fn()}

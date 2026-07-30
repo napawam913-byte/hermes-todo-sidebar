@@ -18,7 +18,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { configureLaunchAtLogin, ensureSingleInstance } from "./lifecycle/appLifecycle.js";
-import { registerAiRuntime } from "./ai/aiBootstrap.js";
+import { registerAiRuntime, type RegisteredAiRuntime } from "./ai/aiBootstrap.js";
 import { createAiDataPorts } from "./ai/aiDataPorts.js";
 import { reportBootstrapFailure, runBootstrapSequence } from "./lifecycle/bootstrapFailure.js";
 import { createDataTransferActions } from "./lifecycle/dataTransferController.js";
@@ -44,6 +44,7 @@ if (runtimeChannel === "test") {
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let petController: PetWindowController | null = null;
+let aiRuntime: RegisteredAiRuntime | null = null;
 let planApiRuntime: RegisteredPlanApiRuntime | null = null;
 let isQuitting = false;
 
@@ -159,9 +160,10 @@ async function initializePlanApi(): Promise<PreparedDesktopRuntime> {
 
 function registerAiDataRuntime({ runtime }: PreparedDesktopRuntime) {
   const aiDataPorts = createAiDataPorts(runtime);
-  registerAiRuntime(ipcMain, {
+  aiRuntime = registerAiRuntime(ipcMain, {
     ...aiDataPorts,
-    userDataDirectory: app.getPath("userData")
+    userDataDirectory: app.getPath("userData"),
+    resolvePlanApiConfig: () => runtime.getPublicConfig()
   });
 }
 
@@ -210,7 +212,7 @@ if (ensureSingleInstance(app)) {
 }
 
 const beforePlanApiQuit = createPlanApiBeforeQuitHandler(() => planApiRuntime, () => app.quit());
-app.on("before-quit", (event) => { isQuitting = true; beforePlanApiQuit(event); });
+app.on("before-quit", (event) => { isQuitting = true; aiRuntime?.shutdown(); beforePlanApiQuit(event); });
 app.on("window-all-closed", () => {
   // Windows 正式版保持托盘进程存活，仅托盘“退出”结束应用。
 });
